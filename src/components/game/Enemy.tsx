@@ -53,7 +53,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
       className="absolute z-10"
       style={{
         left: screenX,
-        bottom: 480 - enemy.y - enemy.height,
+        bottom: 280 - enemy.y - enemy.height,
         width: enemy.width,
         height: enemy.height,
       }}

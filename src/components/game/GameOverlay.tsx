@@ -41,9 +41,9 @@ export const GameOverlay = ({ phase, score, distance, currentWave, maxWaves, onS
                 BIG NOSE HERO
               </motion.h1>
               
-              <p className="text-xl text-gray-300 max-w-md mx-auto">
+              <p className="text-lg text-gray-300 max-w-md mx-auto">
                 🎁 Each gift = One action!<br />
-                <span className="text-cyan-400">🌹 Forward • 🍦 Up • 🍩 Down • 🫰 Shoot</span>
+                <span className="text-cyan-400">🌹 Move • 🫰 Shoot • 🧢 Armor • 💐 Heal • 🌌 Magic</span>
               </p>
 
               <div className="text-sm text-yellow-400 font-bold">

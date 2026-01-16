@@ -1,12 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   GameState, Player, Enemy, Projectile, Particle, GiftEvent, GiftAction, 
-  Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS, TIKTOK_GIFTS,
-  FlyingRobot, Chicken, NeonLight, Explosion
+  Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS,
+  FlyingRobot
 } from '@/types/game';
 
 const GRAVITY = 0; // No gravity - static line
-const GROUND_Y = 200; // Fixed Y position for static line
+const GROUND_Y = 100; // Fixed Y position for static line (adjusted for 280px arena)
 const PLAYER_WIDTH = 64;
 const PLAYER_HEIGHT = 80;
 const BASE_LEVEL_LENGTH = 2000;
@@ -73,8 +73,6 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   
   const levelLength = Math.min(BASE_LEVEL_LENGTH * Math.pow(1.4, wave - 1), 40000);
   const enemyDensity = 180 + Math.max(0, 50 - wave * 3);
-  
-  const enemyTypes: Enemy['type'][] = ['robot', 'drone', 'mech', 'ninja', 'tank', 'flyer'];
   
   for (let x = 300; x < levelLength - 600; x += enemyDensity + Math.random() * 80) {
     const typeRoll = Math.random();
@@ -389,7 +387,7 @@ export const useGameState = () => {
 
     const gameLoop = () => {
       const now = Date.now();
-      let delta = Math.min((now - lastUpdateRef.current) / 1000, 0.05);
+      const delta = Math.min((now - lastUpdateRef.current) / 1000, 0.05);
       lastUpdateRef.current = now;
 
       setGameState(prev => {
@@ -475,7 +473,6 @@ export const useGameState = () => {
           .filter(p => p.x < prev.cameraX + 1000);
         
         // Projectile-enemy collisions
-        const hitEnemies = new Set<string>();
         const hitProjectiles = new Set<string>();
         
         newState.projectiles.forEach(proj => {
@@ -488,7 +485,6 @@ export const useGameState = () => {
               proj.y < enemy.y + enemy.height &&
               proj.y + 8 > enemy.y
             ) {
-              hitEnemies.add(enemy.id);
               hitProjectiles.add(proj.id);
               
               const enemyIdx = newState.enemies.findIndex(e => e.id === enemy.id);
@@ -541,7 +537,7 @@ export const useGameState = () => {
           .filter(e => !e.isDying || e.deathTimer > 0);
         
         // Move enemies toward player - PREVENT OVERLAP
-        const minSpacing = 50; // Minimum spacing between enemies
+        const minSpacing = 50;
         newState.enemies = newState.enemies.map((enemy, idx) => {
           if (enemy.isDying) return enemy;
           
@@ -601,9 +597,7 @@ export const useGameState = () => {
           }))
           .filter(p => p.life > 0);
         
-        // ===== CHAOS ELEMENTS =====
-        
-        // Flying robots
+        // Flying robots (background decoration)
         newState.flyingRobots = prev.flyingRobots
           .map(robot => ({ ...robot, x: robot.x + robot.speed * delta }))
           .filter(robot => robot.x - prev.cameraX < 1200);
@@ -618,52 +612,6 @@ export const useGameState = () => {
             type: robotTypes[Math.floor(Math.random() * robotTypes.length)],
           }];
         }
-        
-        // Chickens
-        newState.chickens = prev.chickens
-          .map(chicken => {
-            let c = { ...chicken };
-            c.timer -= delta;
-            if (chicken.state === 'appearing' && chicken.timer <= 2) {
-              c.state = 'stopped'; c.timer = 1.2;
-            } else if (chicken.state === 'stopped' && chicken.timer <= 0) {
-              c.state = 'walking'; c.timer = 1.5;
-            } else if (chicken.state === 'walking' && chicken.timer <= 0) {
-              c.state = 'gone';
-            }
-            return c;
-          })
-          .filter(chicken => chicken.state !== 'gone');
-        
-        // Neon lights
-        if (Math.random() > 0.985) {
-          const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080'];
-          newState.neonLights = [...prev.neonLights, {
-            id: `neon-${Date.now()}`,
-            x: prev.cameraX - 40,
-            y: 40 + Math.random() * 200,
-            color: neonColors[Math.floor(Math.random() * neonColors.length)],
-            size: 8 + Math.random() * 15,
-            speed: 300 + Math.random() * 200,
-          }];
-        }
-        newState.neonLights = prev.neonLights
-          .map(light => ({ ...light, x: light.x + light.speed * delta }))
-          .filter(light => light.x - prev.cameraX < 1000);
-        
-        // Explosions
-        if (Math.random() > 0.993) {
-          newState.explosions = [...prev.explosions, {
-            id: `explosion-${Date.now()}`,
-            x: prev.cameraX + 150 + Math.random() * 600,
-            y: 60 + Math.random() * 150,
-            size: 30 + Math.random() * 40,
-            timer: 0.5,
-          }];
-        }
-        newState.explosions = prev.explosions
-          .map(exp => ({ ...exp, timer: exp.timer - delta }))
-          .filter(exp => exp.timer > 0);
         
         // Combo timer
         if (prev.comboTimer > 0) {
