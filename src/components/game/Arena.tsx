@@ -283,32 +283,34 @@ export const Arena = ({ gameState }: ArenaProps) => {
         
         <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
         
-        {/* Floor that hero walks on - smaller */}
+        {/* Floor - optimized visual balance */}
         <div 
-          className="absolute bottom-0 left-0 right-0 h-16 z-5"
+          className="absolute bottom-0 left-0 right-0 z-5"
           style={{
-            background: 'linear-gradient(180deg, rgba(30,30,50,0.9) 0%, rgba(15,15,30,1) 40%, #0a0a18 100%)',
-            borderTop: '2px solid rgba(0, 255, 255, 0.3)',
-            boxShadow: '0 -3px 15px rgba(0, 255, 255, 0.15), inset 0 5px 20px rgba(0,0,0,0.5)',
+            height: 50,
+            background: 'linear-gradient(180deg, rgba(20,20,40,0.95) 0%, rgba(10,10,25,1) 50%, #08080f 100%)',
+            borderTop: '2px solid rgba(0, 255, 255, 0.5)',
+            boxShadow: '0 -4px 20px rgba(0, 255, 255, 0.2), inset 0 8px 25px rgba(0,0,0,0.6)',
           }}
         >
           {/* Floor grid lines */}
           <div 
-            className="absolute inset-0 opacity-30"
+            className="absolute inset-0 opacity-25"
             style={{
               backgroundImage: `
-                linear-gradient(90deg, rgba(0,255,255,0.15) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,255,255,0.2) 1px, transparent 1px),
                 linear-gradient(0deg, rgba(0,255,255,0.1) 1px, transparent 1px)
               `,
-              backgroundSize: '40px 10px',
-              transform: `translateX(${-cameraX % 40}px)`,
+              backgroundSize: '50px 12px',
+              transform: `translateX(${-cameraX % 50}px)`,
             }}
           />
-          {/* Floor glow */}
+          {/* Floor glow line */}
           <div 
-            className="absolute top-0 left-0 right-0 h-1"
+            className="absolute top-0 left-0 right-0 h-0.5"
             style={{
-              background: 'linear-gradient(90deg, transparent, rgba(0,255,255,0.6), transparent)',
+              background: 'linear-gradient(90deg, rgba(0,255,255,0.3), rgba(0,255,255,0.8), rgba(0,255,255,0.3))',
+              boxShadow: '0 0 8px rgba(0,255,255,0.5)',
             }}
           />
           
