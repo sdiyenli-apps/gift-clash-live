@@ -929,12 +929,15 @@ export const useGameState = () => {
           .filter(p => p.x > prev.cameraX - 50);
         
         // Enemy laser-player collision - with shield block and damage flash effects
+        // Using larger hitboxes for better collision detection
         newState.enemyLasers.forEach(laser => {
+          const laserWidth = 20;
+          const laserHeight = 15;
           if (
-            laser.x < prev.player.x + PLAYER_WIDTH &&
-            laser.x + 12 > prev.player.x &&
-            laser.y < prev.player.y + PLAYER_HEIGHT &&
-            laser.y + 6 > prev.player.y
+            laser.x < prev.player.x + PLAYER_WIDTH + 5 &&
+            laser.x + laserWidth > prev.player.x - 5 &&
+            laser.y < prev.player.y + PLAYER_HEIGHT + 10 &&
+            laser.y + laserHeight > prev.player.y - 10
           ) {
             if (newState.player.shield > 0 || newState.armorTimer > 0) {
               // SHIELD BLOCK - visual feedback
@@ -958,18 +961,21 @@ export const useGameState = () => {
           }
         });
         
-        // Projectile-enemy collisions
+        // Projectile-enemy collisions - LARGER hitboxes for reliable hits
         const hitProjectiles = new Set<string>();
+        const projWidth = 25;
+        const projHeight = 20;
         
         newState.projectiles.forEach(proj => {
           newState.enemies.forEach(enemy => {
             if (hitProjectiles.has(proj.id) || enemy.isDying || enemy.isSpawning) return;
             
+            // Generous collision box for projectiles hitting enemies
             if (
-              proj.x < enemy.x + enemy.width &&
-              proj.x + 12 > enemy.x &&
-              proj.y < enemy.y + enemy.height &&
-              proj.y + 6 > enemy.y
+              proj.x < enemy.x + enemy.width + 10 &&
+              proj.x + projWidth > enemy.x - 10 &&
+              proj.y < enemy.y + enemy.height + 15 &&
+              proj.y + projHeight > enemy.y - 15
             ) {
               hitProjectiles.add(proj.id);
               
@@ -1186,22 +1192,30 @@ export const useGameState = () => {
           return { ...enemy, animationPhase: newAnimPhase, attackCooldown: Math.max(0, enemy.attackCooldown - delta) };
         });
         
-        // Player-enemy collision
+        // Player-enemy collision - with damage flash and vibration
         newState.enemies.forEach(enemy => {
-          if (enemy.isDying) return;
+          if (enemy.isDying || enemy.isSpawning) return;
           
+          // Generous collision detection
           if (
-            prev.player.x < enemy.x + enemy.width - 6 &&
-            prev.player.x + PLAYER_WIDTH - 6 > enemy.x &&
-            prev.player.y < enemy.y + enemy.height &&
-            prev.player.y + PLAYER_HEIGHT > enemy.y
+            prev.player.x < enemy.x + enemy.width &&
+            prev.player.x + PLAYER_WIDTH > enemy.x &&
+            prev.player.y < enemy.y + enemy.height + 20 &&
+            prev.player.y + PLAYER_HEIGHT > enemy.y - 20
           ) {
             if (newState.player.shield > 0 || newState.armorTimer > 0) {
               newState.player.shield = Math.max(0, newState.player.shield - enemy.damage);
-              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 6, 'spark', '#00ffff')];
+              newState.shieldBlockFlash = 1;
+              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 12, 'spark', '#00ffff')];
+              newState.screenShake = 0.2;
             } else {
               newState.player.health -= enemy.damage * delta * 2;
               newState.player.animationState = 'hurt';
+              newState.damageFlash = 0.5;
+              newState.screenShake = 0.25;
+              if (navigator.vibrate) {
+                navigator.vibrate(50);
+              }
               setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, animationState: 'idle' } })), 150);
             }
             newState.combo = 0;
