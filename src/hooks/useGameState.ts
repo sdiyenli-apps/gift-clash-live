@@ -451,11 +451,11 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero fires FORWARD from hitbox - slower projectile for visibility
+          // Hero fires FORWARD from hitbox (aim slightly lower to consistently hit ground enemies)
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
             x: prev.player.x + PLAYER_WIDTH, // Start at edge of hero hitbox
-            y: prev.player.y + PLAYER_HEIGHT / 2 + 5, // Center of hero
+            y: prev.player.y + PLAYER_HEIGHT * 0.7, // Lower than center to align with ground targets
             velocityX: 650, // SLOWER - more visible projectile speed
             velocityY: 0,
             damage: prev.player.isMagicDashing ? 120 : 50,
@@ -1093,103 +1093,109 @@ export const useGameState = () => {
           
           // JUMPING - enemies randomly jump to DODGE player lasers
           const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'flyer';
-          
+          // Boss is handled earlier in this mapper, so everything here is ground-or-flying (non-boss).
+          const baseY = GROUND_Y;
+          const currentY = isFlying ? enemy.y : baseY;
+
           // Check if a player projectile is nearby - then jump to dodge!
           const nearbyProjectile = prev.projectiles.find(p => 
             Math.abs(p.x - enemy.x) < 150 && 
-            Math.abs(p.y - (enemy.y + enemy.height / 2)) < 40
+            Math.abs(p.y - (currentY + enemy.height / 2)) < 55
           );
-          const shouldDodgeJump = !isFlying && nearbyProjectile && Math.random() > 0.4;
-          const randomJump = !isFlying && Math.random() > 0.98;
-          let jumpOffset = 0;
-          if (shouldDodgeJump || randomJump) {
-            jumpOffset = 35 + Math.random() * 50; // Jump height
-          }
-          
+          const shouldDodgeJump = !isFlying && !!nearbyProjectile && Math.random() > 0.4;
+          const randomJump = !isFlying && Math.random() > 0.985;
+
+          // IMPORTANT: Keep ground enemies anchored to baseY.
+          // Jump is represented as a temporary offset (does not accumulate into enemy.y).
+          const jumpOffset = (shouldDodgeJump || randomJump) ? (35 + Math.random() * 50) : 0;
+          const nextY = isFlying ? currentY : (baseY - jumpOffset);
+
           // BACK AND FORTH MOVEMENT - enemies move erratically
           const movementPattern = Math.sin(newAnimPhase * 3) * 0.5 + 0.5; // 0-1 oscillation
           const moveBackward = Math.random() > 0.92; // Sometimes retreat
           const moveMultiplier = moveBackward ? -0.6 : (1 + movementPattern * 0.5); // Fast forward, sometimes back
-          
+
+          const canShootDistance = Math.abs(dx) < 650;
+
           // DRONE shoots lasers MORE frequently
-          if (enemy.type === 'drone' && reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.6) {
+          if (enemy.type === 'drone' && canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.6) {
             const enemyLaser: Projectile = {
               id: `elaser-${Date.now()}-${Math.random()}`,
               x: enemy.x - 8,
-              y: enemy.y + enemy.height / 2,
+              y: currentY + enemy.height / 2,
               velocityX: -600,
-              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - enemy.y - enemy.height / 2) * 0.8,
+              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - currentY - enemy.height / 2) * 0.8,
               damage: 8,
               type: 'normal',
             };
             newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
-            return { ...enemy, attackCooldown: 0.5 + Math.random() * 0.3, animationPhase: newAnimPhase };
+            return { ...enemy, y: currentY, attackCooldown: 0.5 + Math.random() * 0.3, animationPhase: newAnimPhase };
           }
-          
+
           // NINJA teleports when close to player
           if (enemy.type === 'ninja' && Math.abs(dx) < 150 && Math.random() > 0.95) {
             // Teleport ahead of player
             const teleportX = prev.player.x + 200 + Math.random() * 150;
-            newState.particles = [...newState.particles, ...createParticles(enemy.x, enemy.y, 10, 'magic', '#8800ff')];
+            newState.particles = [...newState.particles, ...createParticles(enemy.x, currentY, 10, 'magic', '#8800ff')];
             newState.particles = [...newState.particles, ...createParticles(teleportX, GROUND_Y, 10, 'magic', '#8800ff')];
-            return { ...enemy, x: teleportX, animationPhase: newAnimPhase, attackCooldown: 0.8 };
+            return { ...enemy, x: teleportX, y: GROUND_Y, animationPhase: newAnimPhase, attackCooldown: 0.8 };
           }
-          
+
           // MECH and TANK shoot bullets MORE frequently
-          if ((enemy.type === 'mech' || enemy.type === 'tank') && reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.65) {
+          if ((enemy.type === 'mech' || enemy.type === 'tank') && canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.65) {
             const enemyBullet: Projectile = {
               id: `ebullet-${Date.now()}-${Math.random()}`,
               x: enemy.x - 8,
-              y: enemy.y + enemy.height / 2,
+              y: currentY + enemy.height / 2,
               velocityX: enemy.type === 'tank' ? -350 : -450,
-              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - enemy.y - enemy.height / 2) * 0.5,
+              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - currentY - enemy.height / 2) * 0.5,
               damage: enemy.type === 'tank' ? 12 : 8,
               type: 'normal',
             };
             newState.enemyLasers = [...newState.enemyLasers, enemyBullet];
-            return { ...enemy, attackCooldown: enemy.type === 'tank' ? 1.5 : 1.0, animationPhase: newAnimPhase };
+            return { ...enemy, y: currentY, attackCooldown: enemy.type === 'tank' ? 1.5 : 1.0, animationPhase: newAnimPhase };
           }
-          
+
           // Regular enemy shooting - MORE FREQUENT
-          if (reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.7) {
+          if (canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.7) {
             const enemyLaser: Projectile = {
               id: `elaser-${Date.now()}-${Math.random()}`,
               x: enemy.x - 8,
-              y: enemy.y + enemy.height / 2,
+              y: currentY + enemy.height / 2,
               velocityX: -400,
-              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - enemy.y - enemy.height / 2) * 0.6,
+              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - currentY - enemy.height / 2) * 0.6,
               damage: 6,
               type: 'normal',
             };
             newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
-            return { ...enemy, attackCooldown: 0.8 + Math.random() * 0.5, animationPhase: newAnimPhase };
+            return { ...enemy, y: currentY, attackCooldown: 0.8 + Math.random() * 0.5, animationPhase: newAnimPhase };
           }
-          
+
           // Movement with back-and-forth pattern
           if (Math.abs(dx) < 500 && !tooClose && !reachedMinDistance) {
             const speedBoost = 1.3; // Faster movement
             return {
               ...enemy,
               x: enemy.x + direction * enemy.speed * delta * moveMultiplier * speedBoost,
-              y: jumpOffset > 0 ? enemy.y + jumpOffset : enemy.y, // Apply jump
+              y: nextY,
               animationPhase: newAnimPhase,
               attackCooldown: Math.max(0, enemy.attackCooldown - delta),
             };
           }
-          
+
           // Even at min distance, do back-and-forth
           if (reachedMinDistance) {
             const sway = Math.sin(newAnimPhase * 5) * 25 * delta; // Sway back and forth
             return {
               ...enemy,
               x: enemy.x + sway,
-              y: jumpOffset > 0 ? enemy.y + jumpOffset : enemy.y,
+              y: nextY,
               animationPhase: newAnimPhase,
               attackCooldown: Math.max(0, enemy.attackCooldown - delta),
             };
           }
-          
-          return { ...enemy, animationPhase: newAnimPhase, attackCooldown: Math.max(0, enemy.attackCooldown - delta) };
+
+          return { ...enemy, y: nextY, animationPhase: newAnimPhase, attackCooldown: Math.max(0, enemy.attackCooldown - delta) };
         });
         
         // Player-enemy collision - with damage flash and vibration
