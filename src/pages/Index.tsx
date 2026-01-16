@@ -67,7 +67,7 @@ const Index = () => {
       <header className="p-1 bg-black/80 border-b border-purple-500/30 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1">
-            <span className="text-base">👃</span>
+            <span className="text-base">🐿️</span>
             <h1 
               className="font-bold text-xs"
               style={{
@@ -76,7 +76,7 @@ const Index = () => {
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              BIG NOSE HERO
+              CAPTAIN SQUIRBERT
             </h1>
           </div>
 

@@ -8,6 +8,7 @@ import { Particles } from './Particles';
 import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
+import { MiniMap } from './MiniMap';
 
 interface ExtendedGameState extends GameState {
   fireballs?: { id: string; x: number; y: number; velocityX: number; velocityY: number; damage: number }[];
@@ -52,6 +53,15 @@ export const Arena = ({ gameState }: ArenaProps) => {
         transform: `translate(${shakeX}px, ${shakeY}px)`,
       }}
     >
+      {/* Mini-map */}
+      <MiniMap 
+        player={player}
+        enemies={enemies}
+        levelLength={levelLength}
+        princessX={levelLength - 100}
+        cameraX={cameraX}
+      />
+      
       {/* Boss HUD */}
       {bossEnemy && isBossFight && (
         <BossHUD 

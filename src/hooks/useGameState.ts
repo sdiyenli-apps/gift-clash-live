@@ -610,7 +610,7 @@ export const useGameState = () => {
           }
         }
         
-        // Magic Dash auto-actions
+        // Magic Dash auto-actions - NUKE ALL ENEMIES ON SCREEN
         if (prev.player.isMagicDashing) {
           newState.player = {
             ...newState.player,
@@ -618,44 +618,71 @@ export const useGameState = () => {
             isShooting: true,
           };
           
-          newState.player.x += 200 * delta;
+          // Fly forward faster
+          newState.player.x += 350 * delta;
           newState.player.animationState = 'dash';
           
-          const nearbyEnemies = prev.enemies
-            .filter(e => e.x > prev.player.x && e.x < prev.player.x + 500 && !e.isDying)
-            .sort((a, b) => a.x - b.x);
+          // NUKE: Kill all visible enemies while magic dashing
+          const visibleEnemies = newState.enemies.filter(e => 
+            !e.isDying && 
+            !e.isSpawning &&
+            e.x > prev.cameraX - 50 && 
+            e.x < prev.cameraX + 600
+          );
           
-          if (nearbyEnemies.length > 0 && Math.random() > 0.2) {
-            const target = nearbyEnemies[0];
-            const targetY = target.y + target.height / 2;
-            const playerY = newState.player.y + PLAYER_HEIGHT / 2;
-            
-            const magicBullet: Projectile = {
-              id: `magic-${Date.now()}-${Math.random()}`,
-              x: newState.player.x + PLAYER_WIDTH,
-              y: playerY,
-              velocityX: 1800,
-              velocityY: (targetY - playerY) * 3,
-              damage: 150,
-              type: 'ultra',
-            };
-            newState.projectiles = [...newState.projectiles, magicBullet];
-            newState.particles = [...newState.particles, ...createParticles(newState.player.x + PLAYER_WIDTH, playerY, 10, 'muzzle', '#ff00ff')];
-          }
+          visibleEnemies.forEach(enemy => {
+            if (enemy.type !== 'boss') {
+              const enemyIdx = newState.enemies.findIndex(e => e.id === enemy.id);
+              if (enemyIdx !== -1 && !newState.enemies[enemyIdx].isDying) {
+                newState.enemies[enemyIdx] = {
+                  ...newState.enemies[enemyIdx],
+                  isDying: true,
+                  deathTimer: 0.5,
+                };
+                const scoreMap: Record<string, number> = { tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70 };
+                newState.score += scoreMap[enemy.type] || 60;
+                newState.combo++;
+                newState.killStreak++;
+                
+                // Explosion particles for each enemy
+                newState.particles = [...newState.particles, ...createParticles(
+                  enemy.x + enemy.width/2, enemy.y + enemy.height/2, 
+                  20, 'explosion', '#ff00ff'
+                )];
+              }
+            } else {
+              // Boss takes heavy damage from nuke
+              const bossIdx = newState.enemies.findIndex(e => e.id === enemy.id);
+              if (bossIdx !== -1) {
+                newState.enemies[bossIdx] = {
+                  ...newState.enemies[bossIdx],
+                  health: newState.enemies[bossIdx].health - 200 * delta,
+                };
+                newState.particles = [...newState.particles, ...createParticles(
+                  enemy.x + enemy.width/2, enemy.y + enemy.height/2, 
+                  5, 'spark', '#ff00ff'
+                )];
+              }
+            }
+          });
           
-          if (Math.random() > 0.3) {
+          // Trail particles
+          if (Math.random() > 0.2) {
             newState.particles = [...newState.particles, ...createParticles(
               newState.player.x + Math.random() * PLAYER_WIDTH, 
               newState.player.y + Math.random() * PLAYER_HEIGHT, 
-              4, 'ultra', '#ff00ff'
+              6, 'ultra', '#ff00ff'
             )];
           }
+          
+          // Screen shake during nuke
+          newState.screenShake = 0.3;
           
           if (newState.player.magicDashTimer <= 0) {
             newState.player.isMagicDashing = false;
             newState.player.isShooting = false;
             newState.player.animationState = 'idle';
-            showSpeechBubble("Magic dash ended! 💫", 'normal');
+            showSpeechBubble("NUKE COMPLETE! 💥", 'excited');
           }
         }
         
@@ -849,7 +876,31 @@ export const useGameState = () => {
           const reachedMinDistance = enemy.x <= prev.player.x + ENEMY_MIN_DISTANCE;
           const newAnimPhase = (enemy.animationPhase + delta * 6) % (Math.PI * 2);
           
-          // Enemy shooting
+          // DRONE shoots lasers more frequently
+          if (enemy.type === 'drone' && reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.92) {
+            const enemyLaser: Projectile = {
+              id: `elaser-${Date.now()}-${Math.random()}`,
+              x: enemy.x - 8,
+              y: enemy.y + enemy.height / 2,
+              velocityX: -550,
+              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - enemy.y - enemy.height / 2) * 0.8,
+              damage: 8,
+              type: 'normal',
+            };
+            newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
+            return { ...enemy, attackCooldown: 1.5 + Math.random(), animationPhase: newAnimPhase };
+          }
+          
+          // NINJA teleports when close to player
+          if (enemy.type === 'ninja' && Math.abs(dx) < 150 && Math.random() > 0.97) {
+            // Teleport ahead of player
+            const teleportX = prev.player.x + 200 + Math.random() * 150;
+            newState.particles = [...newState.particles, ...createParticles(enemy.x, enemy.y, 10, 'magic', '#8800ff')];
+            newState.particles = [...newState.particles, ...createParticles(teleportX, GROUND_Y, 10, 'magic', '#8800ff')];
+            return { ...enemy, x: teleportX, animationPhase: newAnimPhase, attackCooldown: 1 };
+          }
+          
+          // Regular enemy shooting
           if (reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.96) {
             const enemyLaser: Projectile = {
               id: `elaser-${Date.now()}-${Math.random()}`,
