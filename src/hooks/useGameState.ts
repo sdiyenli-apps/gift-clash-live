@@ -2,17 +2,16 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   GameState, Player, Enemy, Projectile, Particle, GiftEvent, GiftAction, 
   Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS, TIKTOK_GIFTS,
-  FlyingRobot, Chicken, NeonLight, Explosion, CHICKEN_SOUNDS
+  FlyingRobot, Chicken, NeonLight, Explosion
 } from '@/types/game';
 
-const GRAVITY = 2200;
-const JUMP_VELOCITY = -700;
-const GROUND_Y = 380;
+const GRAVITY = 0; // No gravity - static line
+const GROUND_Y = 200; // Fixed Y position for static line
 const PLAYER_WIDTH = 64;
 const PLAYER_HEIGHT = 80;
-const BASE_LEVEL_LENGTH = 2000; // Base level length, doubles each wave
+const BASE_LEVEL_LENGTH = 2000;
 const MAX_WAVES = 1000;
-const HELP_REQUEST_DELAY = 8000; // 8 seconds
+const HELP_REQUEST_DELAY = 8000;
 
 const INITIAL_PLAYER: Player = {
   health: 100,
@@ -34,6 +33,8 @@ const INITIAL_PLAYER: Player = {
   animationFrame: 0,
   comboCount: 0,
   lastDodgeTime: 0,
+  isMagicDashing: false,
+  magicDashTimer: 0,
 };
 
 const INITIAL_STATE: GameState = {
@@ -70,44 +71,41 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const enemies: Enemy[] = [];
   const obstacles: Obstacle[] = [];
   
-  // Level length doubles each wave (capped for performance)
-  const levelLength = Math.min(BASE_LEVEL_LENGTH * Math.pow(1.5, wave - 1), 50000);
-  
-  // Enemy count scales with wave
-  const enemyDensity = 150 + Math.max(0, 50 - wave * 2); // More enemies as waves progress
+  const levelLength = Math.min(BASE_LEVEL_LENGTH * Math.pow(1.4, wave - 1), 40000);
+  const enemyDensity = 180 + Math.max(0, 50 - wave * 3);
   
   const enemyTypes: Enemy['type'][] = ['robot', 'drone', 'mech', 'ninja', 'tank', 'flyer'];
   
-  for (let x = 400; x < levelLength - 800; x += enemyDensity + Math.random() * 100) {
+  for (let x = 300; x < levelLength - 600; x += enemyDensity + Math.random() * 80) {
     const typeRoll = Math.random();
-    const waveBonus = Math.min(wave * 0.1, 2); // Wave difficulty scaling
+    const waveBonus = Math.min(wave * 0.1, 2);
     let enemyType: Enemy['type'];
     let width: number, height: number, health: number, speed: number, damage: number;
     
-    if (typeRoll > 0.92) {
+    if (typeRoll > 0.9) {
       enemyType = 'tank';
-      width = 80; height = 70; health = 180 * (1 + waveBonus); speed = 25 + wave; damage = 25;
-    } else if (typeRoll > 0.82) {
+      width = 60; height = 55; health = 150 * (1 + waveBonus); speed = 20 + wave; damage = 20;
+    } else if (typeRoll > 0.8) {
       enemyType = 'mech';
-      width = 72; height = 80; health = 100 * (1 + waveBonus); speed = 45 + wave * 2; damage = 18;
-    } else if (typeRoll > 0.7) {
+      width = 55; height = 60; health = 80 * (1 + waveBonus); speed = 35 + wave * 2; damage = 15;
+    } else if (typeRoll > 0.65) {
       enemyType = 'ninja';
-      width = 44; height = 52; health = 35 * (1 + waveBonus * 0.5); speed = 180 + wave * 5; damage = 12;
-    } else if (typeRoll > 0.55) {
+      width = 35; height = 42; health = 30 * (1 + waveBonus * 0.5); speed = 140 + wave * 4; damage = 10;
+    } else if (typeRoll > 0.5) {
       enemyType = 'drone';
-      width = 40; height = 40; health = 30 * (1 + waveBonus * 0.5); speed = 100 + wave * 3; damage = 8;
-    } else if (typeRoll > 0.4) {
+      width = 32; height = 32; health = 25 * (1 + waveBonus * 0.5); speed = 80 + wave * 2; damage = 6;
+    } else if (typeRoll > 0.35) {
       enemyType = 'flyer';
-      width = 50; height = 45; health = 40 * (1 + waveBonus * 0.5); speed = 90 + wave * 2; damage = 10;
+      width = 40; height = 36; health = 35 * (1 + waveBonus * 0.5); speed = 70 + wave * 2; damage = 8;
     } else {
       enemyType = 'robot';
-      width = 48; height = 56; health = 45 * (1 + waveBonus); speed = 65 + wave * 2; damage = 10;
+      width = 40; height = 48; health = 40 * (1 + waveBonus); speed = 50 + wave * 2; damage = 8;
     }
     
     enemies.push({
       id: `enemy-${x}-${Math.random()}`,
       x,
-      y: ['drone', 'flyer'].includes(enemyType) ? GROUND_Y - 80 - Math.random() * 100 : GROUND_Y,
+      y: GROUND_Y,
       width,
       height,
       health,
@@ -122,19 +120,19 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     });
   }
   
-  // MASSIVE SCARY BOSS at the end (every 10 waves is an extra tough boss)
+  // DRAGON BOSS at the end
   const isMegaBoss = wave % 10 === 0;
-  const bossScale = isMegaBoss ? 1.5 : 1;
+  const bossScale = isMegaBoss ? 1.3 : 1;
   enemies.push({
-    id: 'boss-omega',
-    x: levelLength - 500,
-    y: GROUND_Y - 60 * bossScale,
-    width: 200 * bossScale,
-    height: 220 * bossScale,
-    health: (1500 + wave * 200) * bossScale,
-    maxHealth: (1500 + wave * 200) * bossScale,
-    speed: 40 + wave,
-    damage: 35 + wave * 2,
+    id: 'boss-dragon',
+    x: levelLength - 400,
+    y: GROUND_Y - 40 * bossScale,
+    width: 150 * bossScale,
+    height: 160 * bossScale,
+    health: (1200 + wave * 150) * bossScale,
+    maxHealth: (1200 + wave * 150) * bossScale,
+    speed: 30 + wave,
+    damage: 30 + wave * 2,
     type: 'boss',
     isDying: false,
     deathTimer: 0,
@@ -142,58 +140,16 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     animationPhase: 0,
   });
   
-  // Generate varied obstacles including DEADLY TRAPS
-  for (let x = 500; x < levelLength - 1000; x += 250 + Math.random() * 300) {
-    const obstacleRoll = Math.random();
-    
-    if (obstacleRoll > 0.75) {
-      obstacles.push({
-        id: `platform-${x}`,
-        x,
-        y: GROUND_Y - 80 - Math.random() * 100,
-        width: 100 + Math.random() * 100,
-        height: 20,
-        type: 'platform',
-      });
-    } else if (obstacleRoll > 0.6) {
-      // DEADLY SPIKE TRAP - Must dodge with UP!
-      obstacles.push({
-        id: `spike-${x}`,
-        x,
-        y: GROUND_Y,
-        width: 60,
-        height: 30,
-        type: 'spike',
-        isDeadly: true,
-      });
-    } else if (obstacleRoll > 0.45) {
-      // DEADLY TRAP - Must dodge with UP or DOWN!
-      obstacles.push({
-        id: `trap-${x}`,
-        x,
-        y: GROUND_Y - 40 - Math.random() * 60,
-        width: 80,
-        height: 40,
-        type: 'trap',
-        isDeadly: true,
-      });
-    } else if (obstacleRoll > 0.3) {
+  // Simple obstacles (no deadly traps since no jump)
+  for (let x = 400; x < levelLength - 800; x += 300 + Math.random() * 200) {
+    if (Math.random() > 0.6) {
       obstacles.push({
         id: `crate-${x}`,
         x,
         y: GROUND_Y,
-        width: 50,
-        height: 50,
-        type: 'crate',
-      });
-    } else if (obstacleRoll > 0.15) {
-      obstacles.push({
-        id: `barrel-${x}`,
-        x,
-        y: GROUND_Y,
         width: 40,
-        height: 55,
-        type: 'barrel',
+        height: 40,
+        type: 'crate',
       });
     }
   }
@@ -208,23 +164,22 @@ export const useGameState = () => {
   const [notifications, setNotifications] = useState<GiftEvent[]>([]);
   const gameLoopRef = useRef<number | null>(null);
   const lastUpdateRef = useRef<number>(Date.now());
-  const ultraModeActionsRef = useRef<number>(0);
   const helpRequestTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const createParticles = useCallback((x: number, y: number, count: number, type: Particle['type'], color?: string): Particle[] => {
     const particles: Particle[] = [];
-    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80', '#ff4400'];
+    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
     
     for (let i = 0; i < count; i++) {
       particles.push({
         id: `particle-${Date.now()}-${Math.random()}`,
         x,
         y,
-        velocityX: (Math.random() - 0.5) * 500,
-        velocityY: (Math.random() - 0.8) * 500,
+        velocityX: (Math.random() - 0.5) * 400,
+        velocityY: (Math.random() - 0.8) * 400,
         color: color || colors[Math.floor(Math.random() * colors.length)],
-        size: 4 + Math.random() * 10,
-        life: 0.4 + Math.random() * 0.6,
+        size: 3 + Math.random() * 8,
+        life: 0.3 + Math.random() * 0.5,
         type,
       });
     }
@@ -241,43 +196,13 @@ export const useGameState = () => {
     setGameState(prev => ({ ...prev, speechBubble: bubble }));
     setTimeout(() => {
       setGameState(prev => prev.speechBubble?.id === bubble.id ? { ...prev, speechBubble: null } : prev);
-    }, 3000);
+    }, 2500);
   }, []);
 
   const requestHelp = useCallback(() => {
     const helpText = HELP_REQUESTS[Math.floor(Math.random() * HELP_REQUESTS.length)];
     showSpeechBubble(helpText, 'help');
   }, [showSpeechBubble]);
-
-  const spawnEnemy = useCallback((atX?: number): Enemy => {
-    const x = atX ?? gameState.player.x + 500 + Math.random() * 300;
-    const types: Enemy['type'][] = ['robot', 'drone', 'mech', 'ninja'];
-    const type = types[Math.floor(Math.random() * types.length)];
-    
-    const configs = {
-      robot: { width: 48, height: 56, health: 45, speed: 65, damage: 10 },
-      drone: { width: 40, height: 40, health: 30, speed: 100, damage: 8 },
-      mech: { width: 72, height: 80, health: 100, speed: 45, damage: 18 },
-      boss: { width: 200, height: 220, health: 1500, speed: 40, damage: 35 },
-      ninja: { width: 44, height: 52, health: 35, speed: 180, damage: 12 },
-      tank: { width: 80, height: 70, health: 180, speed: 25, damage: 25 },
-      flyer: { width: 50, height: 45, health: 40, speed: 90, damage: 10 },
-    };
-    
-    const config = configs[type];
-    return {
-      id: `enemy-${Date.now()}-${Math.random()}`,
-      x,
-      y: ['drone', 'flyer'].includes(type) ? GROUND_Y - 100 : GROUND_Y,
-      ...config,
-      maxHealth: config.health,
-      type,
-      isDying: false,
-      deathTimer: 0,
-      attackCooldown: 0,
-      animationPhase: 0,
-    };
-  }, [gameState.player.x]);
 
   const startGame = useCallback((wave: number = 1) => {
     const { enemies, obstacles, levelLength } = generateLevel(wave);
@@ -292,7 +217,7 @@ export const useGameState = () => {
     });
     setGiftEvents([]);
     lastUpdateRef.current = Date.now();
-    showSpeechBubble(`WAVE ${wave}! LET'S SAVE THAT PRINCESS, CHAT! 🔥`, 'excited');
+    showSpeechBubble(`WAVE ${wave}! LET'S SAVE THE PRINCESS! 🔥`, 'excited');
   }, [showSpeechBubble]);
 
   const startNextWave = useCallback(() => {
@@ -320,16 +245,7 @@ export const useGameState = () => {
     }
   }, [gameState.currentWave, showSpeechBubble]);
 
-  // Auto-dodge logic
-  const shouldAutoDodge = useCallback((playerX: number, playerY: number, enemies: Enemy[]): boolean => {
-    const dangerZone = enemies.some(enemy => 
-      !enemy.isDying && 
-      Math.abs(enemy.x - playerX) < 100 && 
-      Math.abs(enemy.y - playerY) < 80
-    );
-    return dangerZone && Math.random() > 0.7; // 30% chance to auto-dodge when in danger
-  }, []);
-
+  // Process the 5 gift actions
   const processGiftAction = useCallback((action: GiftAction, username: string) => {
     setGameState(prev => {
       if (prev.phase !== 'playing') return prev;
@@ -338,252 +254,89 @@ export const useGameState = () => {
       
       switch (action) {
         case 'move_forward':
-          // Move forward a fixed amount
+          // Move forward toward princess
           newState.player = {
             ...prev.player,
-            x: prev.player.x + 80,
+            x: prev.player.x + 60,
             animationState: 'run',
           };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT/2, 8, 'dash', '#00ffff')];
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT/2, 6, 'dash', '#00ffff')];
           newState.score += 10;
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, animationState: 'idle' } })), 200);
           break;
           
-        case 'move_up':
-          // Move up (jump if grounded, otherwise float up)
-          if (prev.player.isGrounded) {
-            newState.player = {
-              ...prev.player,
-              velocityY: JUMP_VELOCITY * 0.7,
-              isGrounded: false,
-              isJumping: true,
-              animationState: 'jump',
-            };
-          } else {
-            newState.player = {
-              ...prev.player,
-              y: Math.max(100, prev.player.y - 50),
-              velocityY: Math.min(prev.player.velocityY, -200),
-            };
-          }
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT, 8, 'spark', '#00ff88')];
-          newState.score += 10;
-          break;
-          
-        case 'move_down':
-          // Move down (fast fall or duck)
-          if (!prev.player.isGrounded) {
-            newState.player = {
-              ...prev.player,
-              velocityY: Math.max(prev.player.velocityY + 400, 600),
-            };
-          }
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y, 8, 'spark', '#ff8800')];
-          newState.score += 10;
-          break;
-          
-        case 'dash_forward':
-          newState.player = {
-            ...prev.player,
-            x: prev.player.x + 150,
-            isDashing: true,
-            animationState: 'dash',
-          };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT/2, 20, 'dash', '#00ffff')];
-          newState.score += 25;
-          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isDashing: false, animationState: 'idle' } })), 300);
-          break;
-          
-        case 'jump':
-          if (prev.player.isGrounded) {
-            newState.player = {
-              ...prev.player,
-              velocityY: JUMP_VELOCITY,
-              isGrounded: false,
-              isJumping: true,
-              animationState: 'jump',
-            };
-            newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT, 12, 'spark', '#00ffff')];
-          }
-          newState.score += 25;
-          break;
-          
-        case 'double_jump':
-          newState.player = {
-            ...prev.player,
-            velocityY: JUMP_VELOCITY * 1.4,
-            isGrounded: false,
-            isJumping: true,
-            animationState: 'jump',
-          };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT, 20, 'magic', '#ff00ff')];
-          newState.score += 60;
-          newState.screenShake = 0.3;
-          break;
-          
         case 'shoot':
-          // TARGET NEAREST ENEMY for better gift interaction!
+          // Target nearest enemy and shoot
           const nearbyEnemy = prev.enemies
-            .filter(e => !e.isDying && e.x > prev.player.x && e.x < prev.player.x + 600)
+            .filter(e => !e.isDying && e.x > prev.player.x && e.x < prev.player.x + 500)
             .sort((a, b) => a.x - b.x)[0];
           
           const targetY = nearbyEnemy 
             ? nearbyEnemy.y + nearbyEnemy.height / 2 
-            : prev.player.y + PLAYER_HEIGHT / 2 - 10;
+            : prev.player.y + PLAYER_HEIGHT / 2;
           
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
             x: prev.player.x + PLAYER_WIDTH,
-            y: prev.player.y + PLAYER_HEIGHT / 2 - 10,
-            velocityX: 1100,
-            velocityY: nearbyEnemy ? (targetY - (prev.player.y + PLAYER_HEIGHT / 2)) * 2 : 0,
-            damage: 35,
-            type: 'normal',
+            y: prev.player.y + PLAYER_HEIGHT / 2,
+            velocityX: 900,
+            velocityY: nearbyEnemy ? (targetY - (prev.player.y + PLAYER_HEIGHT / 2)) * 1.5 : 0,
+            damage: prev.player.isMagicDashing ? 80 : 30,
+            type: prev.player.isMagicDashing ? 'ultra' : 'normal',
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2 - 10, 12, 'muzzle', '#ffff00')];
-          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 200);
-          newState.score += 25;
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 10, 'muzzle', '#ffff00')];
+          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 180);
+          newState.score += 20;
           
           if (nearbyEnemy) {
             showSpeechBubble(`TARGETING ${nearbyEnemy.type.toUpperCase()}! 🎯`, 'normal');
-          } else if (Math.random() > 0.5) {
+          } else if (Math.random() > 0.6) {
             showSpeechBubble(HERO_QUIPS[Math.floor(Math.random() * HERO_QUIPS.length)], 'excited');
           }
           break;
           
-        case 'triple_shot':
-          const tripleShots: Projectile[] = [-15, 0, 15].map((angle, i) => ({
-            id: `triple-${Date.now()}-${i}`,
-            x: prev.player.x + PLAYER_WIDTH,
-            y: prev.player.y + PLAYER_HEIGHT / 2 - 10,
-            velocityX: 800,
-            velocityY: angle * 3,
-            damage: 20,
-            type: 'triple' as const,
-          }));
-          newState.projectiles = [...prev.projectiles, ...tripleShots];
-          newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 15, 'muzzle', '#ff8800')];
-          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 200);
-          newState.score += 30;
-          break;
-          
-        case 'mega_shot':
-          // MEGA SHOT also targets enemies!
-          const megaTarget = prev.enemies
-            .filter(e => !e.isDying && e.x > prev.player.x)
-            .sort((a, b) => a.x - b.x)[0];
-          
-          const megaTargetY = megaTarget 
-            ? megaTarget.y + megaTarget.height / 2 
-            : prev.player.y + PLAYER_HEIGHT / 2 - 15;
-          
-          const megaBullet: Projectile = {
-            id: `mega-${Date.now()}`,
-            x: prev.player.x + PLAYER_WIDTH,
-            y: prev.player.y + PLAYER_HEIGHT / 2 - 15,
-            velocityX: 1300,
-            velocityY: megaTarget ? (megaTargetY - (prev.player.y + PLAYER_HEIGHT / 2)) * 1.5 : 0,
-            damage: 120,
-            type: 'mega',
+        case 'armor':
+          // Add shield protection
+          newState.player = {
+            ...prev.player,
+            shield: Math.min(100, prev.player.shield + 50),
           };
-          newState.projectiles = [...prev.projectiles, megaBullet];
-          newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 35, 'muzzle', '#ff00ff')];
-          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 250);
-          newState.score += 150;
-          newState.screenShake = 0.6;
-          showSpeechBubble("MEGA BLAST! 💥💥💥", 'excited');
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y, 20, 'magic', '#00ffff')];
+          newState.score += 50;
+          newState.screenShake = 0.2;
+          showSpeechBubble(`ARMOR UP! +50 SHIELD! 🛡️`, 'excited');
           break;
           
         case 'heal':
+          // Heal the player
           newState.player = {
             ...prev.player,
             health: Math.min(prev.player.maxHealth, prev.player.health + 40),
           };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y, 20, 'magic', '#00ff00')];
-          newState.score += 60;
-          showSpeechBubble(`THANKS ${username.toUpperCase()}! HEALED UP! 💚`, 'normal');
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y, 15, 'magic', '#00ff00')];
+          newState.score += 40;
+          showSpeechBubble(`THANKS ${username.toUpperCase()}! HEALED! 💚`, 'normal');
           break;
           
-        case 'shield':
+        case 'magic_dash':
+          // 6 second auto-play with special effects
           newState.player = {
             ...prev.player,
-            shield: Math.min(100, prev.player.shield + 100),
+            isMagicDashing: true,
+            magicDashTimer: 6,
           };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y, 30, 'magic', '#00ffff')];
-          newState.score += 250;
-          newState.screenShake = 0.3;
-          showSpeechBubble("I'M INVINCIBLE NOW! 🛡️💪", 'excited');
-          break;
-          
-        case 'spawn_enemy':
-          const newEnemies = [spawnEnemy(), spawnEnemy()];
-          newState.enemies = [...prev.enemies, ...newEnemies];
-          showSpeechBubble("MORE ROBOTS?! BRING IT! 😤", 'normal');
-          break;
-          
-        case 'speed_boost':
-          newState.player = {
-            ...prev.player,
-            speedMultiplier: 2,
-          };
-          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, speedMultiplier: 1 } })), 5000);
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y, 20, 'spark', '#ffff00')];
-          newState.score += 80;
-          showSpeechBubble("GOTTA GO FAST! ⚡", 'excited');
-          break;
-          
-        case 'ultra_mode':
-          newState.isUltraMode = true;
-          newState.ultraModeTimer = 6;
-          ultraModeActionsRef.current = 0;
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y, 60, 'ultra', '#ff00ff')];
-          newState.score += 600;
-          newState.screenShake = 0.8;
-          showSpeechBubble("🔥 ULTRA MODE ACTIVATED! 🔥💀🔥", 'excited');
-          break;
-          
-        case 'nuke':
-          const nukeParticles: Particle[] = [];
-          prev.enemies.forEach(enemy => {
-            nukeParticles.push(...createParticles(enemy.x + enemy.width/2, enemy.y + enemy.height/2, 30, 'explosion', '#ff4400'));
-          });
-          newState.enemies = prev.enemies.map(e => ({ ...e, isDying: true, health: 0 }));
-          newState.particles = [...prev.particles, ...nukeParticles];
-          newState.score += prev.enemies.length * 150;
-          newState.screenShake = 1;
-          showSpeechBubble("KABOOOOM! TACTICAL NUKE! 💣💥", 'excited');
-          break;
-          
-        case 'time_slow':
-          newState.isSlowMotion = true;
-          setTimeout(() => setGameState(s => ({ ...s, isSlowMotion: false })), 5000);
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y, 30, 'magic', '#8800ff')];
-          newState.score += 150;
-          showSpeechBubble("TIME SLOWS DOWN... ⏰🔮", 'normal');
-          break;
-          
-        case 'spawn_chicken':
-          const newChicken: Chicken = {
-            id: `chicken-${Date.now()}`,
-            x: prev.player.x + 200 + Math.random() * 200,
-            y: GROUND_Y,
-            state: 'appearing',
-            timer: 3,
-            direction: Math.random() > 0.5 ? 1 : -1,
-          };
-          newState.chickens = [...prev.chickens, newChicken];
-          newState.score += 15;
-          showSpeechBubble("WHY IS THERE A CHICKEN?! 🐔😂", 'funny');
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y, 40, 'ultra', '#ff00ff')];
+          newState.score += 300;
+          newState.screenShake = 0.6;
+          showSpeechBubble("✨ MAGIC DASH ACTIVATED! 6 SECONDS! ✨", 'excited');
           break;
       }
       
       return newState;
     });
-  }, [createParticles, showSpeechBubble, spawnEnemy]);
+  }, [createParticles, showSpeechBubble]);
 
   const handleGift = useCallback((event: GiftEvent) => {
     setGiftEvents(prev => [event, ...prev].slice(0, 50));
@@ -606,12 +359,11 @@ export const useGameState = () => {
       }].sort((a, b) => b.totalDiamonds - a.totalDiamonds);
     });
     
-    // Use the gift's direct action mapping
     processGiftAction(event.gift.action, event.username);
     
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== event.id));
-    }, 4000);
+    }, 3000);
   }, [processGiftAction]);
 
   // Help request timer
@@ -639,94 +391,68 @@ export const useGameState = () => {
       const now = Date.now();
       let delta = Math.min((now - lastUpdateRef.current) / 1000, 0.05);
       lastUpdateRef.current = now;
-      
+
       setGameState(prev => {
         if (prev.phase !== 'playing') return prev;
-        
-        // Slow motion effect
-        if (prev.isSlowMotion) {
-          delta *= 0.3;
-        }
 
         let newState = { ...prev };
         
         // Check for boss fight
         const bossEnemy = prev.enemies.find(e => e.type === 'boss' && !e.isDying);
-        newState.isBossFight = bossEnemy !== undefined && prev.player.x > prev.levelLength - 800;
+        newState.isBossFight = bossEnemy !== undefined && prev.player.x > prev.levelLength - 600;
         
         // Boss taunt
         if (newState.isBossFight && !prev.isBossFight) {
           showSpeechBubble(BOSS_TAUNTS[Math.floor(Math.random() * BOSS_TAUNTS.length)], 'urgent');
         }
         
-        // Ultra mode auto-actions
-        if (prev.isUltraMode) {
-          newState.ultraModeTimer -= delta;
-          
-          // Auto move forward fast with style
+        // Magic Dash auto-actions (6 second ability)
+        if (prev.player.isMagicDashing) {
           newState.player = {
             ...newState.player,
-            x: newState.player.x + 450 * delta * newState.player.speedMultiplier,
-            animationState: 'dash',
+            magicDashTimer: prev.player.magicDashTimer - delta,
           };
           
-          // Auto jump randomly
-          if (newState.player.isGrounded && Math.random() > 0.85) {
-            newState.player.velocityY = JUMP_VELOCITY * 1.2;
-            newState.player.isGrounded = false;
-            newState.player.animationState = 'jump';
-          }
+          // Auto move forward
+          newState.player.x += 200 * delta;
+          newState.player.animationState = 'dash';
           
-          // Auto shoot at nearby enemies with style
+          // Auto shoot at nearby enemies
           const nearbyEnemies = prev.enemies.filter(e => 
             e.x > prev.player.x && 
-            e.x < prev.player.x + 600 && 
+            e.x < prev.player.x + 400 && 
             !e.isDying
           );
           
-          nearbyEnemies.forEach(enemy => {
-            if (Math.random() > 0.5) {
-              const ultraBullet: Projectile = {
-                id: `ultra-${Date.now()}-${Math.random()}`,
-                x: prev.player.x + PLAYER_WIDTH,
-                y: enemy.y + enemy.height / 2,
-                velocityX: 1400,
-                velocityY: 0,
-                damage: 120,
-                type: 'ultra',
-              };
-              newState.projectiles = [...newState.projectiles, ultraBullet];
-              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, ultraBullet.y, 15, 'muzzle', '#ff00ff')];
-            }
-          });
+          if (nearbyEnemies.length > 0 && Math.random() > 0.4) {
+            const target = nearbyEnemies[0];
+            const magicBullet: Projectile = {
+              id: `magic-${Date.now()}-${Math.random()}`,
+              x: prev.player.x + PLAYER_WIDTH,
+              y: target.y + target.height / 2,
+              velocityX: 1200,
+              velocityY: 0,
+              damage: 80,
+              type: 'ultra',
+            };
+            newState.projectiles = [...newState.projectiles, magicBullet];
+            newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, magicBullet.y, 10, 'muzzle', '#ff00ff')];
+          }
           
-          // Ultra particles
-          if (Math.random() > 0.3) {
+          // Magic particles
+          if (Math.random() > 0.4) {
             newState.particles = [...newState.particles, ...createParticles(
               prev.player.x + Math.random() * PLAYER_WIDTH, 
               prev.player.y + Math.random() * PLAYER_HEIGHT, 
-              5, 'ultra', '#ff00ff'
+              3, 'ultra', '#ff00ff'
             )];
           }
           
-          if (newState.ultraModeTimer <= 0) {
-            newState.isUltraMode = false;
+          if (newState.player.magicDashTimer <= 0) {
+            newState.player.isMagicDashing = false;
             newState.player.animationState = 'idle';
+            showSpeechBubble("Magic dash ended! 💫", 'normal');
           }
-        }
-        
-        // Auto-dodge mechanic
-        if (!prev.isUltraMode && shouldAutoDodge(prev.player.x, prev.player.y, prev.enemies)) {
-          const dodgeDirection = Math.random() > 0.5 ? 1 : -1;
-          newState.player = {
-            ...newState.player,
-            isDodging: true,
-            y: prev.player.y - 50, // Quick hop
-            velocityY: -300,
-            animationState: 'dodge',
-          };
-          newState.particles = [...newState.particles, ...createParticles(prev.player.x, prev.player.y, 10, 'dash', '#00ff88')];
-          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isDodging: false, animationState: 'idle' } })), 400);
         }
         
         // Screen shake decay
@@ -734,28 +460,8 @@ export const useGameState = () => {
           newState.screenShake = Math.max(0, prev.screenShake - delta * 3);
         }
         
-        // Apply gravity to player
-        if (!prev.player.isGrounded) {
-          newState.player = {
-            ...newState.player,
-            velocityY: prev.player.velocityY + GRAVITY * delta,
-            y: prev.player.y + prev.player.velocityY * delta,
-          };
-          
-          // Ground check
-          if (newState.player.y >= GROUND_Y) {
-            newState.player.y = GROUND_Y;
-            newState.player.velocityY = 0;
-            newState.player.isGrounded = true;
-            newState.player.isJumping = false;
-            if (!newState.player.isDashing) {
-              newState.player.animationState = 'idle';
-            }
-          }
-        }
-        
         // Update camera smoothly
-        const targetCameraX = Math.max(0, newState.player.x - 200);
+        const targetCameraX = Math.max(0, newState.player.x - 150);
         newState.cameraX = prev.cameraX + (targetCameraX - prev.cameraX) * 0.1;
         newState.distance = newState.player.x;
         
@@ -766,7 +472,7 @@ export const useGameState = () => {
             x: p.x + p.velocityX * delta,
             y: p.y + p.velocityY * delta,
           }))
-          .filter(p => p.x < prev.cameraX + 1200);
+          .filter(p => p.x < prev.cameraX + 1000);
         
         // Projectile-enemy collisions
         const hitEnemies = new Set<string>();
@@ -778,9 +484,9 @@ export const useGameState = () => {
             
             if (
               proj.x < enemy.x + enemy.width &&
-              proj.x + 20 > enemy.x &&
+              proj.x + 15 > enemy.x &&
               proj.y < enemy.y + enemy.height &&
-              proj.y + 10 > enemy.y
+              proj.y + 8 > enemy.y
             ) {
               hitEnemies.add(enemy.id);
               hitProjectiles.add(proj.id);
@@ -794,34 +500,32 @@ export const useGameState = () => {
                 
                 // Hit particles
                 newState.particles = [...newState.particles, ...createParticles(
-                  proj.x, proj.y, proj.type === 'ultra' ? 30 : 15, 'spark', 
+                  proj.x, proj.y, proj.type === 'ultra' ? 20 : 10, 'spark', 
                   proj.type === 'ultra' ? '#ff00ff' : '#ffff00'
                 )];
                 
-                newState.screenShake = Math.max(newState.screenShake, 0.15);
+                newState.screenShake = Math.max(newState.screenShake, 0.12);
                 
                 if (newState.enemies[enemyIdx].health <= 0) {
                   newState.enemies[enemyIdx].isDying = true;
-                  newState.enemies[enemyIdx].deathTimer = 0.6;
+                  newState.enemies[enemyIdx].deathTimer = 0.5;
                   
-                  // Score based on enemy type
-                  const scoreMap = { boss: 2000, tank: 300, mech: 200, ninja: 100, robot: 60, drone: 50, flyer: 70 };
+                  const scoreMap: Record<string, number> = { boss: 1500, tank: 250, mech: 150, ninja: 80, robot: 50, drone: 40, flyer: 60 };
                   newState.score += scoreMap[enemy.type] || 50;
                   newState.combo++;
-                  newState.comboTimer = 2.5;
+                  newState.comboTimer = 2;
                   newState.killStreak++;
                   
                   // Death explosion
                   newState.particles = [...newState.particles, ...createParticles(
                     enemy.x + enemy.width/2, enemy.y + enemy.height/2, 
-                    enemy.type === 'boss' ? 80 : 40, 'death', '#ff4400'
+                    enemy.type === 'boss' ? 60 : 30, 'death', '#ff4400'
                   )];
                   
-                  newState.screenShake = enemy.type === 'boss' ? 1.5 : 0.4;
+                  newState.screenShake = enemy.type === 'boss' ? 1.2 : 0.3;
                   
-                  // Kill streak quips
-                  if (newState.killStreak > 5 && newState.killStreak % 5 === 0) {
-                    showSpeechBubble(`${newState.killStreak} KILL STREAK! 🔥🔥🔥`, 'excited');
+                  if (newState.killStreak > 4 && newState.killStreak % 5 === 0) {
+                    showSpeechBubble(`${newState.killStreak} KILL STREAK! 🔥`, 'excited');
                   }
                 }
               }
@@ -836,52 +540,50 @@ export const useGameState = () => {
           .map(e => e.isDying ? { ...e, deathTimer: e.deathTimer - delta } : e)
           .filter(e => !e.isDying || e.deathTimer > 0);
         
-        // Move enemies toward player with animations
-        newState.enemies = newState.enemies.map(enemy => {
+        // Move enemies toward player - PREVENT OVERLAP
+        const minSpacing = 50; // Minimum spacing between enemies
+        newState.enemies = newState.enemies.map((enemy, idx) => {
           if (enemy.isDying) return enemy;
           
           const dx = prev.player.x - enemy.x;
           const direction = dx > 0 ? 1 : -1;
           
-          // Update animation phase
-          const newAnimPhase = (enemy.animationPhase + delta * 8) % (Math.PI * 2);
+          // Check if too close to another enemy
+          const tooClose = newState.enemies.some((other, otherIdx) => {
+            if (otherIdx === idx || other.isDying) return false;
+            const dist = Math.abs(enemy.x - other.x);
+            return dist < minSpacing && other.x < enemy.x;
+          });
           
-          // Only chase if player is nearby
-          if (Math.abs(dx) < 500) {
-            // Flying enemies bob up and down
-            const yOffset = ['drone', 'flyer'].includes(enemy.type) 
-              ? Math.sin(newAnimPhase) * 30 
-              : 0;
-              
+          const newAnimPhase = (enemy.animationPhase + delta * 6) % (Math.PI * 2);
+          
+          if (Math.abs(dx) < 400 && !tooClose) {
             return {
               ...enemy,
               x: enemy.x + direction * enemy.speed * delta,
-              y: ['drone', 'flyer'].includes(enemy.type) 
-                ? GROUND_Y - 100 + yOffset 
-                : enemy.y,
               animationPhase: newAnimPhase,
             };
           }
           return { ...enemy, animationPhase: newAnimPhase };
         });
         
-        // Player-enemy collision with shield check
+        // Player-enemy collision
         newState.enemies.forEach(enemy => {
-          if (enemy.isDying || prev.player.isDodging) return;
+          if (enemy.isDying) return;
           
           if (
-            prev.player.x < enemy.x + enemy.width - 10 &&
-            prev.player.x + PLAYER_WIDTH - 10 > enemy.x &&
+            prev.player.x < enemy.x + enemy.width - 8 &&
+            prev.player.x + PLAYER_WIDTH - 8 > enemy.x &&
             prev.player.y < enemy.y + enemy.height &&
             prev.player.y + PLAYER_HEIGHT > enemy.y
           ) {
             if (newState.player.shield > 0) {
               newState.player.shield = Math.max(0, newState.player.shield - enemy.damage);
-              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 10, 'spark', '#00ffff')];
+              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 8, 'spark', '#00ffff')];
             } else {
               newState.player.health -= enemy.damage * delta * 2;
               newState.player.animationState = 'hurt';
-              setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, animationState: 'idle' } })), 200);
+              setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, animationState: 'idle' } })), 180);
             }
             newState.combo = 0;
             newState.killStreak = 0;
@@ -894,138 +596,90 @@ export const useGameState = () => {
             ...p,
             x: p.x + p.velocityX * delta,
             y: p.y + p.velocityY * delta,
-            velocityY: p.velocityY + 600 * delta,
+            velocityY: p.velocityY + 500 * delta,
             life: p.life - delta,
           }))
           .filter(p => p.life > 0);
         
         // ===== CHAOS ELEMENTS =====
         
-        // Update flying robots in the sky
+        // Flying robots
         newState.flyingRobots = prev.flyingRobots
-          .map(robot => ({
-            ...robot,
-            x: robot.x + robot.speed * delta,
-          }))
-          .filter(robot => robot.x - prev.cameraX < 1500);
+          .map(robot => ({ ...robot, x: robot.x + robot.speed * delta }))
+          .filter(robot => robot.x - prev.cameraX < 1200);
         
-        // Spawn new flying robots randomly
-        if (Math.random() > 0.995) {
+        if (Math.random() > 0.994) {
           const robotTypes: FlyingRobot['type'][] = ['ufo', 'jet', 'satellite'];
           newState.flyingRobots = [...newState.flyingRobots, {
             id: `flybot-${Date.now()}`,
-            x: prev.cameraX - 100,
-            y: 30 + Math.random() * 80,
-            speed: 150 + Math.random() * 200,
+            x: prev.cameraX - 80,
+            y: 20 + Math.random() * 60,
+            speed: 120 + Math.random() * 150,
             type: robotTypes[Math.floor(Math.random() * robotTypes.length)],
           }];
         }
         
-        // Update chickens state machine
+        // Chickens
         newState.chickens = prev.chickens
           .map(chicken => {
-            let newState = { ...chicken };
-            newState.timer -= delta;
-            
-            if (chicken.state === 'appearing' && chicken.timer <= 2.5) {
-              newState.state = 'stopped';
-              newState.timer = 1.5;
+            let c = { ...chicken };
+            c.timer -= delta;
+            if (chicken.state === 'appearing' && chicken.timer <= 2) {
+              c.state = 'stopped'; c.timer = 1.2;
             } else if (chicken.state === 'stopped' && chicken.timer <= 0) {
-              newState.state = 'walking';
-              newState.timer = 2;
+              c.state = 'walking'; c.timer = 1.5;
             } else if (chicken.state === 'walking' && chicken.timer <= 0) {
-              newState.state = 'gone';
+              c.state = 'gone';
             }
-            
-            return newState;
+            return c;
           })
           .filter(chicken => chicken.state !== 'gone');
         
-        // Random neon lights flying by
-        if (Math.random() > 0.98) {
-          const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
+        // Neon lights
+        if (Math.random() > 0.985) {
+          const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080'];
           newState.neonLights = [...prev.neonLights, {
             id: `neon-${Date.now()}`,
-            x: prev.cameraX - 50,
-            y: 50 + Math.random() * 350,
+            x: prev.cameraX - 40,
+            y: 40 + Math.random() * 200,
             color: neonColors[Math.floor(Math.random() * neonColors.length)],
-            size: 10 + Math.random() * 20,
-            speed: 400 + Math.random() * 300,
+            size: 8 + Math.random() * 15,
+            speed: 300 + Math.random() * 200,
           }];
         }
-        
-        // Update neon lights
         newState.neonLights = prev.neonLights
-          .map(light => ({
-            ...light,
-            x: light.x + light.speed * delta,
-          }))
-          .filter(light => light.x - prev.cameraX < 1300);
+          .map(light => ({ ...light, x: light.x + light.speed * delta }))
+          .filter(light => light.x - prev.cameraX < 1000);
         
-        // Random explosions in the background
-        if (Math.random() > 0.992) {
+        // Explosions
+        if (Math.random() > 0.993) {
           newState.explosions = [...prev.explosions, {
             id: `explosion-${Date.now()}`,
-            x: prev.cameraX + 200 + Math.random() * 800,
-            y: 100 + Math.random() * 250,
-            size: 40 + Math.random() * 60,
-            timer: 0.6,
+            x: prev.cameraX + 150 + Math.random() * 600,
+            y: 60 + Math.random() * 150,
+            size: 30 + Math.random() * 40,
+            timer: 0.5,
           }];
-          newState.screenShake = Math.max(newState.screenShake, 0.2);
         }
-        
-        // Update explosions
         newState.explosions = prev.explosions
           .map(exp => ({ ...exp, timer: exp.timer - delta }))
           .filter(exp => exp.timer > 0);
         
-        // Check player collision with DEADLY TRAPS
-        prev.obstacles.forEach(obstacle => {
-          if (!obstacle.isDeadly) return;
-          
-          const obstacleScreenX = obstacle.x;
-          const playerRight = prev.player.x + PLAYER_WIDTH - 15;
-          const playerLeft = prev.player.x + 15;
-          const playerBottom = prev.player.y + PLAYER_HEIGHT;
-          const playerTop = prev.player.y;
-          
-          // Check collision with trap
-          if (
-            playerRight > obstacleScreenX &&
-            playerLeft < obstacleScreenX + obstacle.width &&
-            playerBottom > obstacle.y &&
-            playerTop < obstacle.y + obstacle.height
-          ) {
-            if (newState.player.shield > 0) {
-              newState.player.shield = Math.max(0, newState.player.shield - 50);
-            } else {
-              // INSTANT KILL from traps!
-              newState.player.health -= 30 * delta;
-              newState.screenShake = 0.5;
-              if (!prev.speechBubble || Date.now() - prev.speechBubble.timestamp > 2000) {
-                showSpeechBubble("OW! TRAP! SEND UP OR DOWN GIFTS! 💀", 'urgent');
-              }
-            }
-          }
-        });
-        
         // Combo timer
         if (prev.comboTimer > 0) {
           newState.comboTimer = prev.comboTimer - delta;
-          if (newState.comboTimer <= 0) {
-            newState.combo = 0;
-          }
+          if (newState.comboTimer <= 0) newState.combo = 0;
         }
         
-        // Check win condition - REACH THE PRINCESS (after defeating boss)
-        const princessX = prev.levelLength - 100;
-        if (newState.player.x >= princessX - 50 && !bossEnemy) {
+        // Win condition - REACH THE PRINCESS
+        const princessX = prev.levelLength - 80;
+        if (newState.player.x >= princessX - 40 && !bossEnemy) {
           newState.phase = 'victory';
-          newState.screenShake = 2;
-          showSpeechBubble("PRINCESS! YOUR CHUNKY HERO HAS ARRIVED! 💖👑", 'excited');
+          newState.screenShake = 1.5;
+          showSpeechBubble("PRINCESS! YOUR HERO IS HERE! 💖👑", 'excited');
         }
         
-        // Check lose condition
+        // Lose condition
         if (newState.player.health <= 0) {
           newState.phase = 'gameover';
         }
@@ -1040,7 +694,7 @@ export const useGameState = () => {
     return () => {
       if (gameLoopRef.current) cancelAnimationFrame(gameLoopRef.current);
     };
-  }, [gameState.phase, createParticles, shouldAutoDodge, showSpeechBubble]);
+  }, [gameState.phase, createParticles, showSpeechBubble]);
 
   return {
     gameState,

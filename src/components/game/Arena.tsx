@@ -25,23 +25,23 @@ export const Arena = ({ gameState }: ArenaProps) => {
   
   return (
     <div 
-      className="relative w-full h-full rounded-xl overflow-hidden border-2"
+      className="relative w-full h-full rounded-lg overflow-hidden border-2"
       style={{
-        borderColor: isBossFight ? '#ff0000' : isUltraMode ? '#ff00ff' : '#333366',
+        borderColor: isBossFight ? '#ff0000' : player.isMagicDashing ? '#ff00ff' : '#333366',
         boxShadow: isBossFight 
-          ? '0 0 60px #ff0000, inset 0 0 100px rgba(255,0,0,0.3)' 
-          : isUltraMode 
-            ? '0 0 50px #ff00ff, inset 0 0 100px rgba(255,0,255,0.2)' 
-            : '0 0 30px rgba(0, 255, 255, 0.2)',
-        minHeight: 480,
+          ? '0 0 40px #ff0000, inset 0 0 60px rgba(255,0,0,0.2)' 
+          : player.isMagicDashing 
+            ? '0 0 30px #ff00ff, inset 0 0 60px rgba(255,0,255,0.2)' 
+            : '0 0 20px rgba(0, 255, 255, 0.2)',
+        height: 280,
         transform: `translate(${shakeX}px, ${shakeY}px)`,
       }}
     >
       <div 
         className="absolute inset-0"
         style={{ 
-          height: 480,
-          filter: isUltraMode ? 'saturate(1.5) contrast(1.2)' : 'none',
+          height: 280,
+          filter: player.isMagicDashing ? 'saturate(1.4) contrast(1.1)' : 'none',
         }}
       >
         <Level 

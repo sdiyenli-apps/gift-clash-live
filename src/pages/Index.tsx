@@ -4,17 +4,13 @@ import { useGameState } from '@/hooks/useGameState';
 import { useTikTokSimulator } from '@/hooks/useTikTokSimulator';
 import { Arena } from '@/components/game/Arena';
 import { HealthBar } from '@/components/game/HealthBar';
-import { ScoreDisplay } from '@/components/game/ScoreDisplay';
-import { Leaderboard } from '@/components/game/Leaderboard';
 import { GiftPanel } from '@/components/game/GiftPanel';
 import { GiftNotification } from '@/components/game/GiftNotification';
 import { GameOverlay } from '@/components/game/GameOverlay';
-import { ConnectionStatus } from '@/components/game/ConnectionStatus';
-import { MusicPlayer } from '@/components/game/MusicPlayer';
 
 const Index = () => {
   const [autoSimulate, setAutoSimulate] = useState(false);
-  const { gameState, giftEvents, leaderboard, notifications, startGame, startNextWave, handleGift } = useGameState();
+  const { gameState, giftEvents, notifications, startGame, startNextWave, handleGift } = useGameState();
   
   const { triggerGift } = useTikTokSimulator(
     autoSimulate && gameState.phase === 'playing',
@@ -29,121 +25,67 @@ const Index = () => {
 
   return (
     <div 
-      className="min-h-screen"
+      className="min-h-screen flex flex-col"
       style={{
         background: 'linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 50%, #0a1a2a 100%)',
       }}
     >
-      {/* Gift notifications */}
       <GiftNotification notifications={notifications} />
 
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 p-4 bg-black/70 backdrop-blur-sm border-b border-purple-500/20">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3"
-          >
-            <span className="text-3xl">👃</span>
+      {/* Compact Header */}
+      <header className="p-2 bg-black/80 border-b border-purple-500/30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xl">👃</span>
             <h1 
-              className="font-bold text-2xl"
+              className="font-bold text-lg"
               style={{
-                background: 'linear-gradient(90deg, #ff00ff, #00ffff, #ffff00)',
+                background: 'linear-gradient(90deg, #ff00ff, #00ffff)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
             >
               BIG NOSE HERO
             </h1>
-          </motion.div>
-
-          <div className="flex items-center gap-4">
-            <MusicPlayer 
-              isPlaying={gameState.phase === 'playing'} 
-              isUltraMode={gameState.isUltraMode}
-              isBossFight={gameState.isBossFight}
-            />
-            <ConnectionStatus 
-              isConnected={gameState.phase === 'playing'} 
-              viewerCount={1234 + giftEvents.length * 10}
-            />
           </div>
+
+          {gameState.phase === 'playing' && (
+            <div className="flex items-center gap-3 text-xs">
+              <div className="text-cyan-400 font-bold">
+                ⭐ {gameState.score}
+              </div>
+              <div className="text-yellow-400 font-bold">
+                W{gameState.currentWave}
+              </div>
+              {gameState.player.isMagicDashing && (
+                <motion.div
+                  className="text-pink-400 font-bold"
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 0.3, repeat: Infinity }}
+                >
+                  ✨ {gameState.player.magicDashTimer.toFixed(1)}s
+                </motion.div>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex flex-col lg:flex-row min-h-screen pt-24 pb-4 px-4 gap-4 max-w-7xl mx-auto">
-        {/* Left sidebar - Stats */}
-        <motion.aside
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="lg:w-72 space-y-4 shrink-0"
-        >
-          {gameState.phase === 'playing' && (
-            <>
-              <ScoreDisplay 
-                score={gameState.score}
-                wave={Math.floor(gameState.distance / 1000) + 1}
-                timeRemaining={0}
-              />
-              
-              <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl border border-cyan-500/30 p-4">
-                <HealthBar 
-                  health={gameState.player.health}
-                  maxHealth={gameState.player.maxHealth}
-                  shield={gameState.player.shield}
-                />
-              </div>
+      {/* Main Content - Stacked for mobile */}
+      <main className="flex-1 flex flex-col p-2 gap-2 overflow-auto">
+        {/* Health bar */}
+        {gameState.phase === 'playing' && (
+          <div className="bg-gray-900/90 rounded-lg p-2 border border-cyan-500/30">
+            <HealthBar 
+              health={gameState.player.health}
+              maxHealth={gameState.player.maxHealth}
+              shield={gameState.player.shield}
+            />
+          </div>
+        )}
 
-              {/* Enemy count & Ultra mode timer */}
-              <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl border border-pink-500/30 p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm text-gray-400">ENEMIES AHEAD</span>
-                  <span className="font-bold text-2xl text-red-400">
-                    {gameState.enemies.filter(e => !e.isDying).length}
-                  </span>
-                </div>
-                
-                {gameState.isUltraMode && (
-                  <motion.div
-                    className="p-2 rounded-lg"
-                    style={{
-                      background: 'linear-gradient(90deg, rgba(255,0,255,0.3), rgba(0,255,255,0.3))',
-                    }}
-                    animate={{ opacity: [0.7, 1, 0.7] }}
-                    transition={{ duration: 0.3, repeat: Infinity }}
-                  >
-                    <div className="text-center font-bold text-pink-400">
-                      ⚡ ULTRA MODE ⚡
-                    </div>
-                    <div className="text-center text-2xl font-bold text-white">
-                      {gameState.ultraModeTimer.toFixed(1)}s
-                    </div>
-                  </motion.div>
-                )}
-                
-                {gameState.combo > 1 && (
-                  <div className="text-center">
-                    <span className="text-yellow-400 font-bold">{gameState.combo}x COMBO!</span>
-                  </div>
-                )}
-              </div>
-            </>
-          )}
-
-          <Leaderboard gifters={leaderboard} />
-        </motion.aside>
-
-        {/* Center - Arena */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1 }}
-          className="flex-1 relative"
-          style={{ minHeight: 520 }}
-        >
+        {/* Game Arena */}
+        <div className="relative flex-shrink-0" style={{ height: 280 }}>
           <Arena gameState={gameState} />
           <GameOverlay 
             phase={gameState.phase}
@@ -154,74 +96,47 @@ const Index = () => {
             onStart={() => startGame(gameState.currentWave || 1)}
             onNextWave={startNextWave}
           />
-        </motion.div>
+        </div>
 
-        {/* Right sidebar - Gift controls */}
-        <motion.aside
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="lg:w-80 space-y-4 shrink-0"
-        >
-          {/* Auto-simulate toggle */}
-          <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl border border-green-500/30 p-4">
+        {/* Gift Controls */}
+        <GiftPanel 
+          onTriggerGift={handleTriggerGift}
+          disabled={gameState.phase !== 'playing'}
+        />
+
+        {/* Auto-simulate & Recent gifts */}
+        <div className="flex gap-2">
+          <div className="flex-1 bg-gray-900/90 rounded-lg p-2 border border-green-500/30">
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="font-bold text-sm text-gray-300">🤖 Auto-simulate gifts</span>
+              <span className="font-bold text-xs text-gray-300">🤖 Auto-sim</span>
               <button
                 onClick={() => setAutoSimulate(!autoSimulate)}
-                className={`
-                  w-12 h-6 rounded-full transition-colors relative
-                  ${autoSimulate ? 'bg-green-500' : 'bg-gray-700'}
-                `}
+                className={`w-10 h-5 rounded-full transition-colors relative ${autoSimulate ? 'bg-green-500' : 'bg-gray-700'}`}
               >
                 <motion.div
-                  className="w-5 h-5 bg-white rounded-full absolute top-0.5"
-                  animate={{ left: autoSimulate ? '26px' : '2px' }}
+                  className="w-4 h-4 bg-white rounded-full absolute top-0.5"
+                  animate={{ left: autoSimulate ? '22px' : '2px' }}
                 />
               </button>
             </label>
-            <p className="text-xs text-gray-500 mt-2">
-              Randomly sends gifts to test the game
-            </p>
           </div>
 
-          <GiftPanel 
-            onTriggerGift={handleTriggerGift}
-            disabled={gameState.phase !== 'playing'}
-          />
-
-          {/* Recent gifts feed */}
-          <div className="bg-gray-900/80 backdrop-blur-sm rounded-xl border border-yellow-500/30 p-4">
-            <h3 className="font-bold text-sm text-yellow-400 mb-3">💫 RECENT GIFTS</h3>
-            <div className="space-y-2 max-h-40 overflow-y-auto">
-              {giftEvents.slice(0, 10).map((event) => (
-                <motion.div
-                  key={event.id}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className="flex items-center gap-2 text-sm"
-                >
-                  <span>{event.gift.emoji}</span>
-                  <span className="text-gray-400 truncate flex-1">
-                    {event.username}
-                  </span>
-                  <span className="text-cyan-400 text-xs">💎{event.gift.diamonds}</span>
-                </motion.div>
+          <div className="flex-1 bg-gray-900/90 rounded-lg p-2 border border-yellow-500/30">
+            <div className="text-xs text-yellow-400 font-bold mb-1">💫 Recent</div>
+            <div className="flex gap-1 overflow-x-auto">
+              {giftEvents.slice(0, 5).map((event) => (
+                <span key={event.id} className="text-lg">{event.gift.emoji}</span>
               ))}
-              {giftEvents.length === 0 && (
-                <p className="text-xs text-gray-500 text-center py-4">
-                  No gifts yet... Be the first! 🎁
-                </p>
-              )}
+              {giftEvents.length === 0 && <span className="text-[10px] text-gray-500">No gifts yet</span>}
             </div>
           </div>
-        </motion.aside>
+        </div>
       </main>
 
       {/* Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 p-2 text-center bg-black/70 backdrop-blur-sm border-t border-purple-500/20">
-        <p className="text-xs text-gray-500">
-          🎮 Big Nose Hero • Viewers control the game with TikTok gifts! • Save the Princess! 👸
+      <footer className="p-1 text-center bg-black/80 border-t border-purple-500/30">
+        <p className="text-[10px] text-gray-500">
+          🎮 Viewers control with TikTok gifts! 👑 Save the Princess!
         </p>
       </footer>
     </div>
