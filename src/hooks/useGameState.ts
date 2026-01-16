@@ -508,14 +508,18 @@ export const useGameState = () => {
       
       switch (action) {
         case 'move_forward':
+          // Hero moves forward, camera follows to create movement feeling
+          const moveDistance = 80;
           newState.player = {
             ...prev.player,
-            x: prev.player.x + 50,
+            x: prev.player.x + moveDistance,
             animationState: 'run',
           };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT/2, 5, 'dash', '#00ffff')];
-          newState.score += 10;
-          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, animationState: 'idle' } })), 200);
+          // Camera will smoothly follow via the game loop
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT/2, 8, 'dash', '#00ffff')];
+          newState.score += 15;
+          showSpeechBubble("MOVING! 🏃", 'normal');
+          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, animationState: 'idle' } })), 300);
           break;
           
         case 'shoot':
@@ -1345,9 +1349,10 @@ export const useGameState = () => {
         }
         
         // Update camera - HERO STAYS FIXED ON LEFT SIDE OF SCREEN
-        // Camera follows player but hero stays at fixed screen position
+        // Camera follows player smoothly to create panning effect
         const targetCameraX = Math.max(0, newState.player.x - HERO_FIXED_SCREEN_X);
-        newState.cameraX = prev.cameraX + (targetCameraX - prev.cameraX) * 0.15;
+        // Smoother camera follow for better movement feel
+        newState.cameraX = prev.cameraX + (targetCameraX - prev.cameraX) * 0.12;
         newState.distance = newState.player.x;
         
         // Update projectiles
@@ -1591,26 +1596,51 @@ export const useGameState = () => {
           const moveBackward = Math.random() > 0.92; // Sometimes retreat
           const moveMultiplier = moveBackward ? -0.6 : (1 + movementPattern * 0.5); // Fast forward, sometimes back
 
-          // ENEMIES ONLY SHOOT WHEN ON SCREEN
+          // ENEMIES ONLY SHOOT WHEN CLOSE TO HERO (not just on screen)
           const screenLeft = prev.cameraX - 50;
           const screenRight = prev.cameraX + 700;
           const isOnScreen = enemy.x >= screenLeft && enemy.x <= screenRight;
+          const ATTACK_RANGE = 300; // Only attack when within 300px of hero
+          const isCloseToHero = Math.abs(dx) < ATTACK_RANGE;
           
-          const canShootDistance = Math.abs(dx) < 650 && isOnScreen;
+          const canShootDistance = isCloseToHero && isOnScreen;
 
-          // DRONE shoots lasers MORE frequently - ONLY WHEN ON SCREEN
-          if (enemy.type === 'drone' && canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.6) {
-            const enemyLaser: Projectile = {
-              id: `elaser-${Date.now()}-${Math.random()}`,
-              x: enemy.x - 8,
-              y: currentY + enemy.height / 2,
-              velocityX: -600,
-              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - currentY - enemy.height / 2) * 0.8,
-              damage: 8,
-              type: 'normal',
+          // DRONE SPIRAL FLYING PATTERN - up and down spiraling
+          if (enemy.type === 'drone' || enemy.type === 'flyer') {
+            const spiralSpeed = 3 + Math.sin(newAnimPhase) * 2; // Varying speed
+            const spiralAmplitude = 80; // How high/low they go
+            const spiralY = GROUND_Y + 60 + Math.sin(newAnimPhase * spiralSpeed) * spiralAmplitude;
+            const horizontalWobble = Math.cos(newAnimPhase * 2) * 30 * delta;
+            
+            // Drone shoots lasers when close
+            if (enemy.type === 'drone' && canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.7) {
+              const enemyLaser: Projectile = {
+                id: `elaser-${Date.now()}-${Math.random()}`,
+                x: enemy.x - 8,
+                y: spiralY + enemy.height / 2,
+                velocityX: -550,
+                velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - spiralY - enemy.height / 2) * 0.6,
+                damage: 8,
+                type: 'normal',
+              };
+              newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
+              return { 
+                ...enemy, 
+                y: spiralY, 
+                x: enemy.x + horizontalWobble,
+                attackCooldown: 0.8 + Math.random() * 0.4, 
+                animationPhase: newAnimPhase 
+              };
+            }
+            
+            // Continue spiral movement
+            return {
+              ...enemy,
+              y: spiralY,
+              x: enemy.x + direction * enemy.speed * delta * 0.3 + horizontalWobble,
+              animationPhase: newAnimPhase,
+              attackCooldown: Math.max(0, enemy.attackCooldown - delta),
             };
-            newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
-            return { ...enemy, y: currentY, attackCooldown: 0.5 + Math.random() * 0.3, animationPhase: newAnimPhase };
           }
 
           // NINJA teleports when close to player
