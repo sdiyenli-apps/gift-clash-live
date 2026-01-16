@@ -12,69 +12,42 @@ export const HealthBar = ({ health, maxHealth, shield }: HealthBarProps) => {
   const isCritical = healthPercent < 15;
 
   return (
-    <div className="w-full space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="font-display text-sm text-muted-foreground">PLAYER HP</span>
-        <span className={`font-display text-lg ${isCritical ? 'text-destructive animate-pulse' : isLow ? 'text-neon-orange' : 'text-neon-green'}`}>
-          {Math.ceil(health)} / {maxHealth}
-        </span>
-      </div>
-      
-      <div className="relative">
-        {/* Background */}
-        <div className="h-6 bg-muted rounded-full overflow-hidden border border-border">
-          {/* Health bar */}
+    <div className="w-full flex items-center gap-2">
+      {/* HP Section */}
+      <div className="flex items-center gap-1.5 flex-1">
+        <span className="text-[10px] font-bold text-red-400">❤️</span>
+        <div className="flex-1 h-3 bg-gray-800/80 rounded-full overflow-hidden relative">
           <motion.div
-            className={`h-full ${isCritical ? 'bg-destructive' : isLow ? 'bg-neon-orange' : 'bg-neon-green'}`}
+            className={`h-full ${isCritical ? 'bg-red-500' : isLow ? 'bg-orange-500' : 'bg-green-500'}`}
             initial={{ width: '100%' }}
-            animate={{ 
-              width: `${healthPercent}%`,
-            }}
+            animate={{ width: `${healthPercent}%` }}
             transition={{ duration: 0.3 }}
-            style={{
-              boxShadow: isCritical 
-                ? 'inset 0 0 20px hsl(var(--destructive))'
-                : isLow 
-                  ? 'inset 0 0 20px hsl(var(--neon-orange))'
-                  : 'inset 0 0 20px hsl(var(--neon-green))',
-            }}
           />
-          
-          {/* Shield overlay */}
-          {shield > 0 && (
+          {isCritical && (
             <motion.div
-              className="absolute top-0 left-0 h-full bg-secondary/50"
-              animate={{ width: `${shield}%` }}
-              transition={{ duration: 0.3 }}
+              className="absolute inset-0 bg-red-500/30"
+              animate={{ opacity: [0.3, 0.8, 0.3] }}
+              transition={{ duration: 0.4, repeat: Infinity }}
             />
           )}
         </div>
-
-        {/* Danger pulse effect */}
-        {isCritical && (
-          <motion.div
-            className="absolute inset-0 rounded-full border-2 border-destructive"
-            animate={{ 
-              scale: [1, 1.05, 1],
-              opacity: [1, 0.5, 1],
-            }}
-            transition={{ duration: 0.5, repeat: Infinity }}
-          />
-        )}
+        <span className={`text-[10px] font-bold min-w-[32px] text-right ${isCritical ? 'text-red-400' : 'text-green-400'}`}>
+          {Math.ceil(health)}
+        </span>
       </div>
 
-      {/* Shield indicator */}
+      {/* Shield Section - only if active */}
       {shield > 0 && (
-        <div className="flex items-center gap-2">
-          <span className="text-secondary">🛡️</span>
-          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+        <div className="flex items-center gap-1.5 w-20">
+          <span className="text-[10px]">🛡️</span>
+          <div className="flex-1 h-2.5 bg-gray-800/80 rounded-full overflow-hidden">
             <motion.div
-              className="h-full bg-secondary"
-              animate={{ width: `${shield}%` }}
+              className="h-full bg-cyan-400"
+              animate={{ width: `${Math.min(shield, 100)}%` }}
               transition={{ duration: 0.3 }}
             />
           </div>
-          <span className="font-display text-sm text-secondary">{Math.ceil(shield)}</span>
+          <span className="text-[10px] font-bold text-cyan-400">{Math.ceil(shield)}</span>
         </div>
       )}
     </div>
