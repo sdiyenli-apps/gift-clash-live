@@ -280,8 +280,8 @@ export const useGameState = () => {
     }
   }, [gameState.currentWave, showSpeechBubble]);
 
-  // Spawn chickens for magic dash
-  const spawnChickens = useCallback((playerX: number) => {
+  // Create chickens for magic dash (returns array, doesn't set state)
+  const createChickens = (playerX: number): Chicken[] => {
     const newChickens: Chicken[] = [];
     for (let i = 0; i < 5; i++) {
       newChickens.push({
@@ -293,11 +293,8 @@ export const useGameState = () => {
         direction: Math.random() > 0.5 ? 1 : -1,
       });
     }
-    setGameState(prev => ({
-      ...prev,
-      chickens: [...prev.chickens, ...newChickens],
-    }));
-  }, []);
+    return newChickens;
+  };
 
   // Process the 5 gift actions only
   const processGiftAction = useCallback((action: GiftAction, username: string) => {
@@ -380,15 +377,15 @@ export const useGameState = () => {
           newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y, 40, 'ultra', '#ff00ff')];
           newState.score += 300;
           newState.screenShake = 0.6;
-          // Spawn funny chickens!
-          spawnChickens(prev.player.x);
+          // Spawn funny chickens inline!
+          newState.chickens = [...prev.chickens, ...createChickens(prev.player.x)];
           showSpeechBubble("✨ MAGIC DASH + CHICKENS! 🐔✨", 'excited');
           break;
       }
       
       return newState;
     });
-  }, [createParticles, showSpeechBubble, spawnChickens]);
+  }, [createParticles, showSpeechBubble]);
 
   const handleGift = useCallback((event: GiftEvent) => {
     setGiftEvents(prev => [event, ...prev].slice(0, 50));
