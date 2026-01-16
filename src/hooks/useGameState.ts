@@ -122,32 +122,44 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const obstacles: Obstacle[] = [];
   
   const levelLength = Math.min(BASE_LEVEL_LENGTH * Math.pow(1.3, wave - 1), 50000);
-  const enemyDensity = 200 + Math.max(0, 60 - wave * 3);
+  // Harder difficulty: more enemies spawn as waves progress
+  const baseDensity = 200;
+  const densityReduction = Math.min(wave * 8, 120); // Reduces spacing as wave increases
+  const enemyDensity = Math.max(80, baseDensity - densityReduction);
   
-  for (let x = 400; x < levelLength - 800; x += enemyDensity + Math.random() * 100) {
+  // More drones as waves progress
+  const droneChance = Math.min(0.35 + wave * 0.02, 0.55); // 35% base, up to 55%
+  const ninjaChance = Math.min(0.12 + wave * 0.015, 0.25);
+  const tankChance = Math.min(0.05 + wave * 0.01, 0.15);
+  
+  for (let x = 400; x < levelLength - 800; x += enemyDensity + Math.random() * 80) {
     const typeRoll = Math.random();
-    const waveBonus = Math.min(wave * 0.1, 2);
+    const waveBonus = Math.min(wave * 0.15, 3); // Stronger scaling per wave
     let enemyType: Enemy['type'];
     let width: number, height: number, health: number, speed: number, damage: number;
     
-    // More varied enemies
-    if (typeRoll > 0.95) {
+    // Progressive difficulty with more varied enemies
+    if (typeRoll < tankChance) {
       enemyType = 'tank';
-      width = 70; height = 65; health = 180 * (1 + waveBonus); speed = 18 + wave; damage = 22;
-    } else if (typeRoll > 0.88) {
+      width = 70; height = 65; health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; damage = 22 + wave;
+    } else if (typeRoll < tankChance + 0.08) {
       enemyType = 'mech';
-      width = 65; height = 70; health = 90 * (1 + waveBonus); speed = 32 + wave * 2; damage = 16;
-    } else if (typeRoll > 0.78) {
+      width = 65; height = 70; health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; damage = 16 + wave;
+    } else if (typeRoll < tankChance + 0.08 + ninjaChance) {
       enemyType = 'ninja';
-      width = 45; height = 52; health = 35 * (1 + waveBonus * 0.5); speed = 150 + wave * 5; damage = 12;
-    } else if (typeRoll > 0.68) {
+      width = 45; height = 52; health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; damage = 12 + wave;
+    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance) {
+      // MORE DRONES - flying enemies that shoot lasers
       enemyType = 'drone';
-      width = 42; height = 42; health = 28 * (1 + waveBonus * 0.5); speed = 90 + wave * 2; damage = 7;
-      // Drones are flying enemies
+      width = 42; height = 42; 
+      health = 28 * (1 + waveBonus * 0.5); 
+      speed = 90 + wave * 3; 
+      damage = 7 + Math.floor(wave / 2);
+      
       const droneEnemy = {
         id: `enemy-${x}-${Math.random()}`,
         x,
-        y: GROUND_Y + 60 + Math.random() * 40, // Flying height
+        y: GROUND_Y + 60 + Math.random() * 50, // Flying height
         width,
         height,
         health,
@@ -162,16 +174,16 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         isSpawning: true,
         spawnTimer: 0.8,
         isFlying: true,
-        flyHeight: 60 + Math.random() * 40,
+        flyHeight: 60 + Math.random() * 50,
       };
       enemies.push(droneEnemy);
-      continue; // Skip the normal push
-    } else if (typeRoll > 0.55) {
+      continue;
+    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + 0.12) {
       enemyType = 'flyer';
-      width = 50; height = 46; health = 40 * (1 + waveBonus * 0.5); speed = 75 + wave * 2; damage = 9;
+      width = 50; height = 46; health = 40 * (1 + waveBonus * 0.5); speed = 75 + wave * 3; damage = 9 + wave;
     } else {
       enemyType = 'robot';
-      width = 50; height = 58; health = 45 * (1 + waveBonus); speed = 55 + wave * 2; damage = 9;
+      width = 50; height = 58; health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
     }
     
     enemies.push({
@@ -190,8 +202,36 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       attackCooldown: 0,
       animationPhase: Math.random() * Math.PI * 2,
       isSpawning: true,
-      spawnTimer: 0.8, // 0.8 second spawn animation
+      spawnTimer: 0.8,
     });
+  }
+  
+  // Add extra drone swarms at higher waves
+  if (wave >= 3) {
+    const droneSwarmCount = Math.min(Math.floor(wave / 2), 8);
+    for (let i = 0; i < droneSwarmCount; i++) {
+      const swarmX = 600 + Math.random() * (levelLength - 1400);
+      enemies.push({
+        id: `drone-swarm-${i}-${Math.random()}`,
+        x: swarmX,
+        y: GROUND_Y + 80 + Math.random() * 60,
+        width: 42,
+        height: 42,
+        health: 35 * (1 + wave * 0.1),
+        maxHealth: 35 * (1 + wave * 0.1),
+        speed: 100 + wave * 4,
+        damage: 8 + wave,
+        type: 'drone',
+        isDying: false,
+        deathTimer: 0,
+        attackCooldown: 0,
+        animationPhase: Math.random() * Math.PI * 2,
+        isSpawning: true,
+        spawnTimer: 0.8,
+        isFlying: true,
+        flyHeight: 80 + Math.random() * 60,
+      });
+    }
   }
   
   // SCARY BOSS - 50% more health with phases
