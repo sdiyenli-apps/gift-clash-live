@@ -8,16 +8,17 @@ import {
 
 const GRAVITY = 0;
 const GROUND_Y = 100;
-const PLAYER_WIDTH = 32; // Half size
-const PLAYER_HEIGHT = 55; // Half size
+const PLAYER_WIDTH = 24; // Smaller for mobile
+const PLAYER_HEIGHT = 42; // Smaller for mobile
 const BASE_LEVEL_LENGTH = 12000; // Longer levels
 const MAX_WAVES = 1000;
 const HELP_REQUEST_DELAY = 8000;
 const KILL_RADIUS = 60;
-const ENEMY_MIN_DISTANCE = 120; // Boss keeps more distance
+const ENEMY_MIN_DISTANCE = 120; // Regular enemies keep this distance
 const BOSS_FIREBALL_INTERVAL = 5;
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.3;
-const BOSS_KEEP_DISTANCE = 200; // Boss keeps this distance from player
+const BOSS_KEEP_DISTANCE = 450; // Boss keeps FAR away from player - ranged combat only
+const HERO_FIXED_SCREEN_X = 60; // Hero stays on LEFT side of screen
 
 // Boss attack types
 type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack';
@@ -434,17 +435,25 @@ export const useGameState = () => {
     }
   }, [gameState.currentWave, showSpeechBubble]);
 
-  // Create chickens
-  const createChickens = (playerX: number): Chicken[] => {
+  // Create chickens - now they FLY toward enemies!
+  const createAttackChickens = (playerX: number, enemies: Enemy[]): Chicken[] => {
     const newChickens: Chicken[] = [];
-    for (let i = 0; i < 5; i++) {
+    const visibleEnemies = enemies.filter(e => !e.isDying && !e.isSpawning && e.type !== 'boss');
+    
+    for (let i = 0; i < 8; i++) {
+      // Find a target enemy
+      const targetEnemy = visibleEnemies[i % Math.max(1, visibleEnemies.length)];
+      
       newChickens.push({
         id: `chicken-${Date.now()}-${i}`,
-        x: playerX + (Math.random() - 0.5) * 250,
-        y: GROUND_Y,
-        state: 'appearing',
-        timer: 3,
-        direction: Math.random() > 0.5 ? 1 : -1,
+        x: playerX + PLAYER_WIDTH / 2,
+        y: GROUND_Y + 30,
+        state: 'attacking',
+        timer: 4,
+        direction: 1,
+        targetEnemyId: targetEnemy?.id,
+        velocityX: 300 + Math.random() * 200,
+        velocityY: 100 + Math.random() * 150,
       });
     }
     return newChickens;
@@ -565,7 +574,7 @@ export const useGameState = () => {
           newState.screenShake = 1.0;
           newState.magicFlash = 1.5; // BIG FLASH!
           newState.redFlash = 0.3; // Extra flash
-          newState.chickens = [...prev.chickens, ...createChickens(prev.player.x)];
+          newState.chickens = [...prev.chickens, ...createAttackChickens(prev.player.x, prev.enemies)];
           
           // SPAWN NEON LASERS THAT BOUNCE OFF WALLS!
           const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
@@ -1202,16 +1211,65 @@ export const useGameState = () => {
           }
         }
         
-        // Update chickens
+        // Update chickens - ATTACK ENEMIES!
         newState.chickens = prev.chickens
           .map(chicken => {
             let newChicken = { ...chicken, timer: chicken.timer - delta };
-            if (newChicken.timer <= 2 && chicken.state === 'appearing') {
-              newChicken.state = 'stopped';
+            
+            // Attacking chickens fly toward enemies
+            if (chicken.state === 'attacking' && chicken.targetEnemyId) {
+              const targetEnemy = newState.enemies.find(e => e.id === chicken.targetEnemyId && !e.isDying);
+              
+              if (targetEnemy) {
+                // Move toward enemy
+                const dx = targetEnemy.x + targetEnemy.width / 2 - chicken.x;
+                const dy = (targetEnemy.y + targetEnemy.height / 2) - chicken.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                if (dist > 20) {
+                  const speed = 450;
+                  newChicken.x = chicken.x + (dx / dist) * speed * delta;
+                  newChicken.y = chicken.y + (dy / dist) * speed * delta;
+                } else {
+                  // HIT! Damage enemy and chicken disappears
+                  const enemyIdx = newState.enemies.findIndex(e => e.id === chicken.targetEnemyId);
+                  if (enemyIdx !== -1) {
+                    newState.enemies[enemyIdx] = {
+                      ...newState.enemies[enemyIdx],
+                      health: newState.enemies[enemyIdx].health - 50,
+                    };
+                    newState.particles = [...newState.particles, ...createParticles(chicken.x, chicken.y, 15, 'explosion', '#ff8800')];
+                    newState.score += 30;
+                    
+                    if (newState.enemies[enemyIdx].health <= 0) {
+                      newState.enemies[enemyIdx].isDying = true;
+                      newState.enemies[enemyIdx].deathTimer = 0.4;
+                      newState.score += 50;
+                      newState.combo++;
+                    }
+                  }
+                  newChicken.state = 'gone';
+                }
+              } else {
+                // No target, just fly forward
+                newChicken.x = chicken.x + (chicken.velocityX || 300) * delta;
+                newChicken.y = chicken.y + Math.sin(chicken.timer * 8) * 30 * delta;
+                if (newChicken.x > prev.cameraX + 800) {
+                  newChicken.state = 'gone';
+                }
+              }
+            } else if (chicken.state === 'appearing') {
+              if (newChicken.timer <= 2) {
+                newChicken.state = 'stopped';
+              }
+            } else if (chicken.state === 'stopped') {
+              if (newChicken.timer <= 1) {
+                newChicken.state = 'walking';
+              }
+            } else if (chicken.state === 'walking') {
+              newChicken.x = chicken.x + chicken.direction * 60 * delta;
             }
-            if (newChicken.timer <= 1 && chicken.state === 'stopped') {
-              newChicken.state = 'walking';
-            }
+            
             if (newChicken.timer <= 0) {
               newChicken.state = 'gone';
             }
@@ -1286,9 +1344,10 @@ export const useGameState = () => {
           newState.screenShake = Math.max(0, prev.screenShake - delta * 4);
         }
         
-        // Update camera - HERO STAYS ON LEFT SIDE
-        const targetCameraX = Math.max(0, newState.player.x - 80); // Hero stays at left edge
-        newState.cameraX = prev.cameraX + (targetCameraX - prev.cameraX) * 0.12;
+        // Update camera - HERO STAYS FIXED ON LEFT SIDE OF SCREEN
+        // Camera follows player but hero stays at fixed screen position
+        const targetCameraX = Math.max(0, newState.player.x - HERO_FIXED_SCREEN_X);
+        newState.cameraX = prev.cameraX + (targetCameraX - prev.cameraX) * 0.15;
         newState.distance = newState.player.x;
         
         // Update projectiles

@@ -8,7 +8,7 @@ import { HealthBar } from '@/components/game/HealthBar';
 import { GiftPanel } from '@/components/game/GiftPanel';
 import { GiftNotification } from '@/components/game/GiftNotification';
 import { GameOverlay } from '@/components/game/GameOverlay';
-// Removed VictoryCutscene import
+import { WaveTransition } from '@/components/game/WaveTransition';
 import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
 
 const Index = () => {
@@ -87,7 +87,6 @@ const Index = () => {
   // Play sound when enemies shoot
   useEffect(() => {
     if (gameState.enemyLasers?.length > 0) {
-      // Check if any are from drones (damage 8)
       const hasDroneLaser = gameState.enemyLasers.some(l => l.damage === 8);
       if (hasDroneLaser) {
         playSound('droneShoot');
@@ -112,20 +111,28 @@ const Index = () => {
 
   return (
     <div 
-      className="h-screen w-screen flex flex-col overflow-hidden safe-area-inset"
+      className="h-screen w-screen flex flex-col overflow-hidden safe-area-inset touch-none select-none"
       style={{
-        background: 'linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 50%, #0a1a2a 100%)',
+        background: 'linear-gradient(180deg, #0a0a12 0%, #12081c 100%)',
       }}
     >
       <GiftNotification notifications={notifications} />
 
-      {/* Compact Header - optimized for mobile */}
-      <header className="px-2 py-1 bg-black/90 border-b border-purple-500/30 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <span className="text-lg">🐿️</span>
-            <h1 
-              className="font-bold text-sm sm:text-base"
+      {/* Modern TikTok Live Header - Floating pill style */}
+      <header className="absolute top-2 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
+        {/* Left side - Logo & Stats */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <div 
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            style={{
+              background: 'rgba(0,0,0,0.7)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255,255,255,0.1)',
+            }}
+          >
+            <span className="text-base">🐿️</span>
+            <span 
+              className="font-black text-xs"
               style={{
                 background: 'linear-gradient(90deg, #ff00ff, #00ffff)',
                 WebkitBackgroundClip: 'text',
@@ -133,58 +140,93 @@ const Index = () => {
               }}
             >
               CPT SQUIRBERT
-            </h1>
+            </span>
           </div>
+        </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Audio Toggle Button */}
-            <motion.button
-              onClick={() => setAudioOn(!audioOn)}
-              className={`px-2 py-1 rounded text-xs font-bold transition-all ${
-                audioOn 
-                  ? 'bg-cyan-500/30 text-cyan-400 border border-cyan-500/50' 
-                  : 'bg-gray-700/50 text-gray-400 border border-gray-600/50'
-              }`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {audioOn ? '🔊' : '🔇'}
-            </motion.button>
-
-            {gameState.phase === 'playing' && (
-              <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
-                <div className="text-cyan-400 font-bold">⭐ {gameState.score}</div>
-                <div className="text-yellow-400 font-bold">W{gameState.currentWave}</div>
-                {gameState.player.isMagicDashing && (
-                  <motion.div
-                    className="text-pink-400 font-bold"
-                    animate={{ opacity: [1, 0.5, 1] }}
-                    transition={{ duration: 0.2, repeat: Infinity }}
-                  >
-                    ✨ {gameState.player.magicDashTimer.toFixed(0)}s
-                  </motion.div>
-                )}
+        {/* Right side - Audio & Wave info */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          {gameState.phase === 'playing' && (
+            <>
+              <div 
+                className="px-2.5 py-1 rounded-full font-bold text-xs"
+                style={{
+                  background: 'rgba(0,0,0,0.7)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,0,0.3)',
+                  color: '#ffff00',
+                }}
+              >
+                ⭐ {gameState.score.toLocaleString()}
               </div>
-            )}
-          </div>
+              <div 
+                className="px-2.5 py-1 rounded-full font-bold text-xs"
+                style={{
+                  background: 'rgba(0,0,0,0.7)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(0,255,255,0.3)',
+                  color: '#00ffff',
+                }}
+              >
+                W{gameState.currentWave}
+              </div>
+              {gameState.player.isMagicDashing && (
+                <motion.div
+                  className="px-2.5 py-1 rounded-full font-bold text-xs"
+                  style={{
+                    background: 'rgba(255,0,255,0.3)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255,0,255,0.5)',
+                    color: '#ff66ff',
+                  }}
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 0.2, repeat: Infinity }}
+                >
+                  ✨ {gameState.player.magicDashTimer.toFixed(0)}s
+                </motion.div>
+              )}
+            </>
+          )}
+          <motion.button
+            onClick={() => setAudioOn(!audioOn)}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+            style={{
+              background: audioOn ? 'rgba(0,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              border: audioOn ? '1px solid rgba(0,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
+            }}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+          >
+            {audioOn ? '🔊' : '🔇'}
+          </motion.button>
         </div>
       </header>
 
-      {/* Main Content - Full mobile optimized with better POV */}
-      <main className="flex-1 flex flex-col p-1.5 gap-1.5 overflow-hidden min-h-0">
-        {/* Health bar - only when playing - larger for visibility */}
+      {/* Main Game Content - Full screen optimized for mobile */}
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0">
+        {/* Health bar - Floating at top when playing */}
         {gameState.phase === 'playing' && (
-          <div className="bg-gray-900/90 rounded-lg p-1.5 border border-cyan-500/30 flex-shrink-0">
-            <HealthBar 
-              health={gameState.player.health}
-              maxHealth={gameState.player.maxHealth}
-              shield={gameState.player.shield}
-            />
+          <div className="absolute top-14 left-2 right-2 z-20">
+            <div 
+              className="rounded-lg p-1.5"
+              style={{
+                background: 'rgba(0,0,0,0.6)',
+                backdropFilter: 'blur(8px)',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              <HealthBar 
+                health={gameState.player.health}
+                maxHealth={gameState.player.maxHealth}
+                shield={gameState.player.shield}
+              />
+            </div>
           </div>
         )}
 
-        {/* Game Arena - takes all available space with better aspect ratio */}
-        <div className="relative flex-1 min-h-0 rounded-lg overflow-hidden" style={{ minHeight: '45vh' }}>
+        {/* Game Arena - Full screen */}
+        <div className="flex-1 min-h-0 relative">
           <Arena gameState={gameState} />
           <GameOverlay 
             phase={gameState.phase}
@@ -195,20 +237,35 @@ const Index = () => {
             onStart={() => startGame(gameState.currentWave || 1)}
             onNextWave={startNextWave}
           />
+          
+          {/* Wave Transition Screen */}
+          <WaveTransition
+            isVisible={gameState.phase === 'victory'}
+            currentWave={gameState.currentWave}
+            maxWaves={gameState.maxWaves}
+            score={gameState.score}
+            onNextWave={startNextWave}
+          />
         </div>
 
-        {/* Gift Controls - larger buttons for mobile */}
-        <div className="flex-shrink-0">
+        {/* Bottom Controls - Modern floating panel */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 p-2 space-y-2">
+          {/* Gift Controls */}
           <GiftPanel 
             onTriggerGift={handleTriggerGift}
             disabled={gameState.phase !== 'playing'}
           />
-        </div>
 
-        {/* Auto-simulate & Recent - compact but readable */}
-        <div className="flex gap-1.5 flex-shrink-0">
-          <div className="flex-1 bg-gray-900/90 rounded-lg p-1.5 border border-green-500/30">
-            <label className="flex items-center justify-between cursor-pointer">
+          {/* Auto-simulate & Recent - Ultra compact */}
+          <div className="flex gap-2">
+            <div 
+              className="flex-1 rounded-lg px-3 py-1.5 flex items-center justify-between"
+              style={{
+                background: 'rgba(0,0,0,0.7)',
+                backdropFilter: 'blur(10px)',
+                border: `1px solid ${autoSimulate ? 'rgba(0,255,0,0.4)' : 'rgba(255,255,255,0.1)'}`,
+              }}
+            >
               <span className="font-bold text-xs text-gray-300">🤖 Auto</span>
               <button
                 onClick={() => setAutoSimulate(!autoSimulate)}
@@ -219,27 +276,27 @@ const Index = () => {
                   animate={{ left: autoSimulate ? '22px' : '2px' }}
                 />
               </button>
-            </label>
-          </div>
+            </div>
 
-          <div className="flex-1 bg-gray-900/90 rounded-lg p-1.5 border border-yellow-500/30">
-            <div className="text-xs text-yellow-400 font-bold mb-0.5">💫 Recent</div>
-            <div className="flex gap-1 overflow-x-auto">
-              {giftEvents.slice(0, 5).map((event) => (
-                <span key={event.id} className="text-base">{event.gift.emoji}</span>
-              ))}
-              {giftEvents.length === 0 && <span className="text-xs text-gray-500">None</span>}
+            <div 
+              className="flex-1 rounded-lg px-3 py-1.5"
+              style={{
+                background: 'rgba(0,0,0,0.7)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,0,0.2)',
+              }}
+            >
+              <div className="text-[10px] text-yellow-400 font-bold mb-0.5">💫 Recent</div>
+              <div className="flex gap-1 overflow-x-auto">
+                {giftEvents.slice(0, 6).map((event) => (
+                  <span key={event.id} className="text-sm">{event.gift.emoji}</span>
+                ))}
+                {giftEvents.length === 0 && <span className="text-[10px] text-gray-500">None</span>}
+              </div>
             </div>
           </div>
         </div>
       </main>
-
-      {/* Footer - minimal */}
-      <footer className="py-1 text-center bg-black/90 border-t border-purple-500/30 flex-shrink-0">
-        <p className="text-xs text-gray-400">
-          🎮 Send gifts to control hero! 👑 Save the Princess!
-        </p>
-      </footer>
     </div>
   );
 };

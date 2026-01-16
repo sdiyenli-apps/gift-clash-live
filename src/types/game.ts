@@ -81,9 +81,12 @@ export interface Chicken {
   id: string;
   x: number;
   y: number;
-  state: 'appearing' | 'stopped' | 'walking' | 'gone';
+  state: 'appearing' | 'stopped' | 'walking' | 'attacking' | 'gone';
   timer: number;
   direction: number;
+  targetEnemyId?: string;
+  velocityX?: number;
+  velocityY?: number;
 }
 
 export interface Obstacle {

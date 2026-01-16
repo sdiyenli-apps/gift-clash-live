@@ -144,22 +144,26 @@ const ChickenSprite = forwardRef<HTMLDivElement, { chicken: Chicken; cameraX: nu
     
     if (screenX < -100 || screenX > 1100 || chicken.state === 'gone') return null;
     
+    // Attacking chickens fly through the air toward enemies!
+    const isAttacking = chicken.state === 'attacking';
+    const bottomPos = isAttacking ? chicken.y : 60;
+    
     return (
       <motion.div
         ref={ref}
         className="absolute z-15"
         style={{
           left: screenX,
-          bottom: 60,
+          bottom: bottomPos,
         }}
         initial={{ opacity: 0, scale: 0 }}
         animate={{ 
-          opacity: chicken.state === 'appearing' ? [0, 1] : 1,
-          scale: chicken.state === 'appearing' ? [0, 1.2, 1] : 1,
-          x: chicken.state === 'walking' ? chicken.direction * 150 : 0,
+          opacity: 1,
+          scale: isAttacking ? 1.3 : 1,
+          rotate: isAttacking ? [0, 15, -15, 0] : 0,
         }}
         exit={{ opacity: 0, y: -30, scale: 0 }}
-        transition={{ duration: chicken.state === 'walking' ? 2 : 0.5 }}
+        transition={{ duration: isAttacking ? 0.15 : 0.5, repeat: isAttacking ? Infinity : 0 }}
       >
         {/* Speech bubble */}
         {showSound && (
@@ -172,17 +176,38 @@ const ChickenSprite = forwardRef<HTMLDivElement, { chicken: Chicken; cameraX: nu
           </motion.div>
         )}
         
+        {/* Attack trail for flying chickens */}
+        {isAttacking && (
+          <motion.div
+            className="absolute -left-8 top-1/2 -translate-y-1/2 w-12 h-3"
+            style={{
+              background: 'linear-gradient(90deg, transparent, #ff8800, #ffff00)',
+              filter: 'blur(4px)',
+              borderRadius: '50%',
+            }}
+            animate={{ opacity: [0.5, 1, 0.5], scaleX: [0.8, 1.2, 0.8] }}
+            transition={{ duration: 0.15, repeat: Infinity }}
+          />
+        )}
+        
         {/* Chicken body */}
         <motion.div
           className="relative"
           animate={{ 
-            rotate: chicken.state === 'stopped' ? [-5, 5, -5] : 0,
+            rotate: chicken.state === 'stopped' ? [-5, 5, -5] : isAttacking ? [0, 20, -20, 0] : 0,
             scaleX: chicken.direction,
           }}
-          transition={{ duration: 0.3, repeat: Infinity }}
+          transition={{ duration: isAttacking ? 0.1 : 0.3, repeat: Infinity }}
         >
-          <span className="text-3xl" style={{ filter: 'drop-shadow(2px 3px 4px rgba(0,0,0,0.4))' }}>
-            🐔
+          <span 
+            className={`${isAttacking ? 'text-4xl' : 'text-3xl'}`} 
+            style={{ 
+              filter: isAttacking 
+                ? 'drop-shadow(0 0 10px #ff8800) drop-shadow(2px 3px 4px rgba(0,0,0,0.4))' 
+                : 'drop-shadow(2px 3px 4px rgba(0,0,0,0.4))',
+            }}
+          >
+            {isAttacking ? '🐓' : '🐔'}
           </span>
         </motion.div>
       </motion.div>
