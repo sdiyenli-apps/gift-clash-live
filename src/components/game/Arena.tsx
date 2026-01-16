@@ -10,6 +10,16 @@ import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
 import { MiniMap } from './MiniMap';
 
+interface NeonLaser {
+  id: string;
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  bounces: number;
+  life: number;
+}
+
 interface ExtendedGameState extends GameState {
   fireballs?: { id: string; x: number; y: number; velocityX: number; velocityY: number; damage: number }[];
   redFlash?: number;
@@ -19,6 +29,7 @@ interface ExtendedGameState extends GameState {
   bossTaunt?: string | null;
   damageFlash?: number;
   shieldBlockFlash?: number;
+  neonLasers?: NeonLaser[];
 }
 
 interface ArenaProps {
@@ -33,7 +44,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
     flyingRobots, chickens, neonLights, explosions, giftBlocks = [],
     fireballs = [], redFlash = 0, armorTimer = 0, enemyLasers = [],
     magicFlash = 0, bossTaunt = null, currentWave,
-    damageFlash = 0, shieldBlockFlash = 0
+    damageFlash = 0, shieldBlockFlash = 0, neonLasers = []
   } = gameState;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -155,6 +166,35 @@ export const Arena = ({ gameState }: ArenaProps) => {
         {fireballs.map(fireball => (
           <FireballSprite key={fireball.id} fireball={fireball} cameraX={cameraX} />
         ))}
+        
+        {/* NEON LASERS - bouncing wall lasers! */}
+        {neonLasers.map(laser => {
+          const screenX = laser.x - cameraX;
+          const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
+          const color = neonColors[Math.floor(Math.abs(laser.x + laser.y) % neonColors.length)];
+          return (
+            <motion.div
+              key={laser.id}
+              className="absolute pointer-events-none z-40"
+              style={{
+                left: screenX,
+                bottom: laser.y,
+                width: 20,
+                height: 4,
+                background: `linear-gradient(90deg, ${color}, white, ${color})`,
+                boxShadow: `0 0 15px ${color}, 0 0 30px ${color}, 0 0 45px ${color}`,
+                borderRadius: '50%',
+                transform: `rotate(${Math.atan2(laser.velocityY, laser.velocityX) * 180 / Math.PI}deg)`,
+              }}
+              initial={{ scale: 1 }}
+              animate={{ 
+                scale: [1, 1.3, 1],
+                opacity: laser.life > 0.5 ? 1 : laser.life * 2,
+              }}
+              transition={{ duration: 0.2, repeat: Infinity }}
+            />
+          );
+        })}
         
         {enemies.map(enemy => (
           <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} />

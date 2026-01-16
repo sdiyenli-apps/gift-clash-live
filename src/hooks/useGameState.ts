@@ -39,6 +39,16 @@ interface Fireball {
   damage: number;
 }
 
+interface NeonLaser {
+  id: string;
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  bounces: number;
+  life: number;
+}
+
 const INITIAL_PLAYER: Player = {
   health: 100,
   maxHealth: 100,
@@ -75,6 +85,8 @@ interface ExtendedGameState extends GameState {
   bossTauntTimer: number;
   damageFlash: number;
   shieldBlockFlash: number;
+  neonLasers: NeonLaser[];
+  bossDroneSpawnTimer: number;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -117,6 +129,8 @@ const INITIAL_STATE: ExtendedGameState = {
   bossTauntTimer: 0,
   damageFlash: 0,
   shieldBlockFlash: 0,
+  neonLasers: [],
+  bossDroneSpawnTimer: 2,
 };
 
 // More varied enemy types
@@ -503,10 +517,29 @@ export const useGameState = () => {
           };
           newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y, 30, 'ultra', '#ff00ff')];
           newState.score += 300;
-          newState.screenShake = 0.5;
-          newState.magicFlash = 0.8; // Flash screen
+          newState.screenShake = 1.0;
+          newState.magicFlash = 1.5; // BIG FLASH!
+          newState.redFlash = 0.3; // Extra flash
           newState.chickens = [...prev.chickens, ...createChickens(prev.player.x)];
-          showSpeechBubble("✨ MAGIC DASH + CHICKENS! 🐔✨", 'excited');
+          
+          // SPAWN NEON LASERS THAT BOUNCE OFF WALLS!
+          const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
+          const newNeonLasers: NeonLaser[] = [];
+          for (let i = 0; i < 12; i++) {
+            const angle = (i / 12) * Math.PI * 2;
+            newNeonLasers.push({
+              id: `neon-${Date.now()}-${i}`,
+              x: prev.player.x + PLAYER_WIDTH / 2,
+              y: prev.player.y + PLAYER_HEIGHT / 2,
+              velocityX: Math.cos(angle) * (400 + Math.random() * 300),
+              velocityY: Math.sin(angle) * (400 + Math.random() * 300),
+              bounces: 5,
+              life: 4,
+            });
+          }
+          newState.neonLasers = [...prev.neonLasers, ...newNeonLasers];
+          
+          showSpeechBubble("🦁 RAWWWWR! NEON FURY! 🦁", 'excited');
           break;
 
         case 'spawn_enemies' as GiftAction:
@@ -626,9 +659,10 @@ export const useGameState = () => {
 
         let newState = { ...prev };
         
-        // Check for boss fight
+        // Check for boss fight - INITIATE FROM MUCH FURTHER AWAY
         const bossEnemy = prev.enemies.find(e => e.type === 'boss' && !e.isDying);
-        newState.isBossFight = bossEnemy !== undefined && prev.player.x > prev.levelLength - 700;
+        const BOSS_ACTIVATION_DISTANCE = 1500; // Boss activates from further away
+        newState.isBossFight = bossEnemy !== undefined && prev.player.x > prev.levelLength - BOSS_ACTIVATION_DISTANCE;
         
         // Boss taunt and laugh
         if (bossEnemy && newState.isBossFight) {
@@ -636,6 +670,35 @@ export const useGameState = () => {
           if (newState.bossTauntTimer <= 0) {
             newState.bossTaunt = BOSS_LAUGHS[Math.floor(Math.random() * BOSS_LAUGHS.length)];
             newState.bossTauntTimer = 4 + Math.random() * 3; // Taunt every 4-7 seconds
+          }
+          
+          // BOSS SPAWNS DRONES CONSTANTLY!
+          newState.bossDroneSpawnTimer -= delta;
+          if (newState.bossDroneSpawnTimer <= 0) {
+            const droneSpawnX = bossEnemy.x - 50 - Math.random() * 100;
+            const newDrone: Enemy = {
+              id: `boss-drone-${Date.now()}-${Math.random()}`,
+              x: droneSpawnX,
+              y: GROUND_Y + 60 + Math.random() * 80,
+              width: 42,
+              height: 42,
+              health: 25 + prev.currentWave * 2,
+              maxHealth: 25 + prev.currentWave * 2,
+              speed: 100 + prev.currentWave * 3,
+              damage: 8,
+              type: 'drone',
+              isDying: false,
+              deathTimer: 0,
+              attackCooldown: 0.5,
+              animationPhase: Math.random() * Math.PI * 2,
+              isSpawning: true,
+              spawnTimer: 0.5,
+              isFlying: true,
+              flyHeight: 60 + Math.random() * 80,
+            };
+            newState.enemies = [...newState.enemies, newDrone];
+            newState.bossDroneSpawnTimer = 2 + Math.random() * 1.5; // Spawn drone every 2-3.5 seconds
+            newState.particles = [...newState.particles, ...createParticles(droneSpawnX, newDrone.y, 8, 'spark', '#ff0000')];
           }
         } else {
           newState.bossTaunt = null;
@@ -899,6 +962,68 @@ export const useGameState = () => {
             return newChicken;
           })
           .filter(c => c.state !== 'gone');
+        
+        // UPDATE NEON LASERS - BOUNCE OFF WALLS!
+        const ARENA_TOP = 50;
+        const ARENA_BOTTOM = 250;
+        const ARENA_LEFT = prev.cameraX - 20;
+        const ARENA_RIGHT = prev.cameraX + 650;
+        
+        newState.neonLasers = prev.neonLasers
+          .map(laser => {
+            let newLaser = {
+              ...laser,
+              x: laser.x + laser.velocityX * delta,
+              y: laser.y + laser.velocityY * delta,
+              life: laser.life - delta,
+            };
+            
+            // Bounce off horizontal walls
+            if (newLaser.x < ARENA_LEFT || newLaser.x > ARENA_RIGHT) {
+              if (newLaser.bounces > 0) {
+                newLaser.velocityX = -newLaser.velocityX * 0.9;
+                newLaser.bounces--;
+                newLaser.x = Math.max(ARENA_LEFT, Math.min(ARENA_RIGHT, newLaser.x));
+              }
+            }
+            
+            // Bounce off vertical walls
+            if (newLaser.y < ARENA_TOP || newLaser.y > ARENA_BOTTOM) {
+              if (newLaser.bounces > 0) {
+                newLaser.velocityY = -newLaser.velocityY * 0.9;
+                newLaser.bounces--;
+                newLaser.y = Math.max(ARENA_TOP, Math.min(ARENA_BOTTOM, newLaser.y));
+              }
+            }
+            
+            return newLaser;
+          })
+          .filter(laser => laser.life > 0 && laser.bounces >= 0);
+        
+        // Neon laser-enemy collision (they damage enemies!)
+        newState.neonLasers.forEach(laser => {
+          newState.enemies.forEach((enemy, idx) => {
+            if (enemy.isDying || enemy.isSpawning || enemy.type === 'boss') return;
+            
+            if (
+              laser.x > enemy.x - 10 && laser.x < enemy.x + enemy.width + 10 &&
+              laser.y > enemy.y - 10 && laser.y < enemy.y + enemy.height + 10
+            ) {
+              newState.enemies[idx] = {
+                ...newState.enemies[idx],
+                health: newState.enemies[idx].health - 30,
+              };
+              newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 8, 'spark', '#ff00ff')];
+              
+              if (newState.enemies[idx].health <= 0) {
+                newState.enemies[idx].isDying = true;
+                newState.enemies[idx].deathTimer = 0.4;
+                newState.score += 50;
+                newState.combo++;
+              }
+            }
+          });
+        });
         
         // Screen shake decay
         if (prev.screenShake > 0) {
