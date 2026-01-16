@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
+import heroSprite from '@/assets/hero-sprite.png';
 
 interface HeroProps {
   player: Player;
@@ -11,20 +12,24 @@ interface HeroProps {
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
   const screenX = player.x - cameraX;
   
+  // Idle animation state
+  const isIdle = player.isGrounded && !player.isShooting;
+  
   return (
     <motion.div
-      className="absolute"
+      className="absolute z-20"
       style={{
         left: screenX,
-        bottom: 480 - player.y - 64,
-        width: 48,
-        height: 64,
+        bottom: 480 - player.y - 80,
+        width: 64,
+        height: 80,
       }}
       animate={{
-        scale: isUltraMode ? [1, 1.1, 1] : 1,
+        scale: isUltraMode ? [1, 1.15, 1] : 1,
+        rotate: player.isShooting ? [-2, 2, 0] : 0,
       }}
       transition={{
-        duration: 0.3,
+        duration: isUltraMode ? 0.2 : 0.1,
         repeat: isUltraMode ? Infinity : 0,
       }}
     >
@@ -34,149 +39,208 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           initial={{ opacity: 0, y: 10, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap"
+          className="absolute -top-20 left-1/2 -translate-x-1/2 whitespace-nowrap z-30"
         >
-          <div className="bg-white text-black px-3 py-1.5 rounded-lg text-xs font-bold shadow-lg relative">
+          <div 
+            className="px-4 py-2 rounded-xl text-sm font-bold shadow-xl relative"
+            style={{
+              background: 'linear-gradient(135deg, #fff, #f0f0f0)',
+              color: '#333',
+              boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+            }}
+          >
             {speechBubble.text}
-            <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-6 border-l-transparent border-r-transparent border-t-white" />
+            <div 
+              className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0"
+              style={{
+                borderLeft: '8px solid transparent',
+                borderRight: '8px solid transparent',
+                borderTop: '10px solid white',
+              }}
+            />
           </div>
         </motion.div>
       )}
       
-      {/* Ultra mode glow */}
+      {/* Ultra mode glow aura */}
       {isUltraMode && (
-        <div className="absolute inset-0 -m-4 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 blur-xl opacity-70 animate-pulse" />
+        <>
+          <motion.div 
+            className="absolute -inset-8 rounded-full"
+            style={{
+              background: 'radial-gradient(circle, rgba(255,0,255,0.6) 0%, rgba(0,255,255,0.4) 50%, transparent 70%)',
+              filter: 'blur(15px)',
+            }}
+            animate={{ 
+              scale: [1, 1.3, 1],
+              opacity: [0.5, 0.8, 0.5],
+            }}
+            transition={{ duration: 0.3, repeat: Infinity }}
+          />
+          {/* Energy rings */}
+          {[0, 1, 2].map(i => (
+            <motion.div
+              key={i}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2"
+              style={{
+                width: 60 + i * 30,
+                height: 60 + i * 30,
+                borderColor: i % 2 === 0 ? '#ff00ff' : '#00ffff',
+              }}
+              animate={{ 
+                scale: [1, 1.5, 1],
+                opacity: [0.8, 0, 0.8],
+                rotate: [0, 180, 360],
+              }}
+              transition={{ 
+                duration: 1,
+                repeat: Infinity,
+                delay: i * 0.2,
+              }}
+            />
+          ))}
+        </>
       )}
       
       {/* Shield effect */}
       {player.shield > 0 && (
         <motion.div
-          className="absolute inset-0 -m-3 rounded-full border-2 border-cyan-400"
+          className="absolute -inset-4 rounded-full"
           style={{
-            boxShadow: '0 0 20px #00ffff, inset 0 0 20px rgba(0, 255, 255, 0.3)',
+            background: 'radial-gradient(circle, rgba(0,255,255,0.1) 0%, rgba(0,255,255,0.3) 70%, rgba(0,255,255,0.5) 100%)',
+            border: '3px solid #00ffff',
+            boxShadow: '0 0 30px #00ffff, inset 0 0 30px rgba(0, 255, 255, 0.3)',
             opacity: player.shield / 100,
           }}
-          animate={{ scale: [1, 1.05, 1] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
-        />
-      )}
-      
-      {/* Hero character - Pixel art style funny guy with big nose */}
-      <div className="relative w-full h-full">
-        {/* Body */}
-        <div 
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-10 rounded-md"
-          style={{
-            background: isUltraMode 
-              ? 'linear-gradient(135deg, #ff00ff, #00ffff)' 
-              : 'linear-gradient(135deg, #4a90d9, #2a5298)',
-            boxShadow: isUltraMode 
-              ? '0 0 20px #ff00ff, 0 0 40px #00ffff' 
-              : '2px 2px 0 #1a3a68',
-          }}
-        />
-        
-        {/* Head */}
-        <div 
-          className="absolute bottom-9 left-1/2 -translate-x-1/2 w-9 h-9 rounded-full bg-[#ffd5b4]"
-          style={{
-            boxShadow: '2px 2px 0 #d4a574',
-          }}
-        />
-        
-        {/* BIG NOSE - the signature feature! */}
-        <div 
-          className="absolute bottom-10 left-1/2 translate-x-1 w-4 h-5 rounded-full bg-[#ffb894]"
-          style={{
-            boxShadow: '1px 1px 0 #e5a07a',
-          }}
-        />
-        
-        {/* Eyes */}
-        <div className="absolute bottom-14 left-1/2 -translate-x-1/2 flex gap-2">
-          <motion.div 
-            className="w-2 h-2 bg-black rounded-full"
-            animate={player.isShooting ? { scale: [1, 0.5, 1] } : {}}
-          />
-          <motion.div 
-            className="w-2 h-2 bg-black rounded-full"
-            animate={player.isShooting ? { scale: [1, 0.5, 1] } : {}}
-          />
-        </div>
-        
-        {/* Eyebrows */}
-        <div className="absolute bottom-[58px] left-1/2 -translate-x-1/2 flex gap-3">
-          <div className="w-2.5 h-1 bg-[#5a3d2b] rounded -rotate-12" />
-          <div className="w-2.5 h-1 bg-[#5a3d2b] rounded rotate-12" />
-        </div>
-        
-        {/* Hair tuft */}
-        <div className="absolute bottom-[60px] left-1/2 -translate-x-1/2">
-          <div className="w-1.5 h-3 bg-[#5a3d2b] rounded-t -rotate-12 -translate-x-1" />
-          <div className="w-1.5 h-4 bg-[#5a3d2b] rounded-t absolute -top-1 left-1" />
-          <div className="w-1.5 h-3 bg-[#5a3d2b] rounded-t rotate-12 absolute left-3" />
-        </div>
-        
-        {/* Smile/expression */}
-        <motion.div 
-          className="absolute bottom-[42px] left-1/2 -translate-x-1/2 w-3 h-1.5 border-b-2 border-[#333] rounded-b-full"
-          animate={player.isShooting ? { scaleY: 0.5 } : {}}
-        />
-        
-        {/* Arms */}
-        <motion.div 
-          className="absolute bottom-4 -right-3 w-3 h-6 bg-[#4a90d9] rounded origin-top"
           animate={{ 
-            rotate: player.isShooting ? -20 : 0,
+            scale: [1, 1.05, 1],
+            rotate: [0, 5, -5, 0],
           }}
-          style={{
-            boxShadow: isUltraMode ? '0 0 10px #ff00ff' : '1px 1px 0 #2a5298',
-          }}
-        />
-        
-        {/* Cyberpunk Gun */}
-        <motion.div 
-          className="absolute bottom-5 -right-4 origin-left"
-          animate={{ 
-            rotate: player.isShooting ? [-5, 10, 0] : 0,
-            x: player.isShooting ? [0, -3, 0] : 0,
-          }}
-          transition={{ duration: 0.1 }}
+          transition={{ duration: 1, repeat: Infinity }}
         >
+          {/* Shield hex pattern */}
           <div 
-            className="w-10 h-4 rounded-r-sm"
+            className="absolute inset-0 rounded-full opacity-50"
             style={{
-              background: isUltraMode 
-                ? 'linear-gradient(90deg, #ff00ff, #00ffff)' 
-                : 'linear-gradient(90deg, #444, #666)',
-              boxShadow: isUltraMode 
-                ? '0 0 15px #ff00ff' 
-                : '0 2px 0 #222',
+              background: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20'%3E%3Cpolygon points='10,0 20,5 20,15 10,20 0,15 0,5' fill='none' stroke='%2300ffff' stroke-width='0.5'/%3E%3C/svg%3E")`,
             }}
           />
-          {/* Gun barrel glow */}
-          {player.isShooting && (
-            <motion.div
-              initial={{ opacity: 1, scale: 1 }}
-              animate={{ opacity: 0, scale: 2 }}
-              className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-yellow-400"
-              style={{ boxShadow: '0 0 20px #ffff00' }}
-            />
-          )}
         </motion.div>
+      )}
+      
+      {/* Hero sprite image */}
+      <motion.div
+        className="relative w-full h-full"
+        animate={{
+          y: isIdle ? [0, -3, 0] : 0,
+          scaleX: player.facingRight ? 1 : -1,
+        }}
+        transition={{
+          y: { duration: 1.5, repeat: Infinity, ease: "easeInOut" },
+        }}
+      >
+        {/* Main sprite */}
+        <motion.img
+          src={heroSprite}
+          alt="Hero"
+          className="w-full h-full object-contain drop-shadow-lg"
+          style={{
+            filter: isUltraMode 
+              ? 'drop-shadow(0 0 10px #ff00ff) drop-shadow(0 0 20px #00ffff) brightness(1.2)' 
+              : 'drop-shadow(2px 4px 6px rgba(0,0,0,0.5))',
+          }}
+          animate={{
+            rotate: player.isJumping ? [-5, 5, -5] : 0,
+          }}
+          transition={{ duration: 0.3, repeat: player.isJumping ? Infinity : 0 }}
+        />
         
-        {/* Legs - simple walking animation */}
-        <motion.div
-          className="absolute -bottom-1 left-2 w-2.5 h-3 bg-[#333] rounded-b"
-          animate={{ rotate: [-5, 5, -5] }}
-          transition={{ duration: 0.3, repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute -bottom-1 right-2 w-2.5 h-3 bg-[#333] rounded-b"
-          animate={{ rotate: [5, -5, 5] }}
-          transition={{ duration: 0.3, repeat: Infinity }}
-        />
-      </div>
+        {/* Shooting muzzle flash */}
+        {player.isShooting && (
+          <motion.div
+            initial={{ opacity: 1, scale: 0.5 }}
+            animate={{ opacity: 0, scale: 2 }}
+            transition={{ duration: 0.15 }}
+            className="absolute right-0 top-1/2 -translate-y-1/2"
+          >
+            <div 
+              className="w-8 h-8 rounded-full"
+              style={{
+                background: isUltraMode 
+                  ? 'radial-gradient(circle, #ff00ff, #00ffff, transparent)'
+                  : 'radial-gradient(circle, #ffff00, #ff8800, transparent)',
+                boxShadow: isUltraMode
+                  ? '0 0 30px #ff00ff, 0 0 60px #00ffff'
+                  : '0 0 20px #ffff00, 0 0 40px #ff8800',
+              }}
+            />
+          </motion.div>
+        )}
+        
+        {/* Jump dust */}
+        {!player.isGrounded && (
+          <motion.div
+            initial={{ opacity: 1, scale: 1 }}
+            animate={{ opacity: 0, scale: 2, y: 20 }}
+            className="absolute bottom-0 left-1/2 -translate-x-1/2"
+          >
+            <div className="flex gap-1">
+              {[...Array(5)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="w-2 h-2 rounded-full bg-gray-400"
+                  initial={{ opacity: 0.8 }}
+                  animate={{ 
+                    opacity: 0,
+                    y: 10 + i * 5,
+                    x: (i - 2) * 10,
+                  }}
+                  transition={{ duration: 0.4, delay: i * 0.05 }}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
+        
+        {/* Walking dust particles */}
+        {player.isGrounded && !player.isShooting && (
+          <motion.div
+            className="absolute -bottom-2 left-1/2 -translate-x-1/2"
+            animate={{ opacity: [0, 0.5, 0] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          >
+            <div className="w-4 h-1 bg-gray-500/50 rounded-full blur-sm" />
+          </motion.div>
+        )}
+      </motion.div>
+      
+      {/* Ultra mode trail effect */}
+      {isUltraMode && (
+        <div className="absolute inset-0 pointer-events-none">
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={`trail-${i}`}
+              className="absolute inset-0"
+              style={{
+                background: `url(${heroSprite})`,
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                opacity: 0.3 - i * 0.06,
+                filter: `hue-rotate(${i * 30}deg) blur(${i}px)`,
+              }}
+              animate={{
+                x: -10 - i * 5,
+                opacity: [0.3 - i * 0.06, 0],
+              }}
+              transition={{
+                duration: 0.3,
+                repeat: Infinity,
+                delay: i * 0.05,
+              }}
+            />
+          ))}
+        </div>
+      )}
     </motion.div>
   );
 };
