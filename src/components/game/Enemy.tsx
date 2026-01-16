@@ -183,7 +183,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         </>
       )}
       
-      {/* Enemy Sprite - OUTLINE STYLE with transparent background */}
+      {/* Enemy Sprite - Original Style */}
       <motion.div
         className="relative w-full h-full"
         animate={enemy.isDying ? {} : {
@@ -196,7 +196,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         <motion.div
           className="relative w-full h-full"
           style={{
-            filter: `drop-shadow(0 0 ${isBoss ? 25 : 15}px ${color}) drop-shadow(0 0 ${isBoss ? 50 : 30}px ${color}66)`,
+            filter: `drop-shadow(0 0 ${isBoss ? 20 : 10}px ${color})`,
           }}
         >
           {sprite ? (
@@ -206,18 +206,15 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               className="w-full h-full object-contain"
               style={{
                 transform: 'scaleX(-1)',
-                // Make background transparent, show only outline
-                filter: 'brightness(0) invert(1)',
-                opacity: 0.9,
               }}
             />
           ) : (
             <div
               className="w-full h-full rounded-lg"
               style={{
-                background: 'transparent',
-                border: `3px solid ${color}`,
-                boxShadow: `0 0 15px ${color}, inset 0 0 10px ${color}33`,
+                background: `linear-gradient(135deg, ${color}, ${color}88)`,
+                border: `2px solid ${color}`,
+                boxShadow: `0 0 15px ${color}`,
               }}
             >
               <motion.div
@@ -229,26 +226,17 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
             </div>
           )}
           
-          {/* Outline glow overlay */}
-          <div 
-            className="absolute inset-0 pointer-events-none rounded-lg"
-            style={{
-              border: `2px solid ${color}`,
-              boxShadow: `0 0 20px ${color}, inset 0 0 15px ${color}44`,
-            }}
-          />
-          
           {/* Glowing eye effect */}
           <motion.div
             className="absolute inset-0 pointer-events-none"
-            animate={{ opacity: [0.25, 0.5, 0.25] }}
+            animate={{ opacity: [0.5, 0.9, 0.5] }}
             transition={{ duration: 0.4, repeat: Infinity }}
           >
             <div 
-              className="absolute top-1/4 left-1/3 w-3 h-3 rounded-full"
+              className="absolute top-1/4 left-1/3 w-4 h-4 rounded-full"
               style={{ 
-                background: '#ff0000',
-                boxShadow: '0 0 20px #ff0000, 0 0 40px #ff0000',
+                background: 'radial-gradient(circle, #ff0000, #ff000088)',
+                boxShadow: '0 0 15px #ff0000, 0 0 30px #ff0000',
               }}
             />
           </motion.div>

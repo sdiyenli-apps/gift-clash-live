@@ -140,41 +140,27 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           }}
         />
         
-        {/* Video Hero - OUTLINE STYLE with transparent background */}
+        {/* Video Hero - Original Style */}
         <motion.div
           className="relative w-full h-full overflow-hidden rounded-md"
           style={{
             filter: isUltraMode || player.isMagicDashing
-              ? 'drop-shadow(0 0 8px #ff00ff) drop-shadow(0 0 16px #00ffff)' 
-              : 'drop-shadow(0 0 8px #00ffff) drop-shadow(0 0 15px #0088ff)',
+              ? 'drop-shadow(0 0 12px #ff00ff) drop-shadow(0 0 20px #00ffff)' 
+              : 'drop-shadow(0 0 6px #00ccff)',
           }}
           animate={player.animationState === 'hurt' ? { x: [-2, 2, -2, 0] } : {}}
           transition={{ duration: 0.1 }}
         >
-          {/* Outline/silhouette effect - video with inverted colors for outline look */}
           <video
             src={heroVideo}
             autoPlay
             loop
             muted
             playsInline
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-md"
             style={{
               transform: player.animationState === 'dash' ? 'rotate(-3deg) scale(1.05)' : 
                         player.isShooting ? 'rotate(1deg)' : 'none',
-              borderRadius: '8px',
-              filter: 'brightness(0) invert(1) opacity(0.9)',
-            }}
-          />
-          
-          {/* Neon outline border */}
-          <div 
-            className="absolute inset-0 rounded-md pointer-events-none"
-            style={{
-              border: player.isMagicDashing ? '2px solid #ff00ff' : '2px solid #00ffff',
-              boxShadow: player.isMagicDashing 
-                ? '0 0 15px #ff00ff, inset 0 0 10px #ff00ff44'
-                : '0 0 15px #00ffff, inset 0 0 10px #00ffff44',
             }}
           />
           
@@ -193,7 +179,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
             <motion.div
               className="absolute inset-0 rounded-md pointer-events-none"
               style={{
-                background: 'radial-gradient(circle, rgba(255,0,255,0.25), transparent)',
+                background: 'radial-gradient(circle, rgba(255,0,255,0.3), transparent)',
                 mixBlendMode: 'screen',
               }}
               animate={{ opacity: [0.2, 0.6, 0.2] }}
