@@ -48,9 +48,11 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const healthPercent = (enemy.health / enemy.maxHealth) * 100;
   const sprite = ENEMY_SPRITES[enemy.type];
   
-  // Bigger enemies
-  const displayWidth = enemy.width * 1.3;
-  const displayHeight = enemy.height * 1.3;
+  // Scale enemies - boss is smaller for visibility
+  const isBoss = enemy.type === 'boss';
+  const scaleFactor = isBoss ? 1.0 : 1.3;
+  const displayWidth = enemy.width * scaleFactor;
+  const displayHeight = enemy.height * scaleFactor;
   
   return (
     <motion.div
@@ -293,24 +295,33 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         )}
       </motion.div>
       
-      {/* Health bar */}
+      {/* Health bar - bigger and more visible for boss */}
       <div 
-        className="absolute -top-8 left-0 w-full h-5 rounded-full overflow-hidden"
+        className={`absolute left-0 w-full rounded-full overflow-hidden ${isBoss ? '-top-14 h-8' : '-top-8 h-5'}`}
         style={{ 
-          background: 'rgba(0,0,0,0.9)', 
-          border: `2px solid ${color}`,
-          boxShadow: `0 0 10px ${color}44`,
+          background: 'rgba(0,0,0,0.95)', 
+          border: `${isBoss ? 3 : 2}px solid ${color}`,
+          boxShadow: `0 0 ${isBoss ? 20 : 10}px ${color}66, 0 0 ${isBoss ? 40 : 20}px ${color}33`,
         }}
       >
         <motion.div
           className="h-full"
           style={{ 
             width: `${healthPercent}%`,
-            background: `linear-gradient(90deg, ${color}, ${color}cc)`,
-            boxShadow: `0 0 15px ${color}, inset 0 1px 2px rgba(255,255,255,0.3)`,
+            background: isBoss 
+              ? `linear-gradient(90deg, #ff0000, #ff4400, #ffff00)` 
+              : `linear-gradient(90deg, ${color}, ${color}cc)`,
+            boxShadow: `0 0 ${isBoss ? 25 : 15}px ${color}, inset 0 2px 4px rgba(255,255,255,0.4)`,
           }}
-          animate={{ opacity: healthPercent < 30 ? [1, 0.6, 1] : 1 }}
-          transition={{ duration: 0.3, repeat: healthPercent < 30 ? Infinity : 0 }}
+          animate={{ opacity: healthPercent < 30 ? [1, 0.5, 1] : 1 }}
+          transition={{ duration: 0.2, repeat: healthPercent < 30 ? Infinity : 0 }}
+        />
+        {/* Health bar shine */}
+        <div 
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.2) 100%)',
+          }}
         />
       </div>
       
