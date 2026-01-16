@@ -158,8 +158,8 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
             playsInline
             className="w-full h-full object-contain"
             style={{
-              transform: player.animationState === 'dash' ? 'rotate(-5deg) scale(1.05)' : 
-                        player.isShooting ? 'rotate(2deg)' : 'none',
+              transform: `scaleX(-1) ${player.animationState === 'dash' ? 'rotate(5deg) scale(1.05)' : 
+                        player.isShooting ? 'rotate(-2deg)' : ''}`,
             }}
           />
           
@@ -269,6 +269,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
                   playsInline
                   className="w-full h-full object-contain"
                   style={{ 
+                    transform: 'scaleX(-1)',
                     filter: `blur(${i * 2}px) hue-rotate(${i * 40}deg)`,
                     opacity: 0.35 - i * 0.1,
                   }}
