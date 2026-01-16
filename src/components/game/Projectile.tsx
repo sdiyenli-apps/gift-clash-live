@@ -122,35 +122,118 @@ export const ProjectileSprite = ({ projectile, cameraX }: ProjectileProps) => {
   );
 };
 
-export const EnemyLaserSprite = forwardRef<HTMLDivElement, ProjectileProps>(
-  ({ projectile, cameraX }, ref) => {
+// Determine if this is a drone laser (neon cyan) or regular bullet (red)
+interface EnemyLaserProps extends ProjectileProps {
+  isDroneLaser?: boolean;
+}
+
+export const EnemyLaserSprite = forwardRef<HTMLDivElement, EnemyLaserProps>(
+  ({ projectile, cameraX, isDroneLaser = false }, ref) => {
     const screenX = projectile.x - cameraX;
     
     if (screenX < -50 || screenX > 1200) return null;
     
+    // Drone neon laser style
+    if (isDroneLaser || projectile.damage === 8) {
+      return (
+        <motion.div
+          ref={ref}
+          className="absolute z-15"
+          style={{
+            left: screenX,
+            bottom: 280 - projectile.y - 6,
+            width: 40,
+            height: 12,
+          }}
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+        >
+          {/* Neon laser core */}
+          <motion.div
+            className="absolute inset-0 rounded-full"
+            style={{
+              background: 'linear-gradient(90deg, #fff, #00ffff, #00aaff, #00ffff)',
+              boxShadow: '0 0 20px #00ffff, 0 0 40px #00ffff, 0 0 60px #0088ff',
+            }}
+            animate={{ opacity: [0.8, 1, 0.8] }}
+            transition={{ duration: 0.1, repeat: Infinity }}
+          />
+          {/* Neon glow pulse */}
+          <motion.div
+            className="absolute -inset-2 rounded-full"
+            style={{
+              background: 'radial-gradient(ellipse, rgba(0,255,255,0.6), transparent)',
+            }}
+            animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 0.15, repeat: Infinity }}
+          />
+          {/* Neon trail */}
+          <motion.div
+            className="absolute left-full top-1/2 -translate-y-1/2"
+            style={{
+              width: 60,
+              height: 8,
+              background: 'linear-gradient(90deg, #00ffff, #0088ff66, transparent)',
+              filter: 'blur(2px)',
+            }}
+          />
+          {/* Leading spark */}
+          <motion.div
+            className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full"
+            style={{
+              background: 'radial-gradient(circle, #fff, #00ffff, transparent)',
+              boxShadow: '0 0 15px #00ffff',
+            }}
+            animate={{ scale: [0.8, 1.2, 0.8] }}
+            transition={{ duration: 0.1, repeat: Infinity }}
+          />
+        </motion.div>
+      );
+    }
+    
+    // Regular enemy bullet - more visible red/orange
     return (
       <motion.div
         ref={ref}
-        className="absolute rounded-full z-15"
+        className="absolute z-15"
         style={{
           left: screenX,
-          bottom: 280 - projectile.y - 4,
-          width: 20,
-          height: 8,
-          background: 'linear-gradient(90deg, #ff0000, #ff4400, #ff0000)',
-          boxShadow: '0 0 15px #ff0000, 0 0 30px #ff4400',
+          bottom: 280 - projectile.y - 8,
+          width: 24,
+          height: 16,
         }}
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
       >
-        {/* Trail */}
+        {/* Bullet core */}
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          style={{
+            background: 'radial-gradient(ellipse at 30% 50%, #fff, #ff4400, #ff0000)',
+            boxShadow: '0 0 15px #ff4400, 0 0 30px #ff0000, 0 0 45px #ff4400',
+          }}
+          animate={{ opacity: [0.9, 1, 0.9] }}
+          transition={{ duration: 0.08, repeat: Infinity }}
+        />
+        {/* Bullet trail */}
         <motion.div
           className="absolute left-full top-1/2 -translate-y-1/2"
           style={{
-            width: 30,
-            height: 6,
-            background: 'linear-gradient(90deg, #ff0000, transparent)',
+            width: 40,
+            height: 10,
+            background: 'linear-gradient(90deg, #ff4400, #ff000066, transparent)',
+            filter: 'blur(2px)',
           }}
+        />
+        {/* Muzzle flash */}
+        <motion.div
+          className="absolute left-full top-1/2 -translate-y-1/2 w-3 h-3 rounded-full"
+          style={{
+            background: 'radial-gradient(circle, #ffff00, #ff4400, transparent)',
+            boxShadow: '0 0 10px #ffff00',
+          }}
+          animate={{ scale: [0.5, 1.2, 0.5], opacity: [0.5, 1, 0.5] }}
+          transition={{ duration: 0.1, repeat: Infinity }}
         />
       </motion.div>
     );

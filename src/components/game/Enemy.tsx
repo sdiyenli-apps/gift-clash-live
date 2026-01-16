@@ -183,7 +183,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         </>
       )}
       
-      {/* Enemy Sprite */}
+      {/* Enemy Sprite - OUTLINE STYLE with transparent background */}
       <motion.div
         className="relative w-full h-full"
         animate={enemy.isDying ? {} : {
@@ -206,16 +206,18 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               className="w-full h-full object-contain"
               style={{
                 transform: 'scaleX(-1)',
-                mixBlendMode: isBoss ? 'normal' : 'screen',
+                // Make background transparent, show only outline
+                filter: 'brightness(0) invert(1)',
+                opacity: 0.9,
               }}
             />
           ) : (
             <div
               className="w-full h-full rounded-lg"
               style={{
-                background: `linear-gradient(135deg, ${color}dd, ${color}66)`,
-                boxShadow: `inset -4px -4px 15px rgba(0,0,0,0.4), inset 4px 4px 15px rgba(255,255,255,0.2)`,
-                border: `2px solid ${color}`,
+                background: 'transparent',
+                border: `3px solid ${color}`,
+                boxShadow: `0 0 15px ${color}, inset 0 0 10px ${color}33`,
               }}
             >
               <motion.div
@@ -226,6 +228,15 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               />
             </div>
           )}
+          
+          {/* Outline glow overlay */}
+          <div 
+            className="absolute inset-0 pointer-events-none rounded-lg"
+            style={{
+              border: `2px solid ${color}`,
+              boxShadow: `0 0 20px ${color}, inset 0 0 15px ${color}44`,
+            }}
+          />
           
           {/* Glowing eye effect */}
           <motion.div
@@ -242,21 +253,43 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
             />
           </motion.div>
           
-          {/* Enemy shooting indicator */}
-          {enemy.attackCooldown <= 0.4 && enemy.attackCooldown > 0 && (
+          {/* Enemy shooting muzzle flash - MORE VISIBLE */}
+          {enemy.attackCooldown <= 0.5 && enemy.attackCooldown > 0 && (
             <motion.div
               className="absolute left-0 top-1/2 -translate-y-1/2"
-              style={{ left: -15 }}
-              animate={{ opacity: [0.4, 1, 0.4], scale: [0.7, 1.1, 0.7] }}
-              transition={{ duration: 0.15, repeat: Infinity }}
+              style={{ left: -25 }}
+              initial={{ scale: 0 }}
+              animate={{ opacity: [0.6, 1, 0.6], scale: [0.8, 1.4, 0.8] }}
+              transition={{ duration: 0.1, repeat: Infinity }}
             >
+              {/* Muzzle flash */}
               <div 
-                className="w-3 h-3 rounded-full"
+                className="w-6 h-6 rounded-full"
                 style={{
-                  background: 'radial-gradient(circle, #ff0000, #ff4400, transparent)',
-                  boxShadow: '0 0 8px #ff0000',
+                  background: enemy.type === 'drone' 
+                    ? 'radial-gradient(circle, #fff, #00ffff, #0088ff, transparent)'
+                    : 'radial-gradient(circle, #fff, #ffff00, #ff4400, transparent)',
+                  boxShadow: enemy.type === 'drone'
+                    ? '0 0 20px #00ffff, 0 0 40px #0088ff'
+                    : '0 0 15px #ffff00, 0 0 30px #ff4400',
                 }}
               />
+              {/* Flash rings */}
+              {[0, 1].map(i => (
+                <motion.div
+                  key={`flash-${i}`}
+                  className="absolute rounded-full border-2"
+                  style={{
+                    left: -5 - i * 5,
+                    top: -5 - i * 5,
+                    width: 16 + i * 10,
+                    height: 16 + i * 10,
+                    borderColor: enemy.type === 'drone' ? '#00ffff' : '#ff4400',
+                  }}
+                  animate={{ scale: [1, 2], opacity: [1, 0] }}
+                  transition={{ duration: 0.2, repeat: Infinity, delay: i * 0.05 }}
+                />
+              ))}
             </motion.div>
           )}
         </motion.div>
