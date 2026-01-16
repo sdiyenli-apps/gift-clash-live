@@ -14,16 +14,16 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
   const screenX = 60; // Fixed at left edge of screen
   const isEmpowered = isUltraMode || player.isMagicDashing;
 
-  // SMALLER hero optimized for mobile
-  const heroWidth = 56;
-  const heroHeight = 70;
+  // Hero sized for visibility on mobile
+  const heroWidth = 48;
+  const heroHeight = 60;
 
   return (
     <motion.div
-      className="absolute z-20"
+      className="absolute z-25"
       style={{
         left: screenX,
-        bottom: 82,
+        bottom: 90, // Above the floor
         width: heroWidth,
         height: heroHeight,
       }}

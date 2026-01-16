@@ -223,8 +223,8 @@ const Index = () => {
           </div>
         )}
 
-        {/* Game Arena - Full screen */}
-        <div className="flex-1 min-h-0 relative">
+        {/* Game Arena - Full height with proper sizing */}
+        <div className="flex-1 min-h-0 relative overflow-hidden">
           <Arena gameState={gameState} />
           <GameOverlay 
             phase={gameState.phase}
