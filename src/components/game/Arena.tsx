@@ -66,7 +66,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
   
   return (
     <div 
-      className="absolute inset-0 rounded-lg overflow-hidden border border-cyan-900/50"
+      className="w-full h-full rounded-lg overflow-hidden relative"
       style={{
         boxShadow: isBossFight 
           ? '0 0 20px rgba(255,0,0,0.5), inset 0 0 30px rgba(255,0,0,0.15)' 
@@ -74,6 +74,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
             ? '0 0 15px rgba(255,0,255,0.4), inset 0 0 25px rgba(255,0,255,0.15)' 
             : 'inset 0 0 20px rgba(0, 255, 255, 0.08)',
         transform: `translate(${shakeX}px, ${shakeY}px)`,
+        background: '#0a0a15',
       }}
     >
       {/* Mini-map */}
@@ -282,13 +283,13 @@ export const Arena = ({ gameState }: ArenaProps) => {
         
         <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
         
-        {/* Floor that hero walks on */}
+        {/* Floor that hero walks on - smaller */}
         <div 
-          className="absolute bottom-0 left-0 right-0 h-20 z-5"
+          className="absolute bottom-0 left-0 right-0 h-16 z-5"
           style={{
             background: 'linear-gradient(180deg, rgba(30,30,50,0.9) 0%, rgba(15,15,30,1) 40%, #0a0a18 100%)',
-            borderTop: '3px solid rgba(0, 255, 255, 0.4)',
-            boxShadow: '0 -5px 20px rgba(0, 255, 255, 0.2), inset 0 5px 30px rgba(0,0,0,0.5)',
+            borderTop: '2px solid rgba(0, 255, 255, 0.3)',
+            boxShadow: '0 -3px 15px rgba(0, 255, 255, 0.15), inset 0 5px 20px rgba(0,0,0,0.5)',
           }}
         >
           {/* Floor grid lines */}
