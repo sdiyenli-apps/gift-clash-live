@@ -6,6 +6,7 @@ import { EnemySprite } from './Enemy';
 import { ProjectileSprite } from './Projectile';
 import { Particles } from './Particles';
 import { ChaosElements } from './ChaosElements';
+import { Princess } from './Princess';
 
 interface ArenaProps {
   gameState: GameState;
@@ -60,6 +61,13 @@ export const Arena = ({ gameState }: ArenaProps) => {
         ))}
         
         <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
+        
+        {/* Princess at the end of the level */}
+        <Princess 
+          x={levelLength - 100} 
+          cameraX={cameraX} 
+          isVisible={!isBossFight && distance > levelLength - 600}
+        />
         
         <Particles particles={particles} cameraX={cameraX} />
         

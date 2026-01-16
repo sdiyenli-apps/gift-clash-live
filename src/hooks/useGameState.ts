@@ -422,22 +422,33 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
+          // TARGET NEAREST ENEMY for better gift interaction!
+          const nearbyEnemy = prev.enemies
+            .filter(e => !e.isDying && e.x > prev.player.x && e.x < prev.player.x + 600)
+            .sort((a, b) => a.x - b.x)[0];
+          
+          const targetY = nearbyEnemy 
+            ? nearbyEnemy.y + nearbyEnemy.height / 2 
+            : prev.player.y + PLAYER_HEIGHT / 2 - 10;
+          
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
             x: prev.player.x + PLAYER_WIDTH,
             y: prev.player.y + PLAYER_HEIGHT / 2 - 10,
-            velocityX: 900,
-            velocityY: 0,
-            damage: 25,
+            velocityX: 1100,
+            velocityY: nearbyEnemy ? (targetY - (prev.player.y + PLAYER_HEIGHT / 2)) * 2 : 0,
+            damage: 35,
             type: 'normal',
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2 - 10, 8, 'muzzle', '#ffff00')];
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2 - 10, 12, 'muzzle', '#ffff00')];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 200);
-          newState.score += 20;
+          newState.score += 25;
           
-          if (Math.random() > 0.6) {
+          if (nearbyEnemy) {
+            showSpeechBubble(`TARGETING ${nearbyEnemy.type.toUpperCase()}! 🎯`, 'normal');
+          } else if (Math.random() > 0.5) {
             showSpeechBubble(HERO_QUIPS[Math.floor(Math.random() * HERO_QUIPS.length)], 'excited');
           }
           break;
@@ -460,21 +471,30 @@ export const useGameState = () => {
           break;
           
         case 'mega_shot':
+          // MEGA SHOT also targets enemies!
+          const megaTarget = prev.enemies
+            .filter(e => !e.isDying && e.x > prev.player.x)
+            .sort((a, b) => a.x - b.x)[0];
+          
+          const megaTargetY = megaTarget 
+            ? megaTarget.y + megaTarget.height / 2 
+            : prev.player.y + PLAYER_HEIGHT / 2 - 15;
+          
           const megaBullet: Projectile = {
             id: `mega-${Date.now()}`,
             x: prev.player.x + PLAYER_WIDTH,
             y: prev.player.y + PLAYER_HEIGHT / 2 - 15,
-            velocityX: 1100,
-            velocityY: 0,
-            damage: 80,
+            velocityX: 1300,
+            velocityY: megaTarget ? (megaTargetY - (prev.player.y + PLAYER_HEIGHT / 2)) * 1.5 : 0,
+            damage: 120,
             type: 'mega',
           };
           newState.projectiles = [...prev.projectiles, megaBullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 25, 'muzzle', '#ff00ff')];
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 35, 'muzzle', '#ff00ff')];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 250);
-          newState.score += 120;
-          newState.screenShake = 0.4;
+          newState.score += 150;
+          newState.screenShake = 0.6;
           showSpeechBubble("MEGA BLAST! 💥💥💥", 'excited');
           break;
           
@@ -997,10 +1017,12 @@ export const useGameState = () => {
           }
         }
         
-        // Check win condition (beat the boss)
-        if (newState.player.x >= prev.levelLength - 150 && !bossEnemy) {
+        // Check win condition - REACH THE PRINCESS (after defeating boss)
+        const princessX = prev.levelLength - 100;
+        if (newState.player.x >= princessX - 50 && !bossEnemy) {
           newState.phase = 'victory';
           newState.screenShake = 2;
+          showSpeechBubble("PRINCESS! YOUR CHUNKY HERO HAS ARRIVED! 💖👑", 'excited');
         }
         
         // Check lose condition

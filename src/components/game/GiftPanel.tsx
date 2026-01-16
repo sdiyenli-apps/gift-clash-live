@@ -86,13 +86,13 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
 
       <div className="border-t border-gray-700 pt-3 space-y-1">
         <div className="text-xs font-bold text-center text-cyan-400">
-          🎯 DODGE DEADLY TRAPS!
+          🎯 SHOOT TARGETS ENEMIES!
         </div>
         <div className="text-[10px] text-gray-400 text-center">
-          🌹 Forward • 🍦 UP (dodge!) • 🍩 DOWN (duck!) • 🫰 Shoot
+          🌹 FORWARD • 🍦 UP • 🍩 DOWN • 🫰 SHOOT (auto-aim!)
         </div>
-        <div className="text-[10px] text-gray-400 text-center">
-          🐔 = Random Chicken! (LOL)
+        <div className="text-[10px] text-pink-400 text-center font-bold">
+          👑 REACH THE PRINCESS TO WIN!
         </div>
       </div>
     </div>
