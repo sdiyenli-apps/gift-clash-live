@@ -1,15 +1,22 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { GameState } from '@/types/game';
+import { GameState, Projectile } from '@/types/game';
 import { Level } from './Level';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
-import { ProjectileSprite } from './Projectile';
+import { ProjectileSprite, EnemyLaserSprite, FireballSprite } from './Projectile';
 import { Particles } from './Particles';
 import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
 
+interface ExtendedGameState extends GameState {
+  fireballs?: { id: string; x: number; y: number; velocityX: number; velocityY: number; damage: number }[];
+  redFlash?: number;
+  armorTimer?: number;
+  enemyLasers?: Projectile[];
+}
+
 interface ArenaProps {
-  gameState: GameState;
+  gameState: ExtendedGameState;
 }
 
 export const Arena = ({ gameState }: ArenaProps) => {
@@ -17,7 +24,8 @@ export const Arena = ({ gameState }: ArenaProps) => {
     player, enemies, projectiles, particles, obstacles,
     cameraX, distance, levelLength, isUltraMode, speechBubble,
     combo, comboTimer, isFrozen, isBossFight, screenShake,
-    flyingRobots, chickens, neonLights, explosions
+    flyingRobots, chickens, neonLights, explosions,
+    fireballs = [], redFlash = 0, armorTimer = 0, enemyLasers = []
   } = gameState;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 10 : 0;
@@ -37,6 +45,16 @@ export const Arena = ({ gameState }: ArenaProps) => {
         transform: `translate(${shakeX}px, ${shakeY}px)`,
       }}
     >
+      {/* Red flash for boss mega attack */}
+      {redFlash > 0 && (
+        <motion.div
+          className="absolute inset-0 z-40 pointer-events-none"
+          style={{ background: 'rgba(255,0,0,0.6)' }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: redFlash > 1 ? 1 : redFlash }}
+        />
+      )}
+      
       <div 
         className="absolute inset-0"
         style={{ 
@@ -52,8 +70,19 @@ export const Arena = ({ gameState }: ArenaProps) => {
           isUltraMode={isUltraMode}
         />
         
+        {/* Player projectiles */}
         {projectiles.map(proj => (
           <ProjectileSprite key={proj.id} projectile={proj} cameraX={cameraX} />
+        ))}
+        
+        {/* Enemy lasers */}
+        {enemyLasers.map(laser => (
+          <EnemyLaserSprite key={laser.id} projectile={laser} cameraX={cameraX} />
+        ))}
+        
+        {/* Boss fireballs */}
+        {fireballs.map(fireball => (
+          <FireballSprite key={fireball.id} fireball={fireball} cameraX={cameraX} />
         ))}
         
         {enemies.map(enemy => (
@@ -79,6 +108,26 @@ export const Arena = ({ gameState }: ArenaProps) => {
           explosions={explosions} 
           cameraX={cameraX} 
         />
+        
+        {/* Armor timer display */}
+        {armorTimer > 0 && (
+          <motion.div
+            className="absolute top-4 left-1/2 -translate-x-1/2 z-30"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+          >
+            <div 
+              className="px-4 py-2 rounded-full font-bold text-sm"
+              style={{
+                background: 'linear-gradient(135deg, #00ffff, #0088ff)',
+                color: '#fff',
+                boxShadow: '0 0 20px #00ffff',
+              }}
+            >
+              🛡️ ARMOR: {armorTimer.toFixed(1)}s
+            </div>
+          </motion.div>
+        )}
         
         {/* Combo display */}
         {combo > 1 && comboTimer > 0 && (
