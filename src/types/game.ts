@@ -18,18 +18,17 @@ export interface GiftEvent {
 }
 
 export type GiftAction = 
+  | 'move_forward'
+  | 'jump'
+  | 'shoot'
+  | 'double_jump'
+  | 'mega_shot'
   | 'heal'
   | 'shield'
-  | 'speed_boost'
-  | 'spawn_obstacle'
-  | 'freeze_time'
-  | 'power_weapon'
-  | 'revive'
-  | 'spawn_enemies'
-  | 'boss_spawn'
-  | 'instant_save'
-  | 'chaos_mode'
-  | 'nuke';
+  | 'spawn_enemy'
+  | 'ultra_mode'
+  | 'nuke'
+  | 'speed_boost';
 
 export interface GiftActionConfig {
   action: GiftAction;
@@ -39,35 +38,88 @@ export interface GiftActionConfig {
   value: number;
 }
 
+export interface Projectile {
+  id: string;
+  x: number;
+  y: number;
+  velocityX: number;
+  damage: number;
+  type: 'normal' | 'mega' | 'ultra';
+}
+
 export interface Enemy {
   id: string;
   x: number;
   y: number;
+  width: number;
+  height: number;
   health: number;
   maxHealth: number;
   speed: number;
   damage: number;
-  type: 'basic' | 'fast' | 'tank' | 'boss';
+  type: 'robot' | 'drone' | 'mech' | 'boss';
+  isDying: boolean;
+  deathTimer: number;
+}
+
+export interface Obstacle {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  type: 'platform' | 'spike' | 'gap' | 'wall';
 }
 
 export interface Player {
   health: number;
   maxHealth: number;
   shield: number;
-  speedMultiplier: number;
   x: number;
   y: number;
+  velocityY: number;
+  isGrounded: boolean;
+  isJumping: boolean;
+  isShooting: boolean;
+  facingRight: boolean;
+  speedMultiplier: number;
+}
+
+export interface Particle {
+  id: string;
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  color: string;
+  size: number;
+  life: number;
+  type: 'spark' | 'explosion' | 'muzzle' | 'death' | 'ultra';
+}
+
+export interface SpeechBubble {
+  id: string;
+  text: string;
+  timestamp: number;
 }
 
 export interface GameState {
   phase: 'waiting' | 'playing' | 'gameover' | 'victory';
-  wave: number;
   score: number;
-  timeRemaining: number;
+  distance: number;
+  levelLength: number;
+  cameraX: number;
   player: Player;
   enemies: Enemy[];
+  projectiles: Projectile[];
+  obstacles: Obstacle[];
+  particles: Particle[];
+  speechBubble: SpeechBubble | null;
+  isUltraMode: boolean;
+  ultraModeTimer: number;
   isFrozen: boolean;
-  isChaosMode: boolean;
+  combo: number;
+  comboTimer: number;
 }
 
 export interface Gifter {
@@ -92,20 +144,47 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
 
 export const GIFT_ACTIONS: Record<GiftTier, GiftActionConfig[]> = {
   small: [
-    { action: 'heal', name: 'Quick Heal', description: '+10 HP', effect: 'help', value: 10 },
-    { action: 'speed_boost', name: 'Speed Boost', description: '2x speed for 5s', effect: 'help', value: 5 },
-    { action: 'spawn_obstacle', name: 'Drop Barrier', description: 'Block enemies', effect: 'help', value: 1 },
+    { action: 'move_forward', name: 'Move Forward', description: 'Walk forward', effect: 'help', value: 80 },
+    { action: 'jump', name: 'Jump!', description: 'Jump over obstacles', effect: 'help', value: 1 },
+    { action: 'shoot', name: 'Fire!', description: 'Shoot the cyber gun', effect: 'help', value: 20 },
   ],
   medium: [
-    { action: 'shield', name: 'Energy Shield', description: '+30 shield', effect: 'help', value: 30 },
-    { action: 'power_weapon', name: 'Power Up', description: '2x damage for 10s', effect: 'help', value: 10 },
-    { action: 'freeze_time', name: 'Time Freeze', description: 'Freeze 5 seconds', effect: 'help', value: 5 },
-    { action: 'spawn_enemies', name: 'Spawn Wave', description: 'Add 5 enemies!', effect: 'sabotage', value: 5 },
+    { action: 'double_jump', name: 'Double Jump', description: 'Jump extra high!', effect: 'help', value: 2 },
+    { action: 'mega_shot', name: 'Mega Blast', description: 'Powerful shot!', effect: 'help', value: 50 },
+    { action: 'heal', name: 'Heal Up', description: '+30 HP', effect: 'help', value: 30 },
+    { action: 'spawn_enemy', name: 'Spawn Robot!', description: 'Add an enemy!', effect: 'sabotage', value: 1 },
   ],
   large: [
-    { action: 'revive', name: 'Full Revive', description: 'Full HP + Shield', effect: 'help', value: 100 },
-    { action: 'nuke', name: 'Nuclear Strike', description: 'Kill all enemies', effect: 'help', value: 0 },
-    { action: 'boss_spawn', name: 'Boss Summon', description: 'SPAWN A BOSS!', effect: 'sabotage', value: 1 },
-    { action: 'chaos_mode', name: 'CHAOS MODE', description: 'Everything goes crazy!', effect: 'chaos', value: 15 },
+    { action: 'ultra_mode', name: 'ULTRA MODE! 🔥', description: '6s of auto-play madness!', effect: 'help', value: 6 },
+    { action: 'nuke', name: 'Nuke \'em All', description: 'Clear all enemies!', effect: 'help', value: 0 },
+    { action: 'shield', name: 'God Shield', description: 'Invincible shield!', effect: 'help', value: 100 },
   ],
 };
+
+export const HERO_QUIPS = [
+  "Is that all you got, tin cans?!",
+  "My nose detects danger... and victory!",
+  "Time to make scrap metal!",
+  "Princess, here I come!",
+  "Beep boop THIS, robot!",
+  "I've blown up bigger toasters!",
+  "Who needs a hero when you've got THIS nose?!",
+  "That's gonna leave a dent!",
+  "Robot parts... everywhere!",
+  "I'm just warming up!",
+  "My grandma hits harder than you!",
+  "Hasta la vista, metal-head!",
+  "Keep 'em coming!",
+  "Gift me strength, chat!",
+  "This nose knows how to fight!",
+];
+
+export const ENEMY_DEATH_SOUNDS = [
+  "BZZT-CRASH!",
+  "KRRZZT!",
+  "CLUNK-BOOM!",
+  "SPARKS!",
+  "SYSTEM... FAIL...",
+  "ERROR 404!",
+  "MALFUNCTION!",
+];
