@@ -67,9 +67,10 @@ export const Arena = ({ gameState }: ArenaProps) => {
         <BossHUD 
           bossHealth={bossEnemy.health}
           bossMaxHealth={bossEnemy.maxHealth}
-          bossName="BIOMECH TERROR"
+          bossName={bossEnemy.bossPhase === 3 ? "NIGHTMARE TERROR" : bossEnemy.bossPhase === 2 ? "EVOLVED TERROR" : "BIOMECH TERROR"}
           isVisible={true}
           bossTaunt={bossTaunt}
+          bossPhase={bossEnemy.bossPhase}
         />
       )}
       

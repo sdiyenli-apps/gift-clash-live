@@ -23,6 +23,8 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
         return 'border-purple-400/60 bg-purple-950/40 hover:border-purple-300';
       case 'spawn_enemies':
         return 'border-red-400/60 bg-red-950/40 hover:border-red-300';
+      case 'emp_grenade':
+        return 'border-yellow-400/60 bg-yellow-950/40 hover:border-yellow-300';
       default:
         return 'border-gray-400/50 bg-gray-950/30';
     }
@@ -84,6 +86,8 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
           <span className="text-purple-400">🌌Magic</span>
           <span className="text-gray-500">•</span>
           <span className="text-red-400">💀Danger</span>
+          <span className="text-gray-500">•</span>
+          <span className="text-yellow-400">⚡EMP</span>
         </div>
         <div className="text-[7px] text-pink-400 text-center font-bold">
           👑 REACH THE PRINCESS TO WIN!

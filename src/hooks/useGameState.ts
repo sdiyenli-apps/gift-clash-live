@@ -143,6 +143,29 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     } else if (typeRoll > 0.68) {
       enemyType = 'drone';
       width = 42; height = 42; health = 28 * (1 + waveBonus * 0.5); speed = 90 + wave * 2; damage = 7;
+      // Drones are flying enemies
+      const droneEnemy = {
+        id: `enemy-${x}-${Math.random()}`,
+        x,
+        y: GROUND_Y + 60 + Math.random() * 40, // Flying height
+        width,
+        height,
+        health,
+        maxHealth: health,
+        speed,
+        damage,
+        type: enemyType as 'drone',
+        isDying: false,
+        deathTimer: 0,
+        attackCooldown: 0,
+        animationPhase: Math.random() * Math.PI * 2,
+        isSpawning: true,
+        spawnTimer: 0.8,
+        isFlying: true,
+        flyHeight: 60 + Math.random() * 40,
+      };
+      enemies.push(droneEnemy);
+      continue; // Skip the normal push
     } else if (typeRoll > 0.55) {
       enemyType = 'flyer';
       width = 50; height = 46; health = 40 * (1 + waveBonus * 0.5); speed = 75 + wave * 2; damage = 9;
@@ -171,7 +194,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     });
   }
   
-  // SCARY BOSS - 50% more health
+  // SCARY BOSS - 50% more health with phases
   const isMegaBoss = wave % 10 === 0;
   const bossBaseHealth = (1800 + wave * 200) * 1.5; // 50% more health
   enemies.push({
@@ -189,6 +212,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     deathTimer: 0,
     attackCooldown: 0,
     animationPhase: 0,
+    bossPhase: 1, // Start at phase 1
   });
   
   // Obstacles
@@ -382,20 +406,13 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          const nearbyEnemy = prev.enemies
-            .filter(e => !e.isDying && e.x > prev.player.x && e.x < prev.player.x + 500)
-            .sort((a, b) => a.x - b.x)[0];
-          
-          const targetY = nearbyEnemy 
-            ? nearbyEnemy.y + nearbyEnemy.height / 2 
-            : prev.player.y + PLAYER_HEIGHT / 2;
-          
+          // Hero laser only fires forward (no homing)
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
             x: prev.player.x + PLAYER_WIDTH,
             y: prev.player.y + PLAYER_HEIGHT / 2,
             velocityX: 1400,
-            velocityY: nearbyEnemy ? (targetY - (prev.player.y + PLAYER_HEIGHT / 2)) * 2.5 : 0,
+            velocityY: 0, // Always fires straight forward
             damage: prev.player.isMagicDashing ? 120 : 50,
             type: prev.player.isMagicDashing ? 'ultra' : 'mega',
           };
@@ -405,9 +422,7 @@ export const useGameState = () => {
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
-          if (nearbyEnemy) {
-            showSpeechBubble(`TARGETING ${nearbyEnemy.type.toUpperCase()}! 🎯`, 'normal');
-          } else if (Math.random() > 0.7) {
+          if (Math.random() > 0.7) {
             showSpeechBubble(HERO_QUIPS[Math.floor(Math.random() * HERO_QUIPS.length)], 'excited');
           }
           break;
@@ -453,6 +468,35 @@ export const useGameState = () => {
           newState.enemies = [...prev.enemies, ...createDangerousEnemies(prev.player.x, 3, prev.enemies)];
           newState.screenShake = 0.4;
           showSpeechBubble("⚠️ DANGER! ENEMIES SPAWNED! ⚠️", 'urgent');
+          break;
+
+        case 'emp_grenade' as GiftAction:
+          // EMP kills all drones on screen
+          const dronesKilled = prev.enemies.filter(e => 
+            e.type === 'drone' && !e.isDying && !e.isSpawning &&
+            e.x > prev.cameraX - 50 && e.x < prev.cameraX + 600
+          );
+          
+          dronesKilled.forEach(drone => {
+            const droneIdx = newState.enemies.findIndex(e => e.id === drone.id);
+            if (droneIdx !== -1) {
+              newState.enemies[droneIdx] = {
+                ...newState.enemies[droneIdx],
+                isDying: true,
+                deathTimer: 0.5,
+              };
+              newState.score += 75;
+              newState.particles = [...newState.particles, ...createParticles(
+                drone.x + drone.width/2, drone.y + drone.height/2, 
+                25, 'spark', '#00ffff'
+              )];
+            }
+          });
+          
+          newState.screenShake = 0.5;
+          newState.magicFlash = 0.4;
+          showSpeechBubble(`⚡ EMP BLAST! ${dronesKilled.length} DRONES FRIED! ⚡`, 'excited');
+          newState.score += 100;
           break;
       }
       
@@ -555,6 +599,71 @@ export const useGameState = () => {
           
           // Boss mega attack at 30% health
           const bossHealthPercent = bossEnemy.health / bossEnemy.maxHealth;
+          
+          // Boss phase transitions - grows bigger and more evil!
+          const bossIdx = newState.enemies.findIndex(e => e.id === bossEnemy.id);
+          if (bossIdx !== -1) {
+            const currentPhase = newState.enemies[bossIdx].bossPhase || 1;
+            
+            // Phase 2: 50% health - grows bigger, faster fireballs
+            if (bossHealthPercent <= 0.5 && currentPhase < 2) {
+              newState.enemies[bossIdx] = {
+                ...newState.enemies[bossIdx],
+                bossPhase: 2,
+                width: newState.enemies[bossIdx].width * 1.2,
+                height: newState.enemies[bossIdx].height * 1.2,
+                damage: newState.enemies[bossIdx].damage * 1.3,
+              };
+              newState.screenShake = 1.5;
+              newState.redFlash = 1.5;
+              newState.bossTaunt = "PHASE 2! I GROW STRONGER!";
+              showSpeechBubble("💀 BOSS EVOLVED! PHASE 2! 💀", 'urgent');
+              
+              // Spawn multiple fireballs
+              for (let i = 0; i < 3; i++) {
+                const fireball: Fireball = {
+                  id: `fireball-phase2-${Date.now()}-${i}`,
+                  x: bossEnemy.x - 20 * i,
+                  y: bossEnemy.y + bossEnemy.height / 2 + (i - 1) * 30,
+                  velocityX: -600,
+                  velocityY: (prev.player.y - bossEnemy.y) * 0.4 + (i - 1) * 80,
+                  damage: 15,
+                };
+                newState.fireballs = [...newState.fireballs, fireball];
+              }
+            }
+            
+            // Phase 3: 25% health - even bigger, rage mode!
+            if (bossHealthPercent <= 0.25 && currentPhase < 3) {
+              newState.enemies[bossIdx] = {
+                ...newState.enemies[bossIdx],
+                bossPhase: 3,
+                width: newState.enemies[bossIdx].width * 1.25,
+                height: newState.enemies[bossIdx].height * 1.25,
+                damage: newState.enemies[bossIdx].damage * 1.5,
+                speed: newState.enemies[bossIdx].speed * 1.5,
+              };
+              newState.screenShake = 2;
+              newState.redFlash = 2;
+              newState.bossTaunt = "FINAL PHASE! PREPARE TO DIE!!!";
+              showSpeechBubble("☠️ BOSS RAGE MODE! PHASE 3! ☠️", 'urgent');
+              
+              // Spawn ring of fireballs
+              for (let i = 0; i < 5; i++) {
+                const angle = (i / 5) * Math.PI - Math.PI / 2;
+                const fireball: Fireball = {
+                  id: `fireball-phase3-${Date.now()}-${i}`,
+                  x: bossEnemy.x,
+                  y: bossEnemy.y + bossEnemy.height / 2,
+                  velocityX: Math.cos(angle) * 400 - 200,
+                  velocityY: Math.sin(angle) * 400,
+                  damage: 20,
+                };
+                newState.fireballs = [...newState.fireballs, fireball];
+              }
+            }
+          }
+          
           if (bossHealthPercent <= BOSS_MEGA_ATTACK_THRESHOLD && !newState.bossMegaAttackUsed) {
             newState.bossMegaAttackUsed = true;
             newState.player.health = Math.max(1, newState.player.health - 60);
