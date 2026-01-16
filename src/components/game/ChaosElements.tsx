@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FlyingRobot, Chicken, NeonLight, Explosion } from '@/types/game';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef } from 'react';
 
 const CHICKEN_SOUNDS = [
   "BAWK BAWK! 🐔",
@@ -74,114 +74,122 @@ export const ChaosElements = ({ flyingRobots, chickens, neonLights, explosions, 
   );
 };
 
-const FlyingRobotSprite = ({ robot, cameraX }: { robot: FlyingRobot; cameraX: number }) => {
-  const screenX = robot.x - cameraX;
-  if (screenX < -200 || screenX > 1200) return null;
-  
-  const robotEmoji = robot.type === 'ufo' ? '🛸' : robot.type === 'jet' ? '✈️' : '🛰️';
-  
-  return (
-    <motion.div
-      className="absolute z-5 pointer-events-none"
-      style={{
-        left: screenX,
-        top: robot.y,
-      }}
-      animate={{
-        y: [robot.y, robot.y - 20, robot.y],
-        rotate: robot.type === 'jet' ? [0, -5, 0, 5, 0] : 0,
-      }}
-      transition={{
-        duration: 2,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    >
-      <motion.span 
-        className="text-3xl"
-        style={{ 
-          filter: 'drop-shadow(0 0 8px rgba(0,255,255,0.5))',
-          display: 'block',
-        }}
-        animate={{ opacity: [0.7, 1, 0.7] }}
-        transition={{ duration: 1.5, repeat: Infinity }}
-      >
-        {robotEmoji}
-      </motion.span>
-      
-      {/* Trail effect */}
+const FlyingRobotSprite = forwardRef<HTMLDivElement, { robot: FlyingRobot; cameraX: number }>(
+  ({ robot, cameraX }, ref) => {
+    const screenX = robot.x - cameraX;
+    if (screenX < -200 || screenX > 1200) return null;
+    
+    const robotEmoji = robot.type === 'ufo' ? '🛸' : robot.type === 'jet' ? '✈️' : '🛰️';
+    
+    return (
       <motion.div
-        className="absolute top-1/2 -right-6 w-8 h-1"
+        ref={ref}
+        className="absolute z-5 pointer-events-none"
         style={{
-          background: 'linear-gradient(90deg, #00ffff, transparent)',
-          filter: 'blur(1px)',
+          left: screenX,
+          top: robot.y,
         }}
-        animate={{ opacity: [0.5, 1, 0.5], scaleX: [0.8, 1.2, 0.8] }}
-        transition={{ duration: 0.5, repeat: Infinity }}
-      />
-    </motion.div>
-  );
-};
-
-const ChickenSprite = ({ chicken, cameraX }: { chicken: Chicken; cameraX: number }) => {
-  const screenX = chicken.x - cameraX;
-  const [showSound, setShowSound] = useState(false);
-  const [sound, setSound] = useState('');
-  
-  useEffect(() => {
-    if (chicken.state === 'stopped') {
-      setShowSound(true);
-      setSound(CHICKEN_SOUNDS[Math.floor(Math.random() * CHICKEN_SOUNDS.length)]);
-    } else {
-      setShowSound(false);
-    }
-  }, [chicken.state]);
-  
-  if (screenX < -100 || screenX > 1100 || chicken.state === 'gone') return null;
-  
-  return (
-    <motion.div
-      className="absolute z-15"
-      style={{
-        left: screenX,
-        bottom: 60,
-      }}
-      initial={{ opacity: 0, scale: 0 }}
-      animate={{ 
-        opacity: chicken.state === 'appearing' ? [0, 1] : 1,
-        scale: chicken.state === 'appearing' ? [0, 1.2, 1] : 1,
-        x: chicken.state === 'walking' ? chicken.direction * 150 : 0,
-      }}
-      exit={{ opacity: 0, y: -30, scale: 0 }}
-      transition={{ duration: chicken.state === 'walking' ? 2 : 0.5 }}
-    >
-      {/* Speech bubble */}
-      {showSound && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white px-2 py-1 rounded-lg shadow-lg text-xs font-bold text-orange-600 whitespace-nowrap"
-        >
-          {sound}
-        </motion.div>
-      )}
-      
-      {/* Chicken body */}
-      <motion.div
-        className="relative"
-        animate={{ 
-          rotate: chicken.state === 'stopped' ? [-5, 5, -5] : 0,
-          scaleX: chicken.direction,
+        animate={{
+          y: [robot.y, robot.y - 20, robot.y],
+          rotate: robot.type === 'jet' ? [0, -5, 0, 5, 0] : 0,
         }}
-        transition={{ duration: 0.3, repeat: Infinity }}
+        transition={{
+          duration: 2,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
       >
-        <span className="text-3xl" style={{ filter: 'drop-shadow(2px 3px 4px rgba(0,0,0,0.4))' }}>
-          🐔
-        </span>
+        <motion.span 
+          className="text-3xl"
+          style={{ 
+            filter: 'drop-shadow(0 0 8px rgba(0,255,255,0.5))',
+            display: 'block',
+          }}
+          animate={{ opacity: [0.7, 1, 0.7] }}
+          transition={{ duration: 1.5, repeat: Infinity }}
+        >
+          {robotEmoji}
+        </motion.span>
+        
+        {/* Trail effect */}
+        <motion.div
+          className="absolute top-1/2 -right-6 w-8 h-1"
+          style={{
+            background: 'linear-gradient(90deg, #00ffff, transparent)',
+            filter: 'blur(1px)',
+          }}
+          animate={{ opacity: [0.5, 1, 0.5], scaleX: [0.8, 1.2, 0.8] }}
+          transition={{ duration: 0.5, repeat: Infinity }}
+        />
       </motion.div>
-    </motion.div>
-  );
-};
+    );
+  }
+);
+FlyingRobotSprite.displayName = 'FlyingRobotSprite';
+
+const ChickenSprite = forwardRef<HTMLDivElement, { chicken: Chicken; cameraX: number }>(
+  ({ chicken, cameraX }, ref) => {
+    const screenX = chicken.x - cameraX;
+    const [showSound, setShowSound] = useState(false);
+    const [sound, setSound] = useState('');
+    
+    useEffect(() => {
+      if (chicken.state === 'stopped') {
+        setShowSound(true);
+        setSound(CHICKEN_SOUNDS[Math.floor(Math.random() * CHICKEN_SOUNDS.length)]);
+      } else {
+        setShowSound(false);
+      }
+    }, [chicken.state]);
+    
+    if (screenX < -100 || screenX > 1100 || chicken.state === 'gone') return null;
+    
+    return (
+      <motion.div
+        ref={ref}
+        className="absolute z-15"
+        style={{
+          left: screenX,
+          bottom: 60,
+        }}
+        initial={{ opacity: 0, scale: 0 }}
+        animate={{ 
+          opacity: chicken.state === 'appearing' ? [0, 1] : 1,
+          scale: chicken.state === 'appearing' ? [0, 1.2, 1] : 1,
+          x: chicken.state === 'walking' ? chicken.direction * 150 : 0,
+        }}
+        exit={{ opacity: 0, y: -30, scale: 0 }}
+        transition={{ duration: chicken.state === 'walking' ? 2 : 0.5 }}
+      >
+        {/* Speech bubble */}
+        {showSound && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white px-2 py-1 rounded-lg shadow-lg text-xs font-bold text-orange-600 whitespace-nowrap"
+          >
+            {sound}
+          </motion.div>
+        )}
+        
+        {/* Chicken body */}
+        <motion.div
+          className="relative"
+          animate={{ 
+            rotate: chicken.state === 'stopped' ? [-5, 5, -5] : 0,
+            scaleX: chicken.direction,
+          }}
+          transition={{ duration: 0.3, repeat: Infinity }}
+        >
+          <span className="text-3xl" style={{ filter: 'drop-shadow(2px 3px 4px rgba(0,0,0,0.4))' }}>
+            🐔
+          </span>
+        </motion.div>
+      </motion.div>
+    );
+  }
+);
+ChickenSprite.displayName = 'ChickenSprite';
 
 const ExplosionSprite = ({ explosion, cameraX }: { explosion: Explosion; cameraX: number }) => {
   const screenX = explosion.x - cameraX;

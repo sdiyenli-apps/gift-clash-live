@@ -15,7 +15,7 @@ const HELP_REQUEST_DELAY = 8000;
 const ARMOR_DURATION = 5; // 5 seconds armor
 const KILL_RADIUS = 80; // Enemies die if within this radius of hero
 const ENEMY_MIN_DISTANCE = 100; // Enemies can only get this close to hero
-const BOSS_FIREBALL_INTERVAL = 6; // Boss shoots every 6 seconds
+const BOSS_FIREBALL_INTERVAL = 5; // Boss shoots every 5 seconds
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.3; // 30% health triggers mega attack
 
 interface Fireball {
@@ -148,15 +148,15 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     });
   }
   
-  // DRAGON BOSS at the end - much bigger
+  // DRAGON BOSS at the end - optimized size for visibility
   const isMegaBoss = wave % 10 === 0;
-  const bossScale = isMegaBoss ? 1.5 : 1.2;
+  const bossScale = isMegaBoss ? 1.0 : 0.85;
   enemies.push({
     id: 'boss-dragon',
     x: levelLength - 400,
-    y: GROUND_Y - 40 * bossScale,
-    width: 180 * bossScale,
-    height: 180 * bossScale,
+    y: GROUND_Y - 20 * bossScale,
+    width: 140 * bossScale,
+    height: 140 * bossScale,
     health: (1200 + wave * 150) * bossScale,
     maxHealth: (1200 + wave * 150) * bossScale,
     speed: 30 + wave,
