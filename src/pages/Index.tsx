@@ -254,44 +254,6 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom Controls - Auto simulate only */}
-        <div className="absolute bottom-2 left-2 right-2 z-20">
-          <div className="flex gap-2">
-            <div 
-              className="flex-1 rounded-lg px-3 py-1.5 flex items-center justify-between"
-              style={{
-                background: 'rgba(0,0,0,0.8)',
-                border: `1px solid ${autoSimulate ? 'rgba(0,255,0,0.4)' : 'rgba(255,255,255,0.1)'}`,
-              }}
-            >
-              <span className="font-bold text-xs text-gray-300">🤖 Auto</span>
-              <button
-                onClick={() => setAutoSimulate(!autoSimulate)}
-                className={`w-10 h-5 rounded-full transition-colors relative ${autoSimulate ? 'bg-green-500' : 'bg-gray-700'}`}
-              >
-                <div
-                  className="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all"
-                  style={{ left: autoSimulate ? '22px' : '2px' }}
-                />
-              </button>
-            </div>
-
-            <div 
-              className="flex-1 rounded-lg px-3 py-1.5"
-              style={{
-                background: 'rgba(0,0,0,0.8)',
-                border: '1px solid rgba(255,255,0,0.2)',
-              }}
-            >
-              <div className="text-[10px] text-yellow-400 font-bold">💫 Recent</div>
-              <div className="flex gap-1">
-                {giftEvents.slice(0, 5).map((event) => (
-                  <span key={event.id} className="text-sm">{event.gift.emoji}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
       </main>
     </div>
   );

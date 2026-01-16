@@ -23,7 +23,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
       className="absolute z-25"
       style={{
         left: screenX,
-        bottom: 90, // Above the floor
+        bottom: 18, // Walking on floor
         width: heroWidth,
         height: heroHeight,
       }}
