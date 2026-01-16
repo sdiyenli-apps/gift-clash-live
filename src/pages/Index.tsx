@@ -62,6 +62,7 @@ const Index = () => {
             <MusicPlayer 
               isPlaying={gameState.phase === 'playing'} 
               isUltraMode={gameState.isUltraMode}
+              isBossFight={gameState.isBossFight}
             />
             <ConnectionStatus 
               isConnected={gameState.phase === 'playing'} 
