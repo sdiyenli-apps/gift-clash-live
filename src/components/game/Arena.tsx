@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { GameState, Projectile, GiftBlock } from '@/types/game';
+import { GameState, Projectile, GiftBlock, getBossName } from '@/types/game';
 import { BackgroundVideo } from './BackgroundVideo';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
@@ -83,7 +83,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
         <BossHUD 
           bossHealth={bossEnemy.health}
           bossMaxHealth={bossEnemy.maxHealth}
-          bossName={bossEnemy.bossPhase === 3 ? "NIGHTMARE TERROR" : bossEnemy.bossPhase === 2 ? "EVOLVED TERROR" : "BIOMECH TERROR"}
+          bossName={getBossName(currentWave || 1)}
           isVisible={true}
           bossTaunt={bossTaunt}
           bossPhase={bossEnemy.bossPhase}
