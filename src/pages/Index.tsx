@@ -8,7 +8,7 @@ import { HealthBar } from '@/components/game/HealthBar';
 import { GiftPanel } from '@/components/game/GiftPanel';
 import { GiftNotification } from '@/components/game/GiftNotification';
 import { GameOverlay } from '@/components/game/GameOverlay';
-
+import { VictoryCutscene } from '@/components/game/VictoryCutscene';
 import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
 
 const Index = () => {
@@ -194,6 +194,12 @@ const Index = () => {
             maxWaves={gameState.maxWaves}
             onStart={() => startGame(gameState.currentWave || 1)}
             onNextWave={startNextWave}
+          />
+          {/* Victory Cutscene */}
+          <VictoryCutscene 
+            isVisible={gameState.phase === 'victory'}
+            wave={gameState.currentWave}
+            onContinue={startNextWave}
           />
         </div>
 

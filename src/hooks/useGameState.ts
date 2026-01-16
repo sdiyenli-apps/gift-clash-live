@@ -103,8 +103,6 @@ interface ExtendedGameState extends GameState {
   laserSweepAngle: number;
   // Sound event triggers
   lastBossAttack: BossAttackType | null;
-  // Track when first enemy has been seen on screen
-  hasSeenEnemy: boolean;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -152,7 +150,6 @@ const INITIAL_STATE: ExtendedGameState = {
   bossAttackCooldown: 0,
   laserSweepAngle: 0,
   lastBossAttack: null,
-  hasSeenEnemy: false,
 };
 
 // More varied enemy types
@@ -1475,13 +1472,7 @@ export const useGameState = () => {
           const screenRight = prev.cameraX + 700;
           const isOnScreen = enemy.x >= screenLeft && enemy.x <= screenRight;
           
-          // Track when first enemy has been seen on screen
-          if (isOnScreen && !newState.hasSeenEnemy) {
-            newState.hasSeenEnemy = true;
-          }
-          
-          // Enemies can only attack after the first enemy has been seen
-          const canShootDistance = Math.abs(dx) < 650 && isOnScreen && newState.hasSeenEnemy;
+          const canShootDistance = Math.abs(dx) < 650 && isOnScreen;
 
           // DRONE shoots lasers MORE frequently - ONLY WHEN ON SCREEN
           if (enemy.type === 'drone' && canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.6) {
