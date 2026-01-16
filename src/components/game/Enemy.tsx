@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import enemyRobot from '@/assets/enemy-robot.png';
 import enemyDrone from '@/assets/enemy-drone.png';
 import enemyMech from '@/assets/enemy-mech.png';
-import enemyBoss from '@/assets/enemy-boss.png';
+import enemyBossScary from '@/assets/enemy-boss-scary.png';
 
 interface EnemyProps {
   enemy: EnemyType;
@@ -15,7 +15,7 @@ const ENEMY_SPRITES: Record<string, string> = {
   robot: enemyRobot,
   drone: enemyDrone,
   mech: enemyMech,
-  boss: enemyBoss,
+  boss: enemyBossScary,
   ninja: enemyRobot,
   tank: enemyMech,
   flyer: enemyDrone,
@@ -42,15 +42,15 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
     }
   }, [enemy.isDying, deathSound]);
   
-  if (screenX < -200 || screenX > 1200) return null;
+  if (screenX < -150 || screenX > 1000) return null;
   
   const color = ENEMY_COLORS[enemy.type] || '#ff4444';
   const healthPercent = (enemy.health / enemy.maxHealth) * 100;
   const sprite = ENEMY_SPRITES[enemy.type];
   
-  // Scale enemies - boss is smaller for visibility
+  // Scale enemies - scaled for mobile
   const isBoss = enemy.type === 'boss';
-  const scaleFactor = isBoss ? 1.0 : 1.3;
+  const scaleFactor = isBoss ? 0.8 : 1.0;
   const displayWidth = enemy.width * scaleFactor;
   const displayHeight = enemy.height * scaleFactor;
   
@@ -64,61 +64,56 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         height: displayHeight,
       }}
       animate={enemy.isDying ? {
-        scale: [1, 1.4, 0],
-        rotate: [0, -45, 45, 0],
+        scale: [1, 1.3, 0],
+        rotate: [0, -30, 30, 0],
         opacity: [1, 1, 0],
       } : {}}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.4 }}
     >
       {/* Death effects */}
       {enemy.isDying && (
         <>
-          {/* Big explosion flash */}
           <motion.div
             initial={{ scale: 0.3, opacity: 1 }}
-            animate={{ scale: 5, opacity: 0 }}
-            transition={{ duration: 0.6 }}
+            animate={{ scale: 4, opacity: 0 }}
+            transition={{ duration: 0.5 }}
             className="absolute inset-0 rounded-full"
             style={{
               background: `radial-gradient(circle, #fff, ${color}, transparent)`,
-              filter: 'blur(10px)',
+              filter: 'blur(8px)',
             }}
           />
-          {/* Explosion rings */}
-          {[0, 1, 2, 3].map(i => (
+          {[0, 1, 2].map(i => (
             <motion.div
               key={`ring-${i}`}
               initial={{ scale: 0.3, opacity: 1 }}
-              animate={{ scale: 3 + i, opacity: 0 }}
-              transition={{ duration: 0.6, delay: i * 0.08 }}
-              className="absolute inset-0 rounded-full border-4"
+              animate={{ scale: 2.5 + i, opacity: 0 }}
+              transition={{ duration: 0.5, delay: i * 0.06 }}
+              className="absolute inset-0 rounded-full border-3"
               style={{ borderColor: i % 2 === 0 ? color : '#ffff00' }}
             />
           ))}
-          {/* Death sound text */}
           <motion.div
-            initial={{ opacity: 1, y: 0, scale: 1.5 }}
-            animate={{ opacity: 0, y: -100, scale: 2 }}
-            className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap font-black text-2xl"
-            style={{ color: '#ff4400', textShadow: '0 0 20px #ff0000, 0 0 40px #ff4400' }}
+            initial={{ opacity: 1, y: 0, scale: 1.3 }}
+            animate={{ opacity: 0, y: -80, scale: 1.6 }}
+            className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap font-black text-lg"
+            style={{ color: '#ff4400', textShadow: '0 0 15px #ff0000, 0 0 30px #ff4400' }}
           >
             {deathSound}
           </motion.div>
-          {/* Score popup */}
           <motion.div
             initial={{ opacity: 1, y: 0 }}
-            animate={{ opacity: 0, y: -120 }}
-            transition={{ duration: 1.2 }}
-            className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap font-black text-3xl"
-            style={{ color: '#ffff00', textShadow: '0 0 20px #ffff00, 0 0 40px #ff8800' }}
+            animate={{ opacity: 0, y: -100 }}
+            transition={{ duration: 1 }}
+            className="absolute -top-4 left-1/2 -translate-x-1/2 whitespace-nowrap font-black text-xl"
+            style={{ color: '#ffff00', textShadow: '0 0 15px #ffff00, 0 0 30px #ff8800' }}
           >
-            +{enemy.type === 'boss' ? 2000 : enemy.type === 'tank' ? 300 : enemy.type === 'mech' ? 200 : 50}
+            +{enemy.type === 'boss' ? 2500 : enemy.type === 'tank' ? 300 : enemy.type === 'mech' ? 180 : 60}
           </motion.div>
-          {/* Debris particles */}
-          {[...Array(8)].map((_, i) => (
+          {[...Array(6)].map((_, i) => (
             <motion.div
               key={`debris-${i}`}
-              className="absolute w-4 h-4 rounded"
+              className="absolute w-3 h-3 rounded"
               style={{ 
                 background: color,
                 left: '50%',
@@ -126,32 +121,31 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               }}
               initial={{ x: 0, y: 0, opacity: 1 }}
               animate={{ 
-                x: (Math.random() - 0.5) * 200,
-                y: (Math.random() - 0.5) * 200,
-                rotate: Math.random() * 720,
+                x: (Math.random() - 0.5) * 150,
+                y: (Math.random() - 0.5) * 150,
+                rotate: Math.random() * 540,
                 opacity: 0,
               }}
-              transition={{ duration: 0.6, delay: i * 0.02 }}
+              transition={{ duration: 0.5, delay: i * 0.015 }}
             />
           ))}
         </>
       )}
       
-      {/* Enemy Sprite Image - with blend mode to remove background */}
+      {/* Enemy Sprite */}
       <motion.div
         className="relative w-full h-full"
         animate={enemy.isDying ? {} : {
-          y: ['drone', 'flyer'].includes(enemy.type) ? [0, -15, 0] : [0, -4, 0],
-          rotate: enemy.type === 'drone' ? [-5, 5, -5] : 0,
+          y: ['drone', 'flyer'].includes(enemy.type) ? [0, -10, 0] : [0, -3, 0],
+          rotate: enemy.type === 'drone' ? [-3, 3, -3] : 0,
           scaleX: enemy.type === 'boss' ? [1, 1.02, 1] : 1,
         }}
-        transition={{ duration: ['drone', 'flyer'].includes(enemy.type) ? 0.8 : 0.4, repeat: Infinity }}
+        transition={{ duration: ['drone', 'flyer'].includes(enemy.type) ? 0.7 : 0.35, repeat: Infinity }}
       >
-        {/* The actual sprite */}
         <motion.div
           className="relative w-full h-full"
           style={{
-            filter: `drop-shadow(0 0 20px ${color}) drop-shadow(0 0 40px ${color}66)`,
+            filter: `drop-shadow(0 0 ${isBoss ? 25 : 15}px ${color}) drop-shadow(0 0 ${isBoss ? 50 : 30}px ${color}66)`,
           }}
         >
           {sprite ? (
@@ -160,193 +154,168 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               alt={enemy.type}
               className="w-full h-full object-contain"
               style={{
-                transform: 'scaleX(-1)', // Face the hero
-                mixBlendMode: 'screen', // Helps with background removal
+                transform: 'scaleX(-1)',
+                mixBlendMode: isBoss ? 'normal' : 'screen',
               }}
             />
           ) : (
-            /* Fallback for types without sprites */
             <div
               className="w-full h-full rounded-lg"
               style={{
                 background: `linear-gradient(135deg, ${color}dd, ${color}66)`,
-                boxShadow: `inset -5px -5px 20px rgba(0,0,0,0.4), inset 5px 5px 20px rgba(255,255,255,0.2)`,
-                border: `3px solid ${color}`,
+                boxShadow: `inset -4px -4px 15px rgba(0,0,0,0.4), inset 4px 4px 15px rgba(255,255,255,0.2)`,
+                border: `2px solid ${color}`,
               }}
             >
               <motion.div
-                className="absolute top-1/4 left-1/2 -translate-x-1/2 w-6 h-6 rounded-full"
-                style={{ background: '#ff0000', boxShadow: '0 0 20px #ff0000' }}
+                className="absolute top-1/4 left-1/2 -translate-x-1/2 w-5 h-5 rounded-full"
+                style={{ background: '#ff0000', boxShadow: '0 0 15px #ff0000' }}
                 animate={{ opacity: [0.7, 1, 0.7] }}
-                transition={{ duration: 0.3, repeat: Infinity }}
+                transition={{ duration: 0.25, repeat: Infinity }}
               />
             </div>
           )}
           
-          {/* Glowing eye effect overlay */}
+          {/* Glowing eye effect */}
           <motion.div
             className="absolute inset-0 pointer-events-none"
-            animate={{ opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 0.5, repeat: Infinity }}
+            animate={{ opacity: [0.25, 0.5, 0.25] }}
+            transition={{ duration: 0.4, repeat: Infinity }}
           >
             <div 
-              className="absolute top-1/4 left-1/3 w-4 h-4 rounded-full"
+              className="absolute top-1/4 left-1/3 w-3 h-3 rounded-full"
               style={{ 
                 background: '#ff0000',
-                boxShadow: '0 0 25px #ff0000, 0 0 50px #ff0000',
+                boxShadow: '0 0 20px #ff0000, 0 0 40px #ff0000',
               }}
             />
           </motion.div>
           
           {/* Enemy shooting indicator */}
-          {enemy.attackCooldown <= 0.5 && enemy.attackCooldown > 0 && (
+          {enemy.attackCooldown <= 0.4 && enemy.attackCooldown > 0 && (
             <motion.div
               className="absolute left-0 top-1/2 -translate-y-1/2"
-              style={{ left: -20 }}
-              animate={{ opacity: [0.5, 1, 0.5], scale: [0.8, 1.2, 0.8] }}
-              transition={{ duration: 0.2, repeat: Infinity }}
+              style={{ left: -15 }}
+              animate={{ opacity: [0.4, 1, 0.4], scale: [0.7, 1.1, 0.7] }}
+              transition={{ duration: 0.15, repeat: Infinity }}
             >
               <div 
-                className="w-4 h-4 rounded-full"
+                className="w-3 h-3 rounded-full"
                 style={{
                   background: 'radial-gradient(circle, #ff0000, #ff4400, transparent)',
-                  boxShadow: '0 0 10px #ff0000',
+                  boxShadow: '0 0 8px #ff0000',
                 }}
               />
             </motion.div>
           )}
         </motion.div>
         
-        {/* Boss special effects */}
+        {/* Boss special effects - SCARY */}
         {enemy.type === 'boss' && !enemy.isDying && (
           <>
-            {/* Fire breathing effect */}
+            {/* Menacing aura */}
+            <motion.div
+              className="absolute -inset-12 rounded-full"
+              style={{
+                background: 'radial-gradient(circle, rgba(255,0,0,0.4), rgba(50,0,0,0.2), transparent)',
+                filter: 'blur(15px)',
+              }}
+              animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+            
+            {/* Fire breathing */}
             <motion.div
               className="absolute left-0 top-1/2 -translate-y-1/2"
-              style={{ left: -80 }}
-              animate={{ scaleX: [0.5, 1.2, 0.5], opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 0.3, repeat: Infinity }}
+              style={{ left: -50 }}
+              animate={{ scaleX: [0.4, 1, 0.4], opacity: [0.4, 0.9, 0.4] }}
+              transition={{ duration: 0.25, repeat: Infinity }}
             >
               <div 
-                className="w-24 h-12 rounded-full"
+                className="w-16 h-8 rounded-full"
                 style={{
                   background: 'linear-gradient(90deg, transparent, #ff4400, #ffff00)',
-                  filter: 'blur(5px)',
+                  filter: 'blur(4px)',
                 }}
               />
             </motion.div>
             
-            {/* Boss title */}
-            <motion.div
-              className="absolute -top-20 left-1/2 -translate-x-1/2 whitespace-nowrap"
-              animate={{ opacity: [0.8, 1, 0.8], scale: [1, 1.05, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              <span className="text-3xl font-black tracking-wider" style={{ color: '#ff0000', textShadow: '0 0 30px #ff0000, 0 0 60px #ff4400' }}>
-                🐉 DRAGON LORD 🐉
-              </span>
-            </motion.div>
-            
-            {/* Boss health percent */}
-            <motion.div
-              className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap"
-              animate={{ scale: healthPercent <= 30 ? [1, 1.1, 1] : 1 }}
-              transition={{ duration: 0.3, repeat: Infinity }}
-            >
-              <span 
-                className="text-lg font-black"
-                style={{ 
-                  color: healthPercent <= 30 ? '#ff0000' : '#fff',
-                  textShadow: healthPercent <= 30 ? '0 0 20px #ff0000' : '0 0 10px #000',
+            {/* Dripping biomass effect */}
+            {[0, 1, 2].map(i => (
+              <motion.div
+                key={`drip-${i}`}
+                className="absolute w-1 rounded-full"
+                style={{
+                  left: `${30 + i * 25}%`,
+                  top: '80%',
+                  height: 10 + Math.random() * 8,
+                  background: 'linear-gradient(180deg, #ff2200, #aa0000)',
                 }}
-              >
-                {Math.round(healthPercent)}%
-              </span>
-            </motion.div>
-            
-            {/* Boss aura */}
-            <motion.div
-              className="absolute -inset-16 rounded-full"
-              style={{
-                background: 'radial-gradient(circle, rgba(255,0,0,0.4), transparent)',
-                filter: 'blur(20px)',
-              }}
-              animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            />
-            
-            {/* Wing flap effect */}
-            <motion.div
-              className="absolute inset-0"
-              animate={{ y: [0, -10, 0] }}
-              transition={{ duration: 0.5, repeat: Infinity }}
-            />
+                animate={{
+                  height: [10, 18, 10],
+                  opacity: [0.6, 1, 0.6],
+                }}
+                transition={{ duration: 0.8 + i * 0.2, repeat: Infinity, delay: i * 0.2 }}
+              />
+            ))}
           </>
         )}
         
-        {/* Drone propeller effect */}
+        {/* Drone propeller */}
         {enemy.type === 'drone' && (
           <motion.div
-            className="absolute -top-3 left-1/2 -translate-x-1/2 w-20 h-4"
+            className="absolute -top-2 left-1/2 -translate-x-1/2 w-14 h-3"
             style={{ background: 'linear-gradient(90deg, transparent, #00ffff88, transparent)' }}
-            animate={{ scaleX: [0.4, 1.3, 0.4], opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 0.06, repeat: Infinity }}
+            animate={{ scaleX: [0.3, 1.2, 0.3], opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 0.05, repeat: Infinity }}
           />
         )}
       </motion.div>
       
-      {/* Health bar - bigger and more visible for boss */}
-      <div 
-        className={`absolute left-0 w-full rounded-full overflow-hidden ${isBoss ? '-top-14 h-8' : '-top-8 h-5'}`}
-        style={{ 
-          background: 'rgba(0,0,0,0.95)', 
-          border: `${isBoss ? 3 : 2}px solid ${color}`,
-          boxShadow: `0 0 ${isBoss ? 20 : 10}px ${color}66, 0 0 ${isBoss ? 40 : 20}px ${color}33`,
-        }}
-      >
-        <motion.div
-          className="h-full"
-          style={{ 
-            width: `${healthPercent}%`,
-            background: isBoss 
-              ? `linear-gradient(90deg, #ff0000, #ff4400, #ffff00)` 
-              : `linear-gradient(90deg, ${color}, ${color}cc)`,
-            boxShadow: `0 0 ${isBoss ? 25 : 15}px ${color}, inset 0 2px 4px rgba(255,255,255,0.4)`,
-          }}
-          animate={{ opacity: healthPercent < 30 ? [1, 0.5, 1] : 1 }}
-          transition={{ duration: 0.2, repeat: healthPercent < 30 ? Infinity : 0 }}
-        />
-        {/* Health bar shine */}
+      {/* Health bar - NOT on boss (use BossHUD instead) */}
+      {!isBoss && (
         <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 50%, rgba(0,0,0,0.2) 100%)',
+          className="absolute left-0 w-full rounded-full overflow-hidden -top-5 h-3"
+          style={{ 
+            background: 'rgba(0,0,0,0.9)', 
+            border: `1px solid ${color}`,
+            boxShadow: `0 0 8px ${color}66`,
           }}
-        />
-      </div>
+        >
+          <motion.div
+            className="h-full"
+            style={{ 
+              width: `${healthPercent}%`,
+              background: `linear-gradient(90deg, ${color}, ${color}cc)`,
+              boxShadow: `0 0 10px ${color}`,
+            }}
+            animate={{ opacity: healthPercent < 30 ? [1, 0.5, 1] : 1 }}
+            transition={{ duration: 0.2, repeat: healthPercent < 30 ? Infinity : 0 }}
+          />
+        </div>
+      )}
       
-      {/* Damage sparks when low health */}
-      {healthPercent < 40 && !enemy.isDying && (
+      {/* Damage sparks */}
+      {healthPercent < 35 && !enemy.isDying && (
         <>
-          {[...Array(4)].map((_, i) => (
+          {[...Array(3)].map((_, i) => (
             <motion.div
               key={`spark-${i}`}
-              className="absolute w-3 h-3 rounded-full"
+              className="absolute w-2 h-2 rounded-full"
               style={{
                 background: '#ffff00',
-                left: `${20 + i * 20}%`,
-                top: `${20 + (i * 15) % 60}%`,
-                boxShadow: '0 0 10px #ffff00',
+                left: `${20 + i * 25}%`,
+                top: `${20 + (i * 20) % 50}%`,
+                boxShadow: '0 0 8px #ffff00',
               }}
-              animate={{ opacity: [0, 1, 0], scale: [0.5, 1.5, 0.5], y: [-5, 5, -5] }}
-              transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.1 }}
+              animate={{ opacity: [0, 1, 0], scale: [0.4, 1.2, 0.4], y: [-3, 3, -3] }}
+              transition={{ duration: 0.25, repeat: Infinity, delay: i * 0.08 }}
             />
           ))}
-          {/* Smoke */}
           <motion.div
-            className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-gray-500/50"
-            animate={{ y: [-10, -30], opacity: [0.5, 0], scale: [0.5, 1.5] }}
-            transition={{ duration: 0.8, repeat: Infinity }}
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-gray-500/40"
+            animate={{ y: [-8, -20], opacity: [0.4, 0], scale: [0.4, 1.2] }}
+            transition={{ duration: 0.6, repeat: Infinity }}
           />
         </>
       )}
