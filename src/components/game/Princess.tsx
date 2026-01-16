@@ -57,28 +57,18 @@ export const Princess = ({ x, cameraX, isVisible }: PrincessProps) => {
         </motion.div>
       ))}
       
-      {/* Princess sprite - OUTLINE STYLE with transparent background */}
+      {/* Princess sprite - Original Style */}
       <motion.img
         src={princessSprite}
         alt="Princess"
         className="w-full h-full object-contain"
         style={{
-          filter: 'brightness(0) invert(1) drop-shadow(0 0 20px #ff69b4) drop-shadow(0 0 40px #ff1493)',
-          opacity: 0.9,
+          filter: 'drop-shadow(0 0 10px #ff69b4) drop-shadow(0 0 20px #ff1493)',
         }}
         animate={{
           y: [0, -10, 0],
         }}
         transition={{ duration: 1.5, repeat: Infinity }}
-      />
-      
-      {/* Neon outline border */}
-      <div 
-        className="absolute inset-0 rounded-lg pointer-events-none"
-        style={{
-          border: '2px solid #ff69b4',
-          boxShadow: '0 0 15px #ff69b4, inset 0 0 10px #ff69b444',
-        }}
       />
       
       {/* Speech bubble */}
