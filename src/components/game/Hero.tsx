@@ -74,57 +74,27 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         </motion.div>
       )}
       
-      {/* Magic Dash glow */}
+      {/* Magic Dash glow - simplified for performance */}
       {player.isMagicDashing && (
-        <>
-          <motion.div 
-            className="absolute -inset-6 rounded-full"
-            style={{
-              background: 'radial-gradient(circle, rgba(255,0,255,0.5) 0%, rgba(0,255,255,0.3) 40%, transparent 70%)',
-              filter: 'blur(10px)',
-            }}
-            animate={{ 
-              scale: [1, 1.3, 1],
-              opacity: [0.5, 1, 0.5],
-            }}
-            transition={{ duration: 0.15, repeat: Infinity }}
-          />
-          {[0, 1, 2, 3].map(i => (
-            <motion.div
-              key={i}
-              className="absolute w-1 h-1 rounded-full"
-              style={{
-                background: i % 2 === 0 ? '#ff00ff' : '#00ffff',
-                left: `${20 + i * 15}%`,
-                top: `${10 + (i % 3) * 25}%`,
-              }}
-              animate={{ 
-                scale: [0, 1, 0],
-                opacity: [0, 1, 0],
-                y: [-5, -15],
-              }}
-              transition={{ 
-                duration: 0.4,
-                repeat: Infinity,
-                delay: i * 0.08,
-              }}
-            />
-          ))}
-        </>
+        <div 
+          className="absolute -inset-4 rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(255,0,255,0.4) 0%, rgba(0,255,255,0.2) 50%, transparent 70%)',
+            filter: 'blur(6px)',
+          }}
+        />
       )}
       
-      {/* Shield bubble */}
+      {/* Shield bubble - simplified */}
       {player.shield > 0 && (
-        <motion.div
+        <div
           className="absolute -inset-2 rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(0,255,255,0.1) 0%, rgba(0,255,255,0.2) 80%, rgba(0,255,255,0.4) 100%)',
+            background: 'radial-gradient(circle, rgba(0,255,255,0.1) 0%, rgba(0,255,255,0.3) 100%)',
             border: '1px solid #00ffff',
-            boxShadow: '0 0 12px #00ffff, inset 0 0 12px rgba(0, 255, 255, 0.2)',
+            boxShadow: '0 0 8px #00ffff',
             opacity: Math.min(1, player.shield / 50),
           }}
-          animate={{ scale: [1, 1.02, 1] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
         />
       )}
       
