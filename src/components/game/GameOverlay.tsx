@@ -38,7 +38,7 @@ export const GameOverlay = ({ phase, score, distance, currentWave, maxWaves, onS
                   WebkitTextFillColor: 'transparent',
                 }}
               >
-                BIG NOSE HERO
+                CAPTAIN SQUIRBERT
               </motion.h1>
               
               <p className="text-xs sm:text-sm text-gray-300">
