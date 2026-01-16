@@ -22,13 +22,13 @@ export const MiniMap = ({ player, enemies, levelLength, princessX, cameraX }: Mi
   
   return (
     <div 
-      className="absolute top-1 left-1/2 -translate-x-1/2 z-40"
+      className="absolute bottom-2 left-1/2 -translate-x-1/2 z-40"
       style={{
         width: mapWidth + 4,
         height: mapHeight + 4,
-        background: 'rgba(0,0,0,0.8)',
-        border: '1px solid rgba(0,255,255,0.5)',
-        borderRadius: 4,
+        background: 'rgba(0,0,0,0.85)',
+        border: '1px solid rgba(0,255,255,0.4)',
+        borderRadius: 6,
         padding: 2,
       }}
     >
@@ -115,12 +115,7 @@ export const MiniMap = ({ player, enemies, levelLength, princessX, cameraX }: Mi
         />
       </div>
       
-      {/* Legend - tiny */}
-      <div className="absolute -bottom-3 left-0 right-0 flex justify-center gap-2 text-[6px] opacity-60">
-        <span className="text-green-400">●You</span>
-        <span className="text-red-400">●Enemy</span>
-        <span className="text-pink-400">●Princess</span>
-      </div>
+      {/* Legend removed for cleaner look */}
     </div>
   );
 };

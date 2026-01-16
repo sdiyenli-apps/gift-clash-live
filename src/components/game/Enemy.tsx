@@ -71,7 +71,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
       className="absolute z-20"
       style={{
         left: screenX,
-        bottom: 68 + flyOffset,
+        bottom: 18 + flyOffset, // Same floor as hero
         width: displayWidth,
         height: displayHeight,
       }}
