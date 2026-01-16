@@ -1,7 +1,8 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   GameState, Player, Enemy, Projectile, Particle, GiftEvent, GiftAction, 
-  Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS, TIKTOK_GIFTS
+  Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS, TIKTOK_GIFTS,
+  FlyingRobot, Chicken, NeonLight, Explosion, CHICKEN_SOUNDS
 } from '@/types/game';
 
 const GRAVITY = 2200;
@@ -59,6 +60,10 @@ const INITIAL_STATE: GameState = {
   killStreak: 0,
   currentWave: 1,
   maxWaves: MAX_WAVES,
+  flyingRobots: [],
+  chickens: [],
+  neonLights: [],
+  explosions: [],
 };
 
 const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[], levelLength: number } => {
@@ -517,6 +522,20 @@ export const useGameState = () => {
           newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y, 30, 'magic', '#8800ff')];
           newState.score += 150;
           showSpeechBubble("TIME SLOWS DOWN... ⏰🔮", 'normal');
+          break;
+          
+        case 'spawn_chicken':
+          const newChicken: Chicken = {
+            id: `chicken-${Date.now()}`,
+            x: prev.player.x + 200 + Math.random() * 200,
+            y: GROUND_Y,
+            state: 'appearing',
+            timer: 3,
+            direction: Math.random() > 0.5 ? 1 : -1,
+          };
+          newState.chickens = [...prev.chickens, newChicken];
+          newState.score += 15;
+          showSpeechBubble("WHY IS THERE A CHICKEN?! 🐔😂", 'funny');
           break;
       }
       

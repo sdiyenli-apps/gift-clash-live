@@ -5,6 +5,7 @@ import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
 import { ProjectileSprite } from './Projectile';
 import { Particles } from './Particles';
+import { ChaosElements } from './ChaosElements';
 
 interface ArenaProps {
   gameState: GameState;
@@ -14,7 +15,8 @@ export const Arena = ({ gameState }: ArenaProps) => {
   const { 
     player, enemies, projectiles, particles, obstacles,
     cameraX, distance, levelLength, isUltraMode, speechBubble,
-    combo, comboTimer, isFrozen, isBossFight, screenShake
+    combo, comboTimer, isFrozen, isBossFight, screenShake,
+    flyingRobots, chickens, neonLights, explosions
   } = gameState;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 10 : 0;
@@ -60,6 +62,15 @@ export const Arena = ({ gameState }: ArenaProps) => {
         <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
         
         <Particles particles={particles} cameraX={cameraX} />
+        
+        {/* Chaos Elements - Flying robots, chickens, neon lights, explosions */}
+        <ChaosElements 
+          flyingRobots={flyingRobots} 
+          chickens={chickens} 
+          neonLights={neonLights} 
+          explosions={explosions} 
+          cameraX={cameraX} 
+        />
         
         {/* Combo display */}
         {combo > 1 && comboTimer > 0 && (
