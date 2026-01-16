@@ -140,13 +140,13 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           }}
         />
         
-        {/* Video Hero - Original Style */}
+        {/* Video Hero - SILHOUETTE STYLE */}
         <motion.div
           className="relative w-full h-full overflow-hidden rounded-md"
           style={{
             filter: isUltraMode || player.isMagicDashing
-              ? 'drop-shadow(0 0 12px #ff00ff) drop-shadow(0 0 20px #00ffff)' 
-              : 'drop-shadow(0 0 6px #00ccff)',
+              ? 'brightness(0) drop-shadow(0 0 12px #ff00ff) drop-shadow(0 0 20px #00ffff) drop-shadow(0 0 4px #fff)' 
+              : 'brightness(0) drop-shadow(0 0 8px #00ccff) drop-shadow(0 0 3px #fff)',
           }}
           animate={player.animationState === 'hurt' ? { x: [-2, 2, -2, 0] } : {}}
           transition={{ duration: 0.1 }}
