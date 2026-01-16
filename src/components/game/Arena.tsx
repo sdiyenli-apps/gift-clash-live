@@ -162,7 +162,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
             }}
           />
           
-          {/* Gift blocks flying ABOVE the floor - clearly visible */}
+          {/* Gift blocks flying INSIDE the floor section */}
           {giftBlocks.map(block => {
             const blockScreenX = block.x - cameraX;
             // Only render if on screen
@@ -171,63 +171,55 @@ export const Arena = ({ gameState }: ArenaProps) => {
             return (
               <motion.div
                 key={block.id}
-                className="absolute z-20 flex flex-col items-center pointer-events-none"
+                className="absolute z-30 flex flex-col items-center pointer-events-none"
                 style={{
                   left: blockScreenX,
-                  bottom: block.y, // Uses the y position (above floor)
+                  top: block.y, // INSIDE the floor (top of floor section)
                 }}
-                initial={{ scale: 0, opacity: 0 }}
+                initial={{ scale: 0, opacity: 0, x: -50 }}
                 animate={{ 
                   scale: 1, 
                   opacity: 1,
-                  y: [0, -15, 0], // Float up and down
-                  rotate: [-5, 5, -5], // Slight rotation
+                  x: 0,
                 }}
                 transition={{
-                  scale: { duration: 0.3 },
-                  opacity: { duration: 0.2 },
-                  y: { duration: 1, repeat: Infinity, ease: "easeInOut" },
-                  rotate: { duration: 1.5, repeat: Infinity, ease: "easeInOut" },
+                  scale: { duration: 0.2 },
+                  opacity: { duration: 0.15 },
                 }}
               >
                 {/* Glowing gift box container */}
-                <div 
-                  className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl font-bold relative"
+                <motion.div 
+                  className="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold relative"
                   style={{
                     background: 'linear-gradient(135deg, rgba(255,0,255,0.9), rgba(0,255,255,0.9))',
-                    boxShadow: '0 0 20px rgba(255,0,255,0.8), 0 0 40px rgba(0,255,255,0.6), 0 4px 15px rgba(0,0,0,0.5)',
-                    border: '3px solid rgba(255,255,255,0.7)',
+                    boxShadow: '0 0 15px rgba(255,0,255,0.8), 0 0 30px rgba(0,255,255,0.6)',
+                    border: '2px solid rgba(255,255,255,0.8)',
                   }}
+                  animate={{
+                    rotate: [-3, 3, -3],
+                    y: [-2, 2, -2],
+                  }}
+                  transition={{ duration: 0.4, repeat: Infinity }}
                 >
                   {block.emoji}
-                  {/* Sparkle effect */}
-                  <motion.div
-                    className="absolute -inset-2 rounded-lg"
-                    style={{
-                      background: 'radial-gradient(circle, rgba(255,255,255,0.3), transparent)',
-                    }}
-                    animate={{ opacity: [0.3, 0.8, 0.3], scale: [1, 1.1, 1] }}
-                    transition={{ duration: 0.5, repeat: Infinity }}
-                  />
-                </div>
-                {/* Username label - more visible */}
+                </motion.div>
+                {/* Username label */}
                 <div 
-                  className="absolute -top-5 text-[10px] font-bold whitespace-nowrap px-2 py-0.5 rounded-full"
+                  className="absolute -bottom-4 text-[8px] font-bold whitespace-nowrap px-1.5 py-0.5 rounded"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(0,0,0,0.9), rgba(30,30,60,0.9))',
+                    background: 'rgba(0,0,0,0.8)',
                     color: '#00ffff',
-                    textShadow: '0 0 8px #00ffff',
-                    border: '1px solid rgba(0,255,255,0.5)',
+                    textShadow: '0 0 5px #00ffff',
                   }}
                 >
-                  🎁 {block.username.slice(0, 10)}
+                  {block.username.slice(0, 8)}
                 </div>
                 {/* Trail effect */}
                 <motion.div
-                  className="absolute -right-8 top-1/2 -translate-y-1/2 w-10 h-6 rounded-full"
+                  className="absolute -left-6 top-1/2 -translate-y-1/2 w-8 h-4 rounded-full"
                   style={{
-                    background: 'linear-gradient(90deg, rgba(255,0,255,0.4), transparent)',
-                    filter: 'blur(4px)',
+                    background: 'linear-gradient(90deg, transparent, rgba(255,0,255,0.5))',
+                    filter: 'blur(3px)',
                   }}
                 />
               </motion.div>

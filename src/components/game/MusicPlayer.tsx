@@ -10,7 +10,7 @@ interface MusicPlayerProps {
 
 // Play the Captain Squirbert theme song
 export const MusicPlayer = ({ isPlaying, isUltraMode, isBossFight = false }: MusicPlayerProps) => {
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(false); // Default to playing (not muted)
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   useEffect(() => {
