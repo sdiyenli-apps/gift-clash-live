@@ -447,20 +447,20 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero fires FORWARD (positive velocity) - towards enemies
+          // Hero fires FORWARD from hitbox - slower projectile for visibility
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
-            x: prev.player.x + PLAYER_WIDTH + 10, // Start in front of player
-            y: prev.player.y + PLAYER_HEIGHT / 2,
-            velocityX: 1400, // Fires FORWARD (positive = right direction towards enemies)
+            x: prev.player.x + PLAYER_WIDTH, // Start at edge of hero hitbox
+            y: prev.player.y + PLAYER_HEIGHT / 2 + 5, // Center of hero
+            velocityX: 650, // SLOWER - more visible projectile speed
             velocityY: 0,
             damage: prev.player.isMagicDashing ? 120 : 50,
             type: prev.player.isMagicDashing ? 'ultra' : 'mega',
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          // Muzzle flash particles in front of hero
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH + 15, prev.player.y + PLAYER_HEIGHT / 2, 15, 'muzzle', '#00ffff')];
+          // Muzzle flash particles at hero hitbox edge
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 15, 'muzzle', '#00ffff')];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
@@ -567,16 +567,16 @@ export const useGameState = () => {
       }].sort((a, b) => b.totalDiamonds - a.totalDiamonds);
     });
     
-    // Create a gift block that flies across the floor
+    // Create a gift block that flies ABOVE the floor section
     const newGiftBlock: GiftBlock = {
       id: `gift-block-${Date.now()}-${Math.random()}`,
-      x: 50, // Start from left side of screen
-      y: GROUND_Y + 10, // On the floor
+      x: gameState.cameraX - 50, // Start from left off-screen
+      y: GROUND_Y + 60 + Math.random() * 80, // Float ABOVE the floor
       emoji: event.gift.emoji,
       username: event.username,
       giftName: event.gift.name,
-      velocityX: 150 + Math.random() * 100, // Fly forward
-      life: 8, // Lives for 8 seconds
+      velocityX: 200 + Math.random() * 150, // Fly forward across screen
+      life: 12, // Lives longer to fly across
     };
     
     setGameState(prev => ({

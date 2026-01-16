@@ -51,6 +51,8 @@ export const Arena = ({ gameState }: ArenaProps) => {
             : '0 0 15px rgba(0, 255, 255, 0.2)',
         height: '100%',
         transform: `translate(${shakeX}px, ${shakeY}px)`,
+        // Better POV - zoom out slightly for wider view
+        perspective: '1000px',
       }}
     >
       {/* Mini-map */}
@@ -160,51 +162,77 @@ export const Arena = ({ gameState }: ArenaProps) => {
             }}
           />
           
-          {/* Gift blocks flying on the floor */}
-          {giftBlocks.map(block => (
-            <motion.div
-              key={block.id}
-              className="absolute flex flex-col items-center"
-              style={{
-                left: block.x - cameraX,
-                bottom: 30,
-              }}
-              initial={{ scale: 0, y: 20 }}
-              animate={{ 
-                scale: 1, 
-                y: [0, -8, 0],
-                rotate: [0, 5, -5, 0],
-              }}
-              transition={{
-                scale: { duration: 0.2 },
-                y: { duration: 0.6, repeat: Infinity },
-                rotate: { duration: 0.8, repeat: Infinity },
-              }}
-            >
-              {/* Glowing gift block */}
-              <div 
-                className="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold"
+          {/* Gift blocks flying ABOVE the floor - clearly visible */}
+          {giftBlocks.map(block => {
+            const blockScreenX = block.x - cameraX;
+            // Only render if on screen
+            if (blockScreenX < -100 || blockScreenX > 900) return null;
+            
+            return (
+              <motion.div
+                key={block.id}
+                className="absolute z-20 flex flex-col items-center pointer-events-none"
                 style={{
-                  background: 'linear-gradient(135deg, rgba(255,0,255,0.8), rgba(0,255,255,0.8))',
-                  boxShadow: '0 0 15px rgba(255,0,255,0.6), 0 0 25px rgba(0,255,255,0.4)',
-                  border: '2px solid rgba(255,255,255,0.5)',
+                  left: blockScreenX,
+                  bottom: block.y, // Uses the y position (above floor)
+                }}
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ 
+                  scale: 1, 
+                  opacity: 1,
+                  y: [0, -15, 0], // Float up and down
+                  rotate: [-5, 5, -5], // Slight rotation
+                }}
+                transition={{
+                  scale: { duration: 0.3 },
+                  opacity: { duration: 0.2 },
+                  y: { duration: 1, repeat: Infinity, ease: "easeInOut" },
+                  rotate: { duration: 1.5, repeat: Infinity, ease: "easeInOut" },
                 }}
               >
-                {block.emoji}
-              </div>
-              {/* Username label */}
-              <div 
-                className="absolute -top-4 text-[8px] font-bold whitespace-nowrap px-1 rounded"
-                style={{
-                  background: 'rgba(0,0,0,0.7)',
-                  color: '#00ffff',
-                  textShadow: '0 0 5px #00ffff',
-                }}
-              >
-                {block.username.slice(0, 8)}
-              </div>
-            </motion.div>
-          ))}
+                {/* Glowing gift box container */}
+                <div 
+                  className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl font-bold relative"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255,0,255,0.9), rgba(0,255,255,0.9))',
+                    boxShadow: '0 0 20px rgba(255,0,255,0.8), 0 0 40px rgba(0,255,255,0.6), 0 4px 15px rgba(0,0,0,0.5)',
+                    border: '3px solid rgba(255,255,255,0.7)',
+                  }}
+                >
+                  {block.emoji}
+                  {/* Sparkle effect */}
+                  <motion.div
+                    className="absolute -inset-2 rounded-lg"
+                    style={{
+                      background: 'radial-gradient(circle, rgba(255,255,255,0.3), transparent)',
+                    }}
+                    animate={{ opacity: [0.3, 0.8, 0.3], scale: [1, 1.1, 1] }}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                  />
+                </div>
+                {/* Username label - more visible */}
+                <div 
+                  className="absolute -top-5 text-[10px] font-bold whitespace-nowrap px-2 py-0.5 rounded-full"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(0,0,0,0.9), rgba(30,30,60,0.9))',
+                    color: '#00ffff',
+                    textShadow: '0 0 8px #00ffff',
+                    border: '1px solid rgba(0,255,255,0.5)',
+                  }}
+                >
+                  🎁 {block.username.slice(0, 10)}
+                </div>
+                {/* Trail effect */}
+                <motion.div
+                  className="absolute -right-8 top-1/2 -translate-y-1/2 w-10 h-6 rounded-full"
+                  style={{
+                    background: 'linear-gradient(90deg, rgba(255,0,255,0.4), transparent)',
+                    filter: 'blur(4px)',
+                  }}
+                />
+              </motion.div>
+            );
+          })}
         </div>
         
         <Princess
