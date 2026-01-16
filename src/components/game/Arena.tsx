@@ -120,7 +120,37 @@ export const Arena = ({ gameState }: ArenaProps) => {
         
         <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
         
-        <Princess 
+        {/* Floor that hero walks on */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 h-20 z-5"
+          style={{
+            background: 'linear-gradient(180deg, rgba(30,30,50,0.9) 0%, rgba(15,15,30,1) 40%, #0a0a18 100%)',
+            borderTop: '3px solid rgba(0, 255, 255, 0.4)',
+            boxShadow: '0 -5px 20px rgba(0, 255, 255, 0.2), inset 0 5px 30px rgba(0,0,0,0.5)',
+          }}
+        >
+          {/* Floor grid lines */}
+          <div 
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: `
+                linear-gradient(90deg, rgba(0,255,255,0.15) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(0,255,255,0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: '40px 10px',
+              transform: `translateX(${-cameraX % 40}px)`,
+            }}
+          />
+          {/* Floor glow */}
+          <div 
+            className="absolute top-0 left-0 right-0 h-1"
+            style={{
+              background: 'linear-gradient(90deg, transparent, rgba(0,255,255,0.6), transparent)',
+            }}
+          />
+        </div>
+        
+        <Princess
           x={levelLength - 100} 
           cameraX={cameraX} 
           isVisible={!isBossFight && distance > levelLength - 600}

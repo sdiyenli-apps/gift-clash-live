@@ -61,6 +61,8 @@ export interface Enemy {
   attackCooldown: number;
   animationPhase: number;
   isFriendly?: boolean;
+  isSpawning?: boolean;
+  spawnTimer?: number;
 }
 
 export interface FlyingRobot {

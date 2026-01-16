@@ -54,6 +54,10 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const displayWidth = enemy.width * scaleFactor;
   const displayHeight = enemy.height * scaleFactor;
   
+  // Portal spawn animation
+  const isSpawning = enemy.isSpawning && (enemy.spawnTimer ?? 0) > 0;
+  const spawnProgress = isSpawning ? 1 - ((enemy.spawnTimer ?? 0) / 0.8) : 1;
+  
   return (
     <motion.div
       className="absolute z-10"
@@ -63,13 +67,52 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         width: displayWidth,
         height: displayHeight,
       }}
+      initial={isSpawning ? { scale: 0, opacity: 0 } : {}}
       animate={enemy.isDying ? {
         scale: [1, 1.3, 0],
         rotate: [0, -30, 30, 0],
         opacity: [1, 1, 0],
-      } : {}}
-      transition={{ duration: 0.4 }}
+      } : isSpawning ? {
+        scale: spawnProgress,
+        opacity: spawnProgress,
+      } : {
+        scale: 1,
+        opacity: 1,
+      }}
+      transition={{ duration: enemy.isDying ? 0.4 : 0.1 }}
     >
+      {/* Portal spawn effect */}
+      {isSpawning && (
+        <>
+          <motion.div
+            className="absolute inset-0 -m-8 rounded-full"
+            style={{
+              background: 'radial-gradient(circle, #8800ff, #4400aa, transparent)',
+              filter: 'blur(10px)',
+            }}
+            initial={{ scale: 2, opacity: 1 }}
+            animate={{ scale: 0.5, opacity: 0 }}
+            transition={{ duration: 0.8 }}
+          />
+          <motion.div
+            className="absolute inset-0 -m-6 rounded-full border-4 border-purple-500"
+            initial={{ scale: 2.5, opacity: 1, rotate: 0 }}
+            animate={{ scale: 0.3, opacity: 0, rotate: 360 }}
+            transition={{ duration: 0.8 }}
+          />
+          <motion.div
+            className="absolute inset-0 -m-4"
+            style={{
+              background: 'conic-gradient(from 0deg, transparent, #ff00ff, #8800ff, transparent)',
+              borderRadius: '50%',
+              filter: 'blur(3px)',
+            }}
+            initial={{ rotate: 0, scale: 2 }}
+            animate={{ rotate: 720, scale: 0.5 }}
+            transition={{ duration: 0.8 }}
+          />
+        </>
+      )}
       {/* Death effects */}
       {enemy.isDying && (
         <>

@@ -125,10 +125,10 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         />
       )}
       
-      {/* Hero Character */}
+      {/* Hero Character - mirrored to face right */}
       <motion.div
         className="relative w-full h-full"
-        animate={{ scaleX: player.facingRight ? 1 : -1 }}
+        style={{ transform: 'scaleX(-1)' }}
       >
         {/* Shadow */}
         <motion.div 
