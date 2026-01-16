@@ -44,7 +44,7 @@ export const ProjectileSprite = ({ projectile, cameraX }: ProjectileProps) => {
       className="absolute rounded-full"
       style={{
         left: screenX,
-        bottom: 480 - projectile.y - style.height / 2,
+        bottom: 280 - projectile.y - style.height / 2,
         ...style,
       }}
       initial={{ scale: 0 }}

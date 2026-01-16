@@ -50,7 +50,7 @@ export const Particles = ({ particles, cameraX }: ParticlesProps) => {
             className="absolute pointer-events-none"
             style={{
               left: screenX,
-              bottom: 480 - particle.y,
+              bottom: 280 - particle.y,
               width: particle.size,
               height: particle.size,
               opacity: particle.life,
