@@ -6,6 +6,7 @@ export interface TikTokGift {
   tier: GiftTier;
   diamonds: number;
   emoji: string;
+  action: GiftAction; // Direct mapping of gift to action
 }
 
 export interface GiftEvent {
@@ -18,9 +19,12 @@ export interface GiftEvent {
 }
 
 export type GiftAction = 
-  | 'dash_forward'
-  | 'jump'
+  | 'move_forward'
+  | 'move_up'
+  | 'move_down'
   | 'shoot'
+  | 'jump'
+  | 'dash_forward'
   | 'double_jump'
   | 'mega_shot'
   | 'heal'
@@ -139,6 +143,8 @@ export interface GameState {
   lastGiftTime: number;
   screenShake: number;
   killStreak: number;
+  currentWave: number;
+  maxWaves: number;
 }
 
 export interface Gifter {
@@ -148,40 +154,45 @@ export interface Gifter {
   giftCount: number;
 }
 
+// EACH GIFT HAS A SPECIFIC ACTION - Clear mapping for TikTok Live!
 export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
-  rose: { id: 'rose', name: 'Rose', tier: 'small', diamonds: 1, emoji: '🌹' },
-  ice_cream: { id: 'ice_cream', name: 'Ice Cream', tier: 'small', diamonds: 1, emoji: '🍦' },
-  finger_heart: { id: 'finger_heart', name: 'Finger Heart', tier: 'small', diamonds: 5, emoji: '🫰' },
-  doughnut: { id: 'doughnut', name: 'Doughnut', tier: 'small', diamonds: 30, emoji: '🍩' },
-  cap: { id: 'cap', name: 'Cap', tier: 'medium', diamonds: 99, emoji: '🧢' },
-  hand_hearts: { id: 'hand_hearts', name: 'Hand Hearts', tier: 'medium', diamonds: 100, emoji: '💗' },
-  perfume: { id: 'perfume', name: 'Perfume', tier: 'medium', diamonds: 199, emoji: '💐' },
-  galaxy: { id: 'galaxy', name: 'Galaxy', tier: 'large', diamonds: 1000, emoji: '🌌' },
-  planet: { id: 'planet', name: 'Planet', tier: 'large', diamonds: 2000, emoji: '🪐' },
-  universe: { id: 'universe', name: 'Universe', tier: 'large', diamonds: 5000, emoji: '✨' },
+  // SMALL GIFTS - Basic controls
+  rose: { id: 'rose', name: 'Rose', tier: 'small', diamonds: 1, emoji: '🌹', action: 'move_forward' },
+  ice_cream: { id: 'ice_cream', name: 'Ice Cream', tier: 'small', diamonds: 1, emoji: '🍦', action: 'move_up' },
+  finger_heart: { id: 'finger_heart', name: 'Finger Heart', tier: 'small', diamonds: 5, emoji: '🫰', action: 'shoot' },
+  doughnut: { id: 'doughnut', name: 'Doughnut', tier: 'small', diamonds: 30, emoji: '🍩', action: 'move_down' },
+  
+  // MEDIUM GIFTS - Power moves
+  cap: { id: 'cap', name: 'Cap', tier: 'medium', diamonds: 99, emoji: '🧢', action: 'jump' },
+  hand_hearts: { id: 'hand_hearts', name: 'Hand Hearts', tier: 'medium', diamonds: 100, emoji: '💗', action: 'triple_shot' },
+  perfume: { id: 'perfume', name: 'Perfume', tier: 'medium', diamonds: 199, emoji: '💐', action: 'heal' },
+  fire: { id: 'fire', name: 'Fire', tier: 'medium', diamonds: 299, emoji: '🔥', action: 'dash_forward' },
+  
+  // LARGE GIFTS - Ultimate powers
+  galaxy: { id: 'galaxy', name: 'Galaxy', tier: 'large', diamonds: 1000, emoji: '🌌', action: 'ultra_mode' },
+  planet: { id: 'planet', name: 'Planet', tier: 'large', diamonds: 2000, emoji: '🪐', action: 'nuke' },
+  universe: { id: 'universe', name: 'Universe', tier: 'large', diamonds: 5000, emoji: '✨', action: 'shield' },
+  lion: { id: 'lion', name: 'Lion', tier: 'large', diamonds: 29999, emoji: '🦁', action: 'time_slow' },
 };
 
-// Gift actions with TikTok-friendly descriptions
-export const GIFT_ACTIONS: Record<GiftTier, GiftActionConfig[]> = {
-  small: [
-    { action: 'dash_forward', name: '⚡ DASH!', description: 'Quick dash forward', effect: 'help', value: 120 },
-    { action: 'jump', name: '🦘 JUMP!', description: 'Jump over danger', effect: 'help', value: 1 },
-    { action: 'shoot', name: '🔫 FIRE!', description: 'Pew pew pew!', effect: 'help', value: 25 },
-    { action: 'triple_shot', name: '🔥 TRIPLE!', description: '3x bullets!', effect: 'help', value: 20 },
-  ],
-  medium: [
-    { action: 'double_jump', name: '🚀 SUPER JUMP!', description: 'Go higher bro!', effect: 'help', value: 2 },
-    { action: 'mega_shot', name: '💥 MEGA BLAST!', description: 'Huge damage!', effect: 'help', value: 80 },
-    { action: 'heal', name: '💚 HEAL BRO!', description: '+40 HP for the hero', effect: 'help', value: 40 },
-    { action: 'speed_boost', name: '⚡ SPEED UP!', description: 'Faster movement!', effect: 'help', value: 5 },
-    { action: 'spawn_enemy', name: '👾 SPAWN ENEMY!', description: 'Chaos mode!', effect: 'sabotage', value: 1 },
-  ],
-  large: [
-    { action: 'ultra_mode', name: '🔥 ULTRA MODE! 🔥', description: '6 sec of INSANE auto-play!', effect: 'help', value: 6 },
-    { action: 'nuke', name: '💣 NUKE EM ALL!', description: 'Clear the screen!', effect: 'help', value: 0 },
-    { action: 'shield', name: '🛡️ GOD SHIELD!', description: 'Invincible mode!', effect: 'help', value: 100 },
-    { action: 'time_slow', name: '⏰ SLOW-MO!', description: 'Matrix style!', effect: 'help', value: 5 },
-  ],
+// Gift action descriptions for UI
+export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: string; effect: 'help' | 'sabotage' | 'chaos' }> = {
+  move_forward: { name: '➡️ FORWARD', description: 'Move hero forward!', effect: 'help' },
+  move_up: { name: '⬆️ UP', description: 'Move hero up!', effect: 'help' },
+  move_down: { name: '⬇️ DOWN', description: 'Move hero down!', effect: 'help' },
+  shoot: { name: '🔫 SHOOT', description: 'Fire weapon!', effect: 'help' },
+  jump: { name: '🦘 JUMP', description: 'Jump!', effect: 'help' },
+  dash_forward: { name: '⚡ DASH', description: 'Quick dash!', effect: 'help' },
+  double_jump: { name: '🚀 DOUBLE JUMP', description: 'Super jump!', effect: 'help' },
+  mega_shot: { name: '💥 MEGA SHOT', description: 'Huge damage!', effect: 'help' },
+  heal: { name: '💚 HEAL', description: '+40 HP!', effect: 'help' },
+  shield: { name: '🛡️ SHIELD', description: 'Invincible!', effect: 'help' },
+  spawn_enemy: { name: '👾 SPAWN', description: 'Add enemies!', effect: 'sabotage' },
+  ultra_mode: { name: '🔥 ULTRA', description: '6s auto-play!', effect: 'help' },
+  nuke: { name: '💣 NUKE', description: 'Clear screen!', effect: 'help' },
+  speed_boost: { name: '⚡ SPEED', description: 'Faster!', effect: 'help' },
+  triple_shot: { name: '🔥 TRIPLE', description: '3x bullets!', effect: 'help' },
+  time_slow: { name: '⏰ SLOW-MO', description: 'Matrix mode!', effect: 'help' },
 };
 
 // Bro-style hero quips

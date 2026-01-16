@@ -14,7 +14,7 @@ import { MusicPlayer } from '@/components/game/MusicPlayer';
 
 const Index = () => {
   const [autoSimulate, setAutoSimulate] = useState(false);
-  const { gameState, giftEvents, leaderboard, notifications, startGame, handleGift } = useGameState();
+  const { gameState, giftEvents, leaderboard, notifications, startGame, startNextWave, handleGift } = useGameState();
   
   const { triggerGift } = useTikTokSimulator(
     autoSimulate && gameState.phase === 'playing',
@@ -149,7 +149,10 @@ const Index = () => {
             phase={gameState.phase}
             score={gameState.score}
             distance={gameState.distance}
-            onStart={startGame}
+            currentWave={gameState.currentWave}
+            maxWaves={gameState.maxWaves}
+            onStart={() => startGame(gameState.currentWave || 1)}
+            onNextWave={startNextWave}
           />
         </motion.div>
 
