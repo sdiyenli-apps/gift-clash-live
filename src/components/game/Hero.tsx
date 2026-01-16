@@ -10,19 +10,20 @@ interface HeroProps {
 }
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
-  const screenX = player.x - cameraX;
+  // Fixed screen position - hero stays on LEFT side
+  const screenX = 60; // Fixed at left edge of screen
   const isEmpowered = isUltraMode || player.isMagicDashing;
 
-  // BIGGER hero for visibility (8K quality vibes)
-  const heroWidth = 80;
-  const heroHeight = 100;
+  // SMALLER hero optimized for mobile
+  const heroWidth = 56;
+  const heroHeight = 70;
 
   return (
     <motion.div
       className="absolute z-20"
       style={{
         left: screenX,
-        bottom: 80,
+        bottom: 82,
         width: heroWidth,
         height: heroHeight,
       }}
