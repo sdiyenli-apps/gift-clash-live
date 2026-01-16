@@ -17,9 +17,9 @@ export const Princess = ({ x, cameraX, isVisible }: PrincessProps) => {
       className="absolute z-15"
       style={{
         left: screenX,
-        bottom: 100,
-        width: 100,
-        height: 120,
+        bottom: 80, // Adjusted for 280px arena
+        width: 80,
+        height: 100,
       }}
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}

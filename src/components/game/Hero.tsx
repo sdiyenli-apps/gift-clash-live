@@ -21,7 +21,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
       className="absolute z-20"
       style={{
         left: screenX,
-        bottom: 280 - player.y - heroHeight,
+        bottom: 280 - player.y - heroHeight, // Adjusted for 280px arena
         width: heroWidth,
         height: heroHeight,
       }}

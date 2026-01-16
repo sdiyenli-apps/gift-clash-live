@@ -47,14 +47,14 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
     for (let x = 0; x < cameraX + 1500; x += 400) {
       const parallaxX = x - (cameraX * 0.9);
       if (parallaxX >= -200 && parallaxX <= 1200) {
-        const height = 60 + ((x * 7) % 80);
+        const height = 40 + ((x * 7) % 60); // Shorter structures for 280px arena
         elements.push(
           <motion.div
             key={`structure-${x}`}
             className="absolute"
             style={{
               left: parallaxX,
-              bottom: 100,
+              bottom: 80, // Adjusted for 280px arena
               width: 80 + ((x * 3) % 60),
               height,
               background: `linear-gradient(180deg, ${currentZone.color}22, transparent)`,
@@ -86,7 +86,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             left: screenX,
             bottom: 0,
             width: 82,
-            height: 100,
+            height: 80, // Adjusted for 280px arena
           }}
         >
           {/* Main ground */}
@@ -221,7 +221,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: screenX,
-              bottom: 100,
+              bottom: 80, // Adjusted for 280px arena
               width: obstacle.width,
               height: obstacle.height,
             }}
@@ -272,7 +272,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: screenX,
-              bottom: 480 - obstacle.y - obstacle.height,
+              bottom: 280 - obstacle.y - obstacle.height,
               width: obstacle.width,
               height: obstacle.height,
             }}
@@ -327,7 +327,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: screenX,
-              bottom: 480 - obstacle.y,
+              bottom: 280 - obstacle.y,
               width: obstacle.width,
               height: obstacle.height,
             }}
@@ -359,7 +359,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: screenX,
-              bottom: 100,
+              bottom: 80, // Adjusted for 280px arena
               width: obstacle.width,
               height: obstacle.height,
             }}
@@ -464,7 +464,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
       {showPrincess && (
         <motion.div
           className="absolute z-10"
-          style={{ left: princessX, bottom: 100 }}
+          style={{ left: princessX, bottom: 80 }}
           animate={{ y: [0, -8, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
         >
