@@ -240,7 +240,7 @@ export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: s
   emp_grenade: { name: '⚡ EMP', description: 'Kills all drones!', effect: 'help' },
 };
 
-// Bro-style hero quips
+// Bro-style hero quips - EXPANDED with taunts and gift requests!
 export const HERO_QUIPS = [
   "LET'S GOOO! 🔥",
   "THAT'S WHAT I'M TALKIN' ABOUT!",
@@ -252,6 +252,44 @@ export const HERO_QUIPS = [
   "EZ CLAP, NEXT!",
   "ABSOLUTE CINEMA! 🎬",
   "GG NO RE!",
+  "IS THAT ALL YOU GOT?! 😏",
+  "TOO EASY! NEXT! 💅",
+  "GET REKT BOTS! 🤖💀",
+  "SKILL DIFF! MASSIVE! 🧠",
+  "I'M BUILT DIFFERENT! 💪",
+  "YOOO THAT WAS CLEAN! ✨",
+  "CHAT CARRYING ME RN! 🙌",
+  "WE'RE SO BACK! 🔥",
+  "NO CAP, THAT WAS FIRE! 🔥",
+  "CALCULATED! ALL SKILL! 🎯",
+];
+
+// Taunts specifically for enemies
+export const ENEMY_TAUNTS = [
+  "HEY RUST BUCKET! OVER HERE! 🤖",
+  "IMAGINE BEING A BOT! COULDN'T BE ME! 😂",
+  "YOU CALL THAT AN ATTACK?! 💀",
+  "MY GRANDMA HITS HARDER! 👵",
+  "BRUH YOU'RE LAGGING IRL! 📶",
+  "ERROR 404: YOUR SKILLS NOT FOUND! 🔍",
+  "CTRL+ALT+DELETE YOURSELF! ⌨️",
+  "YOU'RE MALWARE AND I'M THE ANTIVIRUS! 🛡️",
+  "BEEP BOOP? MORE LIKE BEEP POOP! 💩",
+  "1V1 ME BRO! OH WAIT, YOU CAN'T! 😎",
+];
+
+// Gift requests - asking for support
+export const GIFT_REQUESTS = [
+  "YO CHAT DROP SOME GIFTS! 🎁",
+  "I NEED THAT ARMOR RN! 🛡️",
+  "GALAXY GIFT = INSTANT W! 🌌",
+  "SOMEONE HEAL ME! I'M FADING! 💚",
+  "GIFTS = PRINCESS SAVED! 👸",
+  "CHAT I BELIEVE IN YOU! 💪",
+  "ONE MORE GIFT AND WE WIN THIS! 🏆",
+  "SPAM THOSE ROSES! 🌹🌹🌹",
+  "I'M SO CLOSE! HELP ME OUT! 🙏",
+  "MAGIC DASH WOULD HIT RN! ✨",
 ];
 
 // Help requests when no gifts for 8 seconds
@@ -264,6 +302,8 @@ export const HELP_REQUESTS = [
   "PLEASE, JUST ONE GIFT! 🎁",
   "I CAN'T DO THIS ALONE!",
   "SEND HELP! 🆘",
+  "DON'T LEAVE ME HANGING! 😭",
+  "CHAT WENT AFK?! HELLO?! 📢",
 ];
 
 export const ENEMY_DEATH_SOUNDS = [
@@ -281,3 +321,21 @@ export const BOSS_TAUNTS = [
   "INITIATING DESTRUCTION!",
   "PREPARE TO BE DELETED!",
 ];
+
+// Boss names that scale with wave number
+export const getBossName = (wave: number): string => {
+  if (wave >= 1000) return "OMEGA DESTROYER - THE FINAL NIGHTMARE";
+  if (wave >= 900) return "APOCALYPSE ENGINE";
+  if (wave >= 800) return "VOID CONSUMER";
+  if (wave >= 700) return "REALITY SHREDDER";
+  if (wave >= 600) return "DIMENSION RIPPER";
+  if (wave >= 500) return "TITAN OVERLORD";
+  if (wave >= 400) return "CHAOS INCARNATE";
+  if (wave >= 300) return "DOOM HARBINGER";
+  if (wave >= 200) return "MECHANICAL HORROR";
+  if (wave >= 100) return "STEEL NIGHTMARE";
+  if (wave >= 50) return "CYBER DEMON";
+  if (wave >= 25) return "IRON TERROR";
+  if (wave >= 10) return "CHROME BEAST";
+  return "BIOMECH TERROR";
+};

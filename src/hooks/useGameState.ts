@@ -2,7 +2,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   GameState, Player, Enemy, Projectile, Particle, GiftEvent, GiftAction, 
   Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS,
-  FlyingRobot, NeonLight, Explosion, Chicken, GiftBlock, TIKTOK_GIFTS
+  FlyingRobot, NeonLight, Explosion, Chicken, GiftBlock, TIKTOK_GIFTS,
+  ENEMY_TAUNTS, GIFT_REQUESTS, getBossName
 } from '@/types/game';
 
 const GRAVITY = 0;
@@ -253,19 +254,32 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     }
   }
   
-  // SCARY BOSS - 50% more health with phases
-  const isMegaBoss = wave % 10 === 0;
-  const bossBaseHealth = (1800 + wave * 200) * 1.5; // 50% more health
+  // BOSS SCALING - gets scarier and bigger each wave!
+  // Princess is ONLY at wave 1000 - final destination!
+  const isFinalBoss = wave === 1000;
+  const isMegaBoss = wave % 100 === 0; // Every 100 waves = mega boss
+  const isMiniBoss = wave % 10 === 0; // Every 10 waves = mini boss
+  
+  // Boss size scales with wave - final boss covers half screen!
+  const baseBossSize = 100;
+  const sizeMultiplier = isFinalBoss ? 4 : (1 + wave * 0.003); // Final boss is 4x size
+  const bossSize = Math.min(baseBossSize * sizeMultiplier, isFinalBoss ? 400 : 200);
+  
+  // Boss health scales dramatically
+  const bossBaseHealth = isFinalBoss 
+    ? 50000 // Final boss has 50k health
+    : (1800 + wave * 250) * (isMegaBoss ? 2 : isMiniBoss ? 1.5 : 1);
+  
   enemies.push({
     id: 'boss-monster',
     x: levelLength - 500,
-    y: GROUND_Y - 30,
-    width: isMegaBoss ? 120 : 100,
-    height: isMegaBoss ? 120 : 100,
-    health: bossBaseHealth * (isMegaBoss ? 1.5 : 1),
-    maxHealth: bossBaseHealth * (isMegaBoss ? 1.5 : 1),
-    speed: 40 + wave,
-    damage: 35 + wave * 2,
+    y: GROUND_Y - (bossSize * 0.3), // Bigger bosses need more ground clearance
+    width: bossSize,
+    height: bossSize,
+    health: bossBaseHealth,
+    maxHealth: bossBaseHealth,
+    speed: 40 + wave * 0.5,
+    damage: isFinalBoss ? 100 : (35 + wave * 2),
     type: 'boss',
     isDying: false,
     deathTimer: 0,
@@ -672,33 +686,68 @@ export const useGameState = () => {
             newState.bossTauntTimer = 4 + Math.random() * 3; // Taunt every 4-7 seconds
           }
           
-          // BOSS SPAWNS DRONES CONSTANTLY!
+          // BOSS SPAWNS MINIONS BASED ON PHASE!
           newState.bossDroneSpawnTimer -= delta;
           if (newState.bossDroneSpawnTimer <= 0) {
+            const bossPhase = bossEnemy.bossPhase || 1;
             const droneSpawnX = bossEnemy.x - 50 - Math.random() * 100;
-            const newDrone: Enemy = {
-              id: `boss-drone-${Date.now()}-${Math.random()}`,
+            
+            let minionType: 'drone' | 'ninja' | 'tank' | 'mech' = 'drone';
+            let minionWidth = 42, minionHeight = 42, minionHealth = 25, minionSpeed = 100, minionDamage = 8;
+            let isFlying = true;
+            
+            // Phase 1: Drones only
+            // Phase 2: Drones + Ninjas
+            // Phase 3: Drones + Ninjas + Tanks/Mechs
+            if (bossPhase >= 3) {
+              const roll = Math.random();
+              if (roll > 0.7) {
+                minionType = 'tank';
+                minionWidth = 70; minionHeight = 65; minionHealth = 150; minionSpeed = 25; minionDamage = 20;
+                isFlying = false;
+              } else if (roll > 0.4) {
+                minionType = 'mech';
+                minionWidth = 65; minionHeight = 70; minionHealth = 90; minionSpeed = 40; minionDamage = 15;
+                isFlying = false;
+              } else if (roll > 0.2) {
+                minionType = 'ninja';
+                minionWidth = 45; minionHeight = 52; minionHealth = 35; minionSpeed = 150; minionDamage = 12;
+                isFlying = false;
+              }
+            } else if (bossPhase >= 2) {
+              if (Math.random() > 0.5) {
+                minionType = 'ninja';
+                minionWidth = 45; minionHeight = 52; minionHealth = 35; minionSpeed = 150; minionDamage = 12;
+                isFlying = false;
+              }
+            }
+            
+            const newMinion: Enemy = {
+              id: `boss-minion-${Date.now()}-${Math.random()}`,
               x: droneSpawnX,
-              y: GROUND_Y + 60 + Math.random() * 80,
-              width: 42,
-              height: 42,
-              health: 25 + prev.currentWave * 2,
-              maxHealth: 25 + prev.currentWave * 2,
-              speed: 100 + prev.currentWave * 3,
-              damage: 8,
-              type: 'drone',
+              y: isFlying ? (GROUND_Y + 60 + Math.random() * 80) : GROUND_Y,
+              width: minionWidth,
+              height: minionHeight,
+              health: minionHealth + prev.currentWave * 2,
+              maxHealth: minionHealth + prev.currentWave * 2,
+              speed: minionSpeed + prev.currentWave * 2,
+              damage: minionDamage,
+              type: minionType,
               isDying: false,
               deathTimer: 0,
               attackCooldown: 0.5,
               animationPhase: Math.random() * Math.PI * 2,
               isSpawning: true,
               spawnTimer: 0.5,
-              isFlying: true,
-              flyHeight: 60 + Math.random() * 80,
+              isFlying: isFlying,
+              flyHeight: isFlying ? (60 + Math.random() * 80) : undefined,
             };
-            newState.enemies = [...newState.enemies, newDrone];
-            newState.bossDroneSpawnTimer = 2 + Math.random() * 1.5; // Spawn drone every 2-3.5 seconds
-            newState.particles = [...newState.particles, ...createParticles(droneSpawnX, newDrone.y, 8, 'spark', '#ff0000')];
+            newState.enemies = [...newState.enemies, newMinion];
+            
+            // Faster spawns in later phases
+            const spawnDelay = bossPhase >= 3 ? 1.2 : bossPhase >= 2 ? 1.8 : 2.5;
+            newState.bossDroneSpawnTimer = spawnDelay + Math.random();
+            newState.particles = [...newState.particles, ...createParticles(droneSpawnX, newMinion.y, 8, 'spark', '#ff0000')];
           }
         } else {
           newState.bossTaunt = null;
@@ -805,7 +854,7 @@ export const useGameState = () => {
           .map(f => ({ ...f, x: f.x + f.velocityX * delta, y: f.y + f.velocityY * delta }))
           .filter(f => f.x > prev.cameraX - 100);
         
-        // Fireball-player collision - armor blocks fireballs
+        // Fireball-player collision - ARMOR ABSORBS DAMAGE with impact FX
         newState.fireballs.forEach(fireball => {
           if (
             fireball.x < prev.player.x + PLAYER_WIDTH &&
@@ -813,18 +862,36 @@ export const useGameState = () => {
             fireball.y < prev.player.y + PLAYER_HEIGHT &&
             fireball.y + 30 > prev.player.y
           ) {
-            if (newState.player.shield > 0 || newState.armorTimer > 0) {
-              // Armor blocks fireball damage - with visual feedback
-              newState.player.shield = Math.max(0, newState.player.shield - 20);
+            if (newState.armorTimer > 0 || newState.player.shield > 0) {
+              // ARMOR ABSORBS FIREBALL!
+              newState.player.shield = Math.max(0, newState.player.shield - fireball.damage);
               newState.shieldBlockFlash = 1;
-              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 20, 'spark', '#00ffff')];
-              showSpeechBubble("🛡️ BLOCKED! 🛡️", 'excited');
+              newState.screenShake = 0.3;
+              newState.particles = [
+                ...newState.particles, 
+                ...createParticles(fireball.x, fireball.y, 25, 'spark', '#00ffff'),
+                ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 15, 'spark', '#00ffff'),
+              ];
+              
+              // Taunt on block!
+              if (Math.random() > 0.6) {
+                const taunt = ENEMY_TAUNTS[Math.floor(Math.random() * ENEMY_TAUNTS.length)];
+                showSpeechBubble(taunt, 'excited');
+              }
             } else {
+              // NO ARMOR - Take damage
               newState.player.health -= fireball.damage;
               newState.player.animationState = 'hurt';
               newState.damageFlash = 1;
+              newState.screenShake = 0.4;
               if (navigator.vibrate) {
                 navigator.vibrate(150);
+              }
+              
+              // Ask for gifts!
+              if (Math.random() > 0.5) {
+                const request = GIFT_REQUESTS[Math.floor(Math.random() * GIFT_REQUESTS.length)];
+                showSpeechBubble(request, 'help');
               }
             }
             newState.fireballs = newState.fireballs.filter(f => f.id !== fireball.id);
@@ -1053,8 +1120,7 @@ export const useGameState = () => {
           }))
           .filter(p => p.x > prev.cameraX - 50);
         
-        // Enemy laser-player collision - with shield block and damage flash effects
-        // Using larger hitboxes for better collision detection
+        // Enemy laser-player collision - ARMOR TAKES DAMAGE FIRST with impact FX
         newState.enemyLasers.forEach(laser => {
           const laserWidth = 20;
           const laserHeight = 15;
@@ -1064,21 +1130,44 @@ export const useGameState = () => {
             laser.y < prev.player.y + PLAYER_HEIGHT + 10 &&
             laser.y + laserHeight > prev.player.y - 10
           ) {
-            if (newState.player.shield > 0 || newState.armorTimer > 0) {
-              // SHIELD BLOCK - visual feedback
-              newState.player.shield = Math.max(0, newState.player.shield - laser.damage);
-              newState.shieldBlockFlash = 1; // Trigger shield flash
-              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 15, 'spark', '#00ffff')];
-              newState.screenShake = 0.15;
+            // ARMOR ABSORBS DAMAGE FIRST!
+            if (newState.armorTimer > 0 || newState.player.shield > 0) {
+              // Armor absorbs the hit completely
+              const damageToArmor = laser.damage;
+              newState.player.shield = Math.max(0, newState.player.shield - damageToArmor);
+              
+              // ARMOR IMPACT FX!
+              newState.shieldBlockFlash = 1;
+              newState.screenShake = 0.25;
+              
+              // Spark burst at impact point
+              newState.particles = [
+                ...newState.particles, 
+                ...createParticles(laser.x, laser.y, 20, 'spark', '#00ffff'),
+                ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 10, 'spark', '#00ffff'),
+              ];
+              
+              // Hero taunts when blocking!
+              if (Math.random() > 0.7) {
+                const taunt = ENEMY_TAUNTS[Math.floor(Math.random() * ENEMY_TAUNTS.length)];
+                showSpeechBubble(taunt, 'excited');
+              }
             } else {
-              // DAMAGE - visual feedback + vibration
+              // NO ARMOR - Take health damage
               newState.player.health -= laser.damage;
               newState.player.animationState = 'hurt';
-              newState.damageFlash = 1; // Trigger damage flash
+              newState.damageFlash = 1;
               newState.screenShake = 0.3;
-              // Trigger vibration if available
+              
+              // Vibrate on damage
               if (navigator.vibrate) {
                 navigator.vibrate(100);
+              }
+              
+              // Ask for gifts when hurt!
+              if (Math.random() > 0.6) {
+                const request = GIFT_REQUESTS[Math.floor(Math.random() * GIFT_REQUESTS.length)];
+                showSpeechBubble(request, 'help');
               }
             }
             newState.enemyLasers = newState.enemyLasers.filter(l => l.id !== laser.id);
@@ -1135,8 +1224,13 @@ export const useGameState = () => {
                   
                   newState.screenShake = enemy.type === 'boss' ? 1.5 : 0.25;
                   
+                  // Hero taunts enemies on kills!
                   if (newState.killStreak > 4 && newState.killStreak % 5 === 0) {
                     showSpeechBubble(`${newState.killStreak} KILL STREAK! 🔥`, 'excited');
+                  } else if (Math.random() > 0.75) {
+                    // Random taunt or quip on kill
+                    const allQuips = [...HERO_QUIPS, ...ENEMY_TAUNTS];
+                    showSpeechBubble(allQuips[Math.floor(Math.random() * allQuips.length)], 'excited');
                   }
                 }
               }
@@ -1323,7 +1417,7 @@ export const useGameState = () => {
           return { ...enemy, y: nextY, animationPhase: newAnimPhase, attackCooldown: Math.max(0, enemy.attackCooldown - delta) };
         });
         
-        // Player-enemy collision - with damage flash and vibration
+        // Player-enemy collision - ARMOR ABSORBS DAMAGE with impact FX
         newState.enemies.forEach(enemy => {
           if (enemy.isDying || enemy.isSpawning) return;
           
@@ -1334,12 +1428,23 @@ export const useGameState = () => {
             prev.player.y < enemy.y + enemy.height + 20 &&
             prev.player.y + PLAYER_HEIGHT > enemy.y - 20
           ) {
-            if (newState.player.shield > 0 || newState.armorTimer > 0) {
-              newState.player.shield = Math.max(0, newState.player.shield - enemy.damage);
+            if (newState.armorTimer > 0 || newState.player.shield > 0) {
+              // ARMOR ABSORBS CONTACT DAMAGE!
+              newState.player.shield = Math.max(0, newState.player.shield - enemy.damage * 0.5);
               newState.shieldBlockFlash = 1;
-              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 12, 'spark', '#00ffff')];
-              newState.screenShake = 0.2;
+              newState.screenShake = 0.25;
+              newState.particles = [
+                ...newState.particles, 
+                ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 18, 'spark', '#00ffff'),
+              ];
+              
+              // Taunt on block!
+              if (Math.random() > 0.8) {
+                const taunt = ENEMY_TAUNTS[Math.floor(Math.random() * ENEMY_TAUNTS.length)];
+                showSpeechBubble(taunt, 'excited');
+              }
             } else {
+              // NO ARMOR - Take health damage
               newState.player.health -= enemy.damage * delta * 2;
               newState.player.animationState = 'hurt';
               newState.damageFlash = 0.5;
@@ -1348,6 +1453,12 @@ export const useGameState = () => {
                 navigator.vibrate(50);
               }
               setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, animationState: 'idle' } })), 150);
+              
+              // Ask for help!
+              if (Math.random() > 0.7) {
+                const request = GIFT_REQUESTS[Math.floor(Math.random() * GIFT_REQUESTS.length)];
+                showSpeechBubble(request, 'help');
+              }
             }
             newState.combo = 0;
             newState.killStreak = 0;
