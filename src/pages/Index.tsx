@@ -64,6 +64,26 @@ const Index = () => {
     }
   }, [gameState.fireballs?.length, gameState.isBossFight, playSound]);
 
+  // Play boss attack sounds based on attack type
+  useEffect(() => {
+    if (gameState.lastBossAttack) {
+      switch (gameState.lastBossAttack) {
+        case 'laser_sweep':
+          playSound('laserSweep');
+          break;
+        case 'missile_barrage':
+          playSound('missileWarning');
+          break;
+        case 'ground_pound':
+          playSound('groundPound');
+          break;
+        case 'screen_attack':
+          playSound('screenAttack');
+          break;
+      }
+    }
+  }, [gameState.lastBossAttack, playSound]);
+
   // Play sound when enemies shoot
   useEffect(() => {
     if (gameState.enemyLasers?.length > 0) {
@@ -79,10 +99,10 @@ const Index = () => {
 
   // Play sound when shield blocks
   useEffect(() => {
-    if (gameState.player.shield > 0 && gameState.player.animationState !== 'hurt') {
-      // Shield absorbed damage
+    if (gameState.shieldBlockFlash && gameState.shieldBlockFlash > 0) {
+      playSound('shieldBlock');
     }
-  }, [gameState.player.shield, gameState.player.animationState]);
+  }, [gameState.shieldBlockFlash, playSound]);
 
   const handleTriggerGift = useCallback((giftId: string) => {
     if (gameState.phase !== 'playing') return;

@@ -32,6 +32,11 @@ const SOUND_CONFIGS: Record<string, SoundConfig> = {
   magicFlash: { frequency: 1000, duration: 0.2, type: 'sine', volume: 0.2, attack: 0.01 },
   spawn: { frequency: 250, duration: 0.2, type: 'triangle', volume: 0.15 },
   shieldBlock: { frequency: 500, duration: 0.1, type: 'triangle', volume: 0.2, attack: 0.01 },
+  // NEW BOSS ATTACK SOUNDS
+  laserSweep: { frequency: 2000, duration: 0.4, type: 'sawtooth', volume: 0.25, attack: 0.02, decay: 0.35 },
+  missileWarning: { frequency: 800, duration: 0.6, type: 'square', volume: 0.3, attack: 0.05, decay: 0.5 },
+  groundPound: { frequency: 50, duration: 0.5, type: 'sawtooth', volume: 0.4, attack: 0.01, decay: 0.45 },
+  screenAttack: { frequency: 30, duration: 0.8, type: 'sawtooth', volume: 0.45, attack: 0.1, decay: 0.7 },
 };
 
 export const useSoundEffects = () => {
@@ -76,10 +81,24 @@ export const useSoundEffects = () => {
     // Add frequency sweep for some sounds
     if (soundName === 'shoot' || soundName === 'shootUltra') {
       oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.5, now + config.duration);
-    } else if (soundName === 'explosion' || soundName === 'bossMegaAttack') {
+    } else if (soundName === 'explosion' || soundName === 'bossMegaAttack' || soundName === 'groundPound') {
       oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.2, now + config.duration);
     } else if (soundName === 'heal') {
       oscillator.frequency.linearRampToValueAtTime(config.frequency * 1.5, now + config.duration);
+    } else if (soundName === 'laserSweep') {
+      // Whooshing sweep down then up
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.3, now + config.duration * 0.5);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.8, now + config.duration);
+    } else if (soundName === 'missileWarning') {
+      // Pulsing warning siren
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 1.5, now + config.duration * 0.25);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 0.8, now + config.duration * 0.5);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 1.5, now + config.duration * 0.75);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 0.5, now + config.duration);
+    } else if (soundName === 'screenAttack') {
+      // Deep rumbling that builds
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 3, now + config.duration * 0.3);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.5, now + config.duration);
     }
     
     oscillator.start(now);
