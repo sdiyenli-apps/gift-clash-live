@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { forwardRef } from 'react';
 import { Projectile as ProjectileType } from '@/types/game';
 
 interface ProjectileProps {
@@ -121,37 +122,41 @@ export const ProjectileSprite = ({ projectile, cameraX }: ProjectileProps) => {
   );
 };
 
-export const EnemyLaserSprite = ({ projectile, cameraX }: ProjectileProps) => {
-  const screenX = projectile.x - cameraX;
-  
-  if (screenX < -50 || screenX > 1200) return null;
-  
-  return (
-    <motion.div
-      className="absolute rounded-full z-15"
-      style={{
-        left: screenX,
-        bottom: 280 - projectile.y - 4,
-        width: 20,
-        height: 8,
-        background: 'linear-gradient(90deg, #ff0000, #ff4400, #ff0000)',
-        boxShadow: '0 0 15px #ff0000, 0 0 30px #ff4400',
-      }}
-      initial={{ scale: 0 }}
-      animate={{ scale: 1 }}
-    >
-      {/* Trail */}
+export const EnemyLaserSprite = forwardRef<HTMLDivElement, ProjectileProps>(
+  ({ projectile, cameraX }, ref) => {
+    const screenX = projectile.x - cameraX;
+    
+    if (screenX < -50 || screenX > 1200) return null;
+    
+    return (
       <motion.div
-        className="absolute left-full top-1/2 -translate-y-1/2"
+        ref={ref}
+        className="absolute rounded-full z-15"
         style={{
-          width: 30,
-          height: 6,
-          background: 'linear-gradient(90deg, #ff0000, transparent)',
+          left: screenX,
+          bottom: 280 - projectile.y - 4,
+          width: 20,
+          height: 8,
+          background: 'linear-gradient(90deg, #ff0000, #ff4400, #ff0000)',
+          boxShadow: '0 0 15px #ff0000, 0 0 30px #ff4400',
         }}
-      />
-    </motion.div>
-  );
-};
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+      >
+        {/* Trail */}
+        <motion.div
+          className="absolute left-full top-1/2 -translate-y-1/2"
+          style={{
+            width: 30,
+            height: 6,
+            background: 'linear-gradient(90deg, #ff0000, transparent)',
+          }}
+        />
+      </motion.div>
+    );
+  }
+);
+EnemyLaserSprite.displayName = 'EnemyLaserSprite';
 
 export const FireballSprite = ({ fireball, cameraX }: FireballProps) => {
   const screenX = fireball.x - cameraX;

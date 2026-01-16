@@ -24,7 +24,8 @@ export type GiftAction =
   | 'shoot'
   | 'armor'
   | 'heal'
-  | 'magic_dash';
+  | 'magic_dash'
+  | 'spawn_enemies';
 
 export interface GiftActionConfig {
   action: GiftAction;
@@ -186,7 +187,7 @@ export interface Gifter {
   giftCount: number;
 }
 
-// 5 CORE GIFTS - Simple and clear!
+// 6 CORE GIFTS - Simple and clear!
 export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   // MOVE FORWARD
   rose: { id: 'rose', name: 'Rose', tier: 'small', diamonds: 1, emoji: '🌹', action: 'move_forward' },
@@ -202,6 +203,9 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   
   // MAGIC DASH (Auto-plays with effects for 6 seconds)
   galaxy: { id: 'galaxy', name: 'Galaxy', tier: 'large', diamonds: 1000, emoji: '🌌', action: 'magic_dash' },
+  
+  // SPAWN DANGEROUS ENEMIES (chaos gift)
+  skull: { id: 'skull', name: 'Skull', tier: 'medium', diamonds: 50, emoji: '💀', action: 'spawn_enemies' },
 };
 
 // Gift action descriptions for UI
@@ -211,6 +215,7 @@ export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: s
   armor: { name: '🛡️ ARMOR', description: '+50 Shield!', effect: 'help' },
   heal: { name: '💚 HEAL', description: '+40 HP!', effect: 'help' },
   magic_dash: { name: '✨ MAGIC DASH', description: '6s auto-attack!', effect: 'help' },
+  spawn_enemies: { name: '💀 DANGER', description: 'Spawns enemies!', effect: 'chaos' },
 };
 
 // Bro-style hero quips
