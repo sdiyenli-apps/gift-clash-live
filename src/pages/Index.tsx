@@ -63,6 +63,26 @@ const Index = () => {
     }
   }, [gameState.fireballs?.length, gameState.isBossFight, playSound]);
 
+  // Play sound when enemies shoot
+  useEffect(() => {
+    if (gameState.enemyLasers?.length > 0) {
+      // Check if any are from drones (damage 8)
+      const hasDroneLaser = gameState.enemyLasers.some(l => l.damage === 8);
+      if (hasDroneLaser) {
+        playSound('droneShoot');
+      } else {
+        playSound('enemyShoot');
+      }
+    }
+  }, [gameState.enemyLasers?.length, playSound]);
+
+  // Play sound when shield blocks
+  useEffect(() => {
+    if (gameState.player.shield > 0 && gameState.player.animationState !== 'hurt') {
+      // Shield absorbed damage
+    }
+  }, [gameState.player.shield, gameState.player.animationState]);
+
   const handleTriggerGift = useCallback((giftId: string) => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');

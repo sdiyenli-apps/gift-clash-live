@@ -20,6 +20,8 @@ const SOUND_CONFIGS: Record<string, SoundConfig> = {
   armor: { frequency: 400, duration: 0.15, type: 'triangle', volume: 0.2 },
   dash: { frequency: 300, duration: 0.25, type: 'sine', volume: 0.15, attack: 0.02 },
   enemyDeath: { frequency: 100, duration: 0.4, type: 'sawtooth', volume: 0.2, decay: 0.3 },
+  enemyShoot: { frequency: 350, duration: 0.1, type: 'square', volume: 0.12, attack: 0.01 },
+  droneShoot: { frequency: 600, duration: 0.08, type: 'sine', volume: 0.15, attack: 0.01 },
   bossTaunt: { frequency: 60, duration: 0.5, type: 'square', volume: 0.25, attack: 0.1 },
   bossFireball: { frequency: 120, duration: 0.3, type: 'sawtooth', volume: 0.3, attack: 0.02 },
   bossMegaAttack: { frequency: 40, duration: 1.0, type: 'sawtooth', volume: 0.4, attack: 0.1, decay: 0.8 },
@@ -29,6 +31,7 @@ const SOUND_CONFIGS: Record<string, SoundConfig> = {
   gameOver: { frequency: 200, duration: 0.8, type: 'sawtooth', volume: 0.25, decay: 0.7 },
   magicFlash: { frequency: 1000, duration: 0.2, type: 'sine', volume: 0.2, attack: 0.01 },
   spawn: { frequency: 250, duration: 0.2, type: 'triangle', volume: 0.15 },
+  shieldBlock: { frequency: 500, duration: 0.1, type: 'triangle', volume: 0.2, attack: 0.01 },
 };
 
 export const useSoundEffects = () => {

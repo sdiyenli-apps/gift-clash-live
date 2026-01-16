@@ -140,17 +140,18 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           }}
         />
         
-        {/* Video Hero */}
+        {/* Video Hero - OUTLINE STYLE with transparent background */}
         <motion.div
           className="relative w-full h-full overflow-hidden rounded-md"
           style={{
             filter: isUltraMode || player.isMagicDashing
-              ? 'drop-shadow(0 0 8px #ff00ff) drop-shadow(0 0 16px #00ffff) brightness(1.15)' 
-              : 'drop-shadow(0 1px 4px rgba(0,0,0,0.5))',
+              ? 'drop-shadow(0 0 8px #ff00ff) drop-shadow(0 0 16px #00ffff)' 
+              : 'drop-shadow(0 0 8px #00ffff) drop-shadow(0 0 15px #0088ff)',
           }}
           animate={player.animationState === 'hurt' ? { x: [-2, 2, -2, 0] } : {}}
           transition={{ duration: 0.1 }}
         >
+          {/* Outline/silhouette effect - video with inverted colors for outline look */}
           <video
             src={heroVideo}
             autoPlay
@@ -162,6 +163,18 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
               transform: player.animationState === 'dash' ? 'rotate(-3deg) scale(1.05)' : 
                         player.isShooting ? 'rotate(1deg)' : 'none',
               borderRadius: '8px',
+              filter: 'brightness(0) invert(1) opacity(0.9)',
+            }}
+          />
+          
+          {/* Neon outline border */}
+          <div 
+            className="absolute inset-0 rounded-md pointer-events-none"
+            style={{
+              border: player.isMagicDashing ? '2px solid #ff00ff' : '2px solid #00ffff',
+              boxShadow: player.isMagicDashing 
+                ? '0 0 15px #ff00ff, inset 0 0 10px #ff00ff44'
+                : '0 0 15px #00ffff, inset 0 0 10px #00ffff44',
             }}
           />
           
