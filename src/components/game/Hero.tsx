@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
-import heroCharacter from '@/assets/hero-character.png';
+import heroVideo from '@/assets/hero-animated.mp4';
 
 interface HeroProps {
   player: Player;
@@ -125,7 +125,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         />
       )}
       
-      {/* Hero Character - PNG image */}
+      {/* Hero Character - Video */}
       <motion.div
         className="relative w-full h-full"
       >
@@ -139,9 +139,9 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           }}
         />
         
-        {/* Hero Image */}
+        {/* Hero Video */}
         <motion.div
-          className="relative w-full h-full"
+          className="relative w-full h-full overflow-hidden rounded-md"
           style={{
             filter: isUltraMode || player.isMagicDashing
               ? 'drop-shadow(0 0 12px #ff00ff) drop-shadow(0 0 20px #00ffff)' 
@@ -150,18 +150,16 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           animate={player.animationState === 'hurt' ? { x: [-3, 3, -3, 0] } : {}}
           transition={{ duration: 0.1 }}
         >
-          <motion.img
-            src={heroCharacter}
-            alt="Hero"
+          <video
+            src={heroVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
             className="w-full h-full object-contain"
-            animate={{
-              y: player.isDashing || player.isMagicDashing ? [0, -2, 0] : 0,
-              rotate: player.animationState === 'dash' ? -5 : 
-                      player.isShooting ? 2 : 0,
-            }}
-            transition={{ duration: 0.15, repeat: player.isDashing ? Infinity : 0 }}
             style={{
-              imageRendering: 'auto',
+              transform: player.animationState === 'dash' ? 'rotate(-5deg) scale(1.05)' : 
+                        player.isShooting ? 'rotate(2deg)' : 'none',
             }}
           />
           
@@ -252,20 +250,23 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           />
         )}
         
-        {/* Magic dash trail - ghost images */}
+        {/* Magic dash trail - ghost videos */}
         {player.isMagicDashing && (
           <>
             {[...Array(3)].map((_, i) => (
               <motion.div
                 key={`dash-${i}`}
-                className="absolute inset-0"
+                className="absolute inset-0 overflow-hidden rounded-md"
                 initial={{ opacity: 0.5, x: 0 }}
                 animate={{ opacity: 0, x: -15 - i * 8 }}
                 transition={{ duration: 0.18, delay: i * 0.02 }}
               >
-                <img 
-                  src={heroCharacter}
-                  alt=""
+                <video 
+                  src={heroVideo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
                   className="w-full h-full object-contain"
                   style={{ 
                     filter: `blur(${i * 2}px) hue-rotate(${i * 40}deg)`,
