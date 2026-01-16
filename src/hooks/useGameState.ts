@@ -13,12 +13,23 @@ const PLAYER_HEIGHT = 55; // Half size
 const BASE_LEVEL_LENGTH = 12000; // Longer levels
 const MAX_WAVES = 1000;
 const HELP_REQUEST_DELAY = 8000;
-const ARMOR_DURATION = 5;
 const KILL_RADIUS = 60;
 const ENEMY_MIN_DISTANCE = 120; // Boss keeps more distance
 const BOSS_FIREBALL_INTERVAL = 5;
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.3;
 const BOSS_KEEP_DISTANCE = 200; // Boss keeps this distance from player
+
+// Boss attack types
+type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack';
+
+interface BossAttack {
+  id: string;
+  type: BossAttackType;
+  x: number;
+  y: number;
+  timer: number;
+  data?: any;
+}
 
 // Boss taunts and laughs
 const BOSS_LAUGHS = [
@@ -79,7 +90,6 @@ interface ExtendedGameState extends GameState {
   bossFireballTimer: number;
   bossMegaAttackUsed: boolean;
   redFlash: number;
-  armorTimer: number;
   enemyLasers: Projectile[];
   magicFlash: number;
   bossTaunt: string | null;
@@ -88,6 +98,9 @@ interface ExtendedGameState extends GameState {
   shieldBlockFlash: number;
   neonLasers: NeonLaser[];
   bossDroneSpawnTimer: number;
+  bossAttacks: BossAttack[];
+  bossAttackCooldown: number;
+  laserSweepAngle: number;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -123,7 +136,6 @@ const INITIAL_STATE: ExtendedGameState = {
   bossFireballTimer: BOSS_FIREBALL_INTERVAL,
   bossMegaAttackUsed: false,
   redFlash: 0,
-  armorTimer: 0,
   enemyLasers: [],
   magicFlash: 0,
   bossTaunt: null,
@@ -132,6 +144,9 @@ const INITIAL_STATE: ExtendedGameState = {
   shieldBlockFlash: 0,
   neonLasers: [],
   bossDroneSpawnTimer: 2,
+  bossAttacks: [],
+  bossAttackCooldown: 0,
+  laserSweepAngle: 0,
 };
 
 // More varied enemy types
@@ -502,15 +517,15 @@ export const useGameState = () => {
           break;
           
         case 'armor':
+          // Armor is PERMANENT until depleted - no timer!
           newState.player = {
             ...prev.player,
-            shield: Math.min(100, prev.player.shield + 60),
+            shield: Math.min(150, prev.player.shield + 60), // Higher max shield
           };
-          newState.armorTimer = ARMOR_DURATION;
           newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y, 15, 'magic', '#00ffff')];
           newState.score += 50;
           newState.screenShake = 0.15;
-          showSpeechBubble(`ARMOR UP! 5 SEC SHIELD! 🛡️`, 'excited');
+          showSpeechBubble(`ARMOR UP! +60 SHIELD! 🛡️`, 'excited');
           break;
           
         case 'heal':
@@ -753,34 +768,172 @@ export const useGameState = () => {
           newState.bossTaunt = null;
         }
         
-        // Boss fireball attack every 5 seconds
+        // BOSS ATTACK PATTERNS - varies by wave tier!
         if (bossEnemy && newState.isBossFight) {
-          newState.bossFireballTimer -= delta;
-          
-          if (newState.bossFireballTimer <= 0) {
-            const fireball: Fireball = {
-              id: `fireball-${Date.now()}`,
-              x: bossEnemy.x,
-              y: bossEnemy.y + bossEnemy.height / 2,
-              velocityX: -500,
-              velocityY: (prev.player.y - bossEnemy.y) * 0.6,
-              damage: 10,
-            };
-            newState.fireballs = [...newState.fireballs, fireball];
-            newState.bossFireballTimer = BOSS_FIREBALL_INTERVAL;
-            newState.screenShake = 0.3;
-            showSpeechBubble("🔥 FIREBALL! 🔥", 'urgent');
-          }
-          
-          // Boss mega attack at 30% health
+          const wave = prev.currentWave;
+          const bossPhase = bossEnemy.bossPhase || 1;
+          const bossIdx = newState.enemies.findIndex(e => e.id === bossEnemy.id);
           const bossHealthPercent = bossEnemy.health / bossEnemy.maxHealth;
           
+          // Attack cooldown
+          newState.bossAttackCooldown -= delta;
+          
+          if (newState.bossAttackCooldown <= 0 && bossIdx !== -1) {
+            // Determine which attacks are available based on wave tier
+            const availableAttacks: BossAttackType[] = ['fireball'];
+            
+            if (wave >= 10) availableAttacks.push('laser_sweep');
+            if (wave >= 25) availableAttacks.push('missile_barrage');
+            if (wave >= 50) availableAttacks.push('ground_pound');
+            if (wave >= 100 || bossPhase >= 3) availableAttacks.push('screen_attack');
+            
+            // More attacks in higher phases
+            const attackChance = bossPhase >= 3 ? 0.4 : bossPhase >= 2 ? 0.6 : 0.8;
+            
+            if (Math.random() > attackChance) {
+              const attackType = availableAttacks[Math.floor(Math.random() * availableAttacks.length)];
+              
+              switch (attackType) {
+                case 'fireball':
+                  // Standard fireball(s)
+                  const fireballCount = Math.min(1 + Math.floor(wave / 50), 5);
+                  for (let i = 0; i < fireballCount; i++) {
+                    const fireball: Fireball = {
+                      id: `fireball-${Date.now()}-${i}`,
+                      x: bossEnemy.x,
+                      y: bossEnemy.y + bossEnemy.height / 2 + (i - fireballCount/2) * 20,
+                      velocityX: -500 - wave * 2,
+                      velocityY: (prev.player.y - bossEnemy.y) * 0.5 + (i - fireballCount/2) * 40,
+                      damage: 10 + Math.floor(wave / 20),
+                    };
+                    newState.fireballs = [...newState.fireballs, fireball];
+                  }
+                  newState.screenShake = 0.3;
+                  showSpeechBubble("🔥 FIREBALL! 🔥", 'urgent');
+                  break;
+                  
+                case 'laser_sweep':
+                  // Laser sweep attack - sweeps across arena
+                  newState.laserSweepAngle = Math.PI; // Start from boss side
+                  const sweepLasers = Math.min(3 + Math.floor(wave / 100), 8);
+                  for (let i = 0; i < sweepLasers; i++) {
+                    const angle = -Math.PI/3 + (i / sweepLasers) * (2 * Math.PI / 3);
+                    const laser: Projectile = {
+                      id: `sweep-laser-${Date.now()}-${i}`,
+                      x: bossEnemy.x,
+                      y: bossEnemy.y + bossEnemy.height / 2,
+                      velocityX: Math.cos(angle) * (400 + wave * 3),
+                      velocityY: Math.sin(angle) * (400 + wave * 3),
+                      damage: 12 + Math.floor(wave / 25),
+                      type: 'ultra',
+                    };
+                    newState.enemyLasers = [...newState.enemyLasers, laser];
+                  }
+                  newState.screenShake = 0.5;
+                  newState.redFlash = 0.5;
+                  newState.bossTaunt = "LASER SWEEP!";
+                  showSpeechBubble("⚡ LASER SWEEP! DODGE! ⚡", 'urgent');
+                  break;
+                  
+                case 'missile_barrage':
+                  // Raining missiles from above
+                  const missileCount = Math.min(5 + Math.floor(wave / 50), 12);
+                  for (let i = 0; i < missileCount; i++) {
+                    setTimeout(() => {
+                      setGameState(s => ({
+                        ...s,
+                        fireballs: [...s.fireballs, {
+                          id: `missile-${Date.now()}-${i}`,
+                          x: prev.cameraX + 50 + Math.random() * 500,
+                          y: 300, // From above
+                          velocityX: (Math.random() - 0.5) * 100,
+                          velocityY: -400 - wave * 2,
+                          damage: 8 + Math.floor(wave / 30),
+                        }],
+                        particles: [...s.particles, ...createParticles(
+                          prev.cameraX + 50 + Math.random() * 500, 280, 5, 'spark', '#ff8800'
+                        )],
+                      }));
+                    }, i * 100);
+                  }
+                  newState.screenShake = 0.4;
+                  newState.bossTaunt = "MISSILE BARRAGE!";
+                  showSpeechBubble("🚀 MISSILES! TAKE COVER! 🚀", 'urgent');
+                  break;
+                  
+                case 'ground_pound':
+                  // Ground pound - shockwave
+                  newState.screenShake = 1.5;
+                  newState.redFlash = 1;
+                  const shockwaveDamage = 15 + Math.floor(wave / 20);
+                  // Create shockwave projectiles traveling along ground
+                  for (let i = 0; i < 3; i++) {
+                    const shockwave: Projectile = {
+                      id: `shockwave-${Date.now()}-${i}`,
+                      x: bossEnemy.x - 30 * i,
+                      y: GROUND_Y + 30,
+                      velocityX: -600 - i * 50,
+                      velocityY: 0,
+                      damage: shockwaveDamage,
+                      type: 'mega',
+                    };
+                    newState.enemyLasers = [...newState.enemyLasers, shockwave];
+                  }
+                  // Ground particles
+                  for (let i = 0; i < 15; i++) {
+                    newState.particles = [...newState.particles, ...createParticles(
+                      bossEnemy.x - 50 - i * 30, GROUND_Y + 20, 3, 'explosion', '#ff4400'
+                    )];
+                  }
+                  newState.bossTaunt = "GROUND POUND!";
+                  showSpeechBubble("💥 GROUND POUND! JUMP! 💥", 'urgent');
+                  break;
+                  
+                case 'screen_attack':
+                  // Screen-wide attack - final boss special!
+                  if (wave >= 100 || bossPhase >= 3) {
+                    newState.redFlash = 2;
+                    newState.screenShake = 2;
+                    // Warning flash first
+                    setTimeout(() => {
+                      setGameState(s => {
+                        // Deal damage if no shield
+                        const damage = s.player.shield > 0 
+                          ? 0 
+                          : Math.min(40 + Math.floor(wave / 10), 80);
+                        return {
+                          ...s,
+                          player: { 
+                            ...s.player, 
+                            health: Math.max(1, s.player.health - damage),
+                            shield: Math.max(0, s.player.shield - 50),
+                          },
+                          damageFlash: damage > 0 ? 1.5 : 0,
+                          shieldBlockFlash: s.player.shield > 0 ? 1.5 : 0,
+                          screenShake: 2,
+                          particles: [...s.particles, 
+                            ...createParticles(s.player.x, s.player.y, 30, 'explosion', '#ff0000'),
+                          ],
+                        };
+                      });
+                    }, 500);
+                    newState.bossTaunt = "ULTIMATE DESTRUCTION!!!";
+                    showSpeechBubble("☠️ SCREEN ATTACK! GET SHIELD! ☠️", 'urgent');
+                  }
+                  break;
+              }
+              
+              // Set cooldown based on phase
+              const baseCooldown = wave >= 100 ? 2 : 3;
+              newState.bossAttackCooldown = baseCooldown - (bossPhase * 0.4) + Math.random();
+            }
+          }
+          
           // Boss phase transitions - grows bigger and more evil!
-          const bossIdx = newState.enemies.findIndex(e => e.id === bossEnemy.id);
           if (bossIdx !== -1) {
             const currentPhase = newState.enemies[bossIdx].bossPhase || 1;
             
-            // Phase 2: 50% health - grows bigger, faster fireballs
+            // Phase 2: 50% health
             if (bossHealthPercent <= 0.5 && currentPhase < 2) {
               newState.enemies[bossIdx] = {
                 ...newState.enemies[bossIdx],
@@ -793,22 +946,9 @@ export const useGameState = () => {
               newState.redFlash = 1.5;
               newState.bossTaunt = "PHASE 2! I GROW STRONGER!";
               showSpeechBubble("💀 BOSS EVOLVED! PHASE 2! 💀", 'urgent');
-              
-              // Spawn multiple fireballs
-              for (let i = 0; i < 3; i++) {
-                const fireball: Fireball = {
-                  id: `fireball-phase2-${Date.now()}-${i}`,
-                  x: bossEnemy.x - 20 * i,
-                  y: bossEnemy.y + bossEnemy.height / 2 + (i - 1) * 30,
-                  velocityX: -600,
-                  velocityY: (prev.player.y - bossEnemy.y) * 0.4 + (i - 1) * 80,
-                  damage: 15,
-                };
-                newState.fireballs = [...newState.fireballs, fireball];
-              }
             }
             
-            // Phase 3: 25% health - even bigger, rage mode!
+            // Phase 3: 25% health
             if (bossHealthPercent <= 0.25 && currentPhase < 3) {
               newState.enemies[bossIdx] = {
                 ...newState.enemies[bossIdx],
@@ -822,26 +962,19 @@ export const useGameState = () => {
               newState.redFlash = 2;
               newState.bossTaunt = "FINAL PHASE! PREPARE TO DIE!!!";
               showSpeechBubble("☠️ BOSS RAGE MODE! PHASE 3! ☠️", 'urgent');
-              
-              // Spawn ring of fireballs
-              for (let i = 0; i < 5; i++) {
-                const angle = (i / 5) * Math.PI - Math.PI / 2;
-                const fireball: Fireball = {
-                  id: `fireball-phase3-${Date.now()}-${i}`,
-                  x: bossEnemy.x,
-                  y: bossEnemy.y + bossEnemy.height / 2,
-                  velocityX: Math.cos(angle) * 400 - 200,
-                  velocityY: Math.sin(angle) * 400,
-                  damage: 20,
-                };
-                newState.fireballs = [...newState.fireballs, fireball];
-              }
             }
           }
           
+          // Mega attack at very low health (once)
           if (bossHealthPercent <= BOSS_MEGA_ATTACK_THRESHOLD && !newState.bossMegaAttackUsed) {
             newState.bossMegaAttackUsed = true;
-            newState.player.health = Math.max(1, newState.player.health - 60);
+            if (newState.player.shield > 0) {
+              newState.player.shield = 0;
+              newState.shieldBlockFlash = 2;
+            } else {
+              newState.player.health = Math.max(1, newState.player.health - 60);
+              newState.damageFlash = 2;
+            }
             newState.redFlash = 2;
             newState.screenShake = 2.5;
             newState.bossTaunt = "MEGA ATTACK! DIE!!!";
@@ -862,7 +995,7 @@ export const useGameState = () => {
             fireball.y < prev.player.y + PLAYER_HEIGHT &&
             fireball.y + 30 > prev.player.y
           ) {
-            if (newState.armorTimer > 0 || newState.player.shield > 0) {
+            if (newState.player.shield > 0) {
               // ARMOR ABSORBS FIREBALL!
               newState.player.shield = Math.max(0, newState.player.shield - fireball.damage);
               newState.shieldBlockFlash = 1;
@@ -919,13 +1052,7 @@ export const useGameState = () => {
           newState.redFlash = prev.redFlash - delta;
         }
         
-        // Armor timer decay
-        if (prev.armorTimer > 0) {
-          newState.armorTimer = prev.armorTimer - delta;
-          if (newState.armorTimer <= 0) {
-            newState.player.shield = 0;
-          }
-        }
+        // (armor timer removed - shield is permanent until depleted)
         
         // Damage flash decay
         if (prev.damageFlash > 0) {
@@ -1131,7 +1258,7 @@ export const useGameState = () => {
             laser.y + laserHeight > prev.player.y - 10
           ) {
             // ARMOR ABSORBS DAMAGE FIRST!
-            if (newState.armorTimer > 0 || newState.player.shield > 0) {
+            if (newState.player.shield > 0) {
               // Armor absorbs the hit completely
               const damageToArmor = laser.damage;
               newState.player.shield = Math.max(0, newState.player.shield - damageToArmor);
@@ -1334,9 +1461,14 @@ export const useGameState = () => {
           const moveBackward = Math.random() > 0.92; // Sometimes retreat
           const moveMultiplier = moveBackward ? -0.6 : (1 + movementPattern * 0.5); // Fast forward, sometimes back
 
-          const canShootDistance = Math.abs(dx) < 650;
+          // ENEMIES ONLY SHOOT WHEN ON SCREEN
+          const screenLeft = prev.cameraX - 50;
+          const screenRight = prev.cameraX + 700;
+          const isOnScreen = enemy.x >= screenLeft && enemy.x <= screenRight;
+          
+          const canShootDistance = Math.abs(dx) < 650 && isOnScreen;
 
-          // DRONE shoots lasers MORE frequently
+          // DRONE shoots lasers MORE frequently - ONLY WHEN ON SCREEN
           if (enemy.type === 'drone' && canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.6) {
             const enemyLaser: Projectile = {
               id: `elaser-${Date.now()}-${Math.random()}`,
@@ -1360,7 +1492,7 @@ export const useGameState = () => {
             return { ...enemy, x: teleportX, y: GROUND_Y, animationPhase: newAnimPhase, attackCooldown: 0.8 };
           }
 
-          // MECH and TANK shoot bullets MORE frequently
+          // MECH and TANK shoot bullets - ONLY WHEN ON SCREEN
           if ((enemy.type === 'mech' || enemy.type === 'tank') && canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.65) {
             const enemyBullet: Projectile = {
               id: `ebullet-${Date.now()}-${Math.random()}`,
@@ -1375,7 +1507,7 @@ export const useGameState = () => {
             return { ...enemy, y: currentY, attackCooldown: enemy.type === 'tank' ? 1.5 : 1.0, animationPhase: newAnimPhase };
           }
 
-          // Regular enemy shooting - MORE FREQUENT
+          // Regular enemy shooting - ONLY WHEN ON SCREEN
           if (canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.7) {
             const enemyLaser: Projectile = {
               id: `elaser-${Date.now()}-${Math.random()}`,
@@ -1428,7 +1560,7 @@ export const useGameState = () => {
             prev.player.y < enemy.y + enemy.height + 20 &&
             prev.player.y + PLAYER_HEIGHT > enemy.y - 20
           ) {
-            if (newState.armorTimer > 0 || newState.player.shield > 0) {
+            if (newState.player.shield > 0) {
               // ARMOR ABSORBS CONTACT DAMAGE!
               newState.player.shield = Math.max(0, newState.player.shield - enemy.damage * 0.5);
               newState.shieldBlockFlash = 1;
