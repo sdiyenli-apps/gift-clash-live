@@ -17,6 +17,8 @@ interface ExtendedGameState extends GameState {
   enemyLasers?: Projectile[];
   magicFlash?: number;
   bossTaunt?: string | null;
+  damageFlash?: number;
+  shieldBlockFlash?: number;
 }
 
 interface ArenaProps {
@@ -30,7 +32,8 @@ export const Arena = ({ gameState }: ArenaProps) => {
     combo, comboTimer, isFrozen, isBossFight, screenShake,
     flyingRobots, chickens, neonLights, explosions, giftBlocks = [],
     fireballs = [], redFlash = 0, armorTimer = 0, enemyLasers = [],
-    magicFlash = 0, bossTaunt = null, currentWave
+    magicFlash = 0, bossTaunt = null, currentWave,
+    damageFlash = 0, shieldBlockFlash = 0
   } = gameState;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -92,6 +95,32 @@ export const Arena = ({ gameState }: ArenaProps) => {
           className="absolute inset-0 z-40 pointer-events-none"
           style={{ background: 'rgba(255,0,255,0.5)' }}
           animate={{ opacity: magicFlash }}
+        />
+      )}
+      
+      {/* DAMAGE FLASH - red screen flash when hero takes damage */}
+      {damageFlash > 0 && (
+        <motion.div
+          className="absolute inset-0 z-50 pointer-events-none"
+          style={{ 
+            background: 'radial-gradient(circle, rgba(255,0,0,0.6), rgba(255,0,0,0.8))',
+            boxShadow: 'inset 0 0 100px rgba(255,0,0,0.9)',
+          }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: damageFlash }}
+        />
+      )}
+      
+      {/* SHIELD BLOCK FLASH - cyan/blue flash when shield blocks attack */}
+      {shieldBlockFlash > 0 && (
+        <motion.div
+          className="absolute inset-0 z-50 pointer-events-none"
+          style={{ 
+            background: 'radial-gradient(circle, rgba(0,255,255,0.4), rgba(0,150,255,0.5))',
+            boxShadow: 'inset 0 0 80px rgba(0,255,255,0.8)',
+          }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: shieldBlockFlash }}
         />
       )}
       
