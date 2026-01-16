@@ -1,6 +1,14 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { FlyingRobot, Chicken, NeonLight, Explosion, CHICKEN_SOUNDS } from '@/types/game';
+import { FlyingRobot, Chicken, NeonLight, Explosion } from '@/types/game';
 import { useState, useEffect } from 'react';
+
+const CHICKEN_SOUNDS = [
+  "BAWK BAWK! 🐔",
+  "CLUCK CLUCK!",
+  "BOK BOK BOK!",
+  "*chicken noises*",
+  "BRRAWK!",
+];
 
 interface ChaosElementsProps {
   flyingRobots: FlyingRobot[];
@@ -85,9 +93,9 @@ const FlyingRobotSprite = ({ robot, cameraX }: { robot: FlyingRobot; cameraX: nu
       }}
     >
       <motion.span 
-        className="text-4xl"
+        className="text-3xl"
         style={{ 
-          filter: 'drop-shadow(0 0 10px rgba(0,255,255,0.5))',
+          filter: 'drop-shadow(0 0 8px rgba(0,255,255,0.5))',
           display: 'block',
         }}
         animate={{ opacity: [0.7, 1, 0.7] }}
@@ -98,10 +106,10 @@ const FlyingRobotSprite = ({ robot, cameraX }: { robot: FlyingRobot; cameraX: nu
       
       {/* Trail effect */}
       <motion.div
-        className="absolute top-1/2 -right-8 w-12 h-2"
+        className="absolute top-1/2 -right-6 w-8 h-1"
         style={{
           background: 'linear-gradient(90deg, #00ffff, transparent)',
-          filter: 'blur(2px)',
+          filter: 'blur(1px)',
         }}
         animate={{ opacity: [0.5, 1, 0.5], scaleX: [0.8, 1.2, 0.8] }}
         transition={{ duration: 0.5, repeat: Infinity }}
@@ -131,15 +139,15 @@ const ChickenSprite = ({ chicken, cameraX }: { chicken: Chicken; cameraX: number
       className="absolute z-15"
       style={{
         left: screenX,
-        bottom: 100,
+        bottom: 60,
       }}
       initial={{ opacity: 0, scale: 0 }}
       animate={{ 
         opacity: chicken.state === 'appearing' ? [0, 1] : 1,
         scale: chicken.state === 'appearing' ? [0, 1.2, 1] : 1,
-        x: chicken.state === 'walking' ? chicken.direction * 200 : 0,
+        x: chicken.state === 'walking' ? chicken.direction * 150 : 0,
       }}
-      exit={{ opacity: 0, y: -50, scale: 0 }}
+      exit={{ opacity: 0, y: -30, scale: 0 }}
       transition={{ duration: chicken.state === 'walking' ? 2 : 0.5 }}
     >
       {/* Speech bubble */}
@@ -147,10 +155,9 @@ const ChickenSprite = ({ chicken, cameraX }: { chicken: Chicken; cameraX: number
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="absolute -top-12 left-1/2 -translate-x-1/2 bg-white px-3 py-1 rounded-lg shadow-lg text-sm font-bold text-orange-600 whitespace-nowrap"
+          className="absolute -top-10 left-1/2 -translate-x-1/2 bg-white px-2 py-1 rounded-lg shadow-lg text-xs font-bold text-orange-600 whitespace-nowrap"
         >
           {sound}
-          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-6 border-transparent border-t-white" />
         </motion.div>
       )}
       
@@ -163,21 +170,10 @@ const ChickenSprite = ({ chicken, cameraX }: { chicken: Chicken; cameraX: number
         }}
         transition={{ duration: 0.3, repeat: Infinity }}
       >
-        <span className="text-5xl" style={{ filter: 'drop-shadow(2px 4px 6px rgba(0,0,0,0.4))' }}>
+        <span className="text-3xl" style={{ filter: 'drop-shadow(2px 3px 4px rgba(0,0,0,0.4))' }}>
           🐔
         </span>
       </motion.div>
-      
-      {/* Walking dust */}
-      {chicken.state === 'walking' && (
-        <motion.div
-          className="absolute bottom-0 left-1/2 -translate-x-1/2"
-          animate={{ opacity: [0, 0.5, 0] }}
-          transition={{ duration: 0.3, repeat: Infinity }}
-        >
-          <div className="w-6 h-2 bg-yellow-700/30 rounded-full blur-sm" />
-        </motion.div>
-      )}
     </motion.div>
   );
 };
@@ -197,49 +193,28 @@ const ExplosionSprite = ({ explosion, cameraX }: { explosion: Explosion; cameraX
       initial={{ scale: 0.5, opacity: 1 }}
       animate={{ scale: [0.5, 1.5, 2], opacity: [1, 0.8, 0] }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.6 }}
+      transition={{ duration: 0.5 }}
     >
       {/* Core explosion */}
       <div 
         className="absolute inset-0 rounded-full"
         style={{
           background: 'radial-gradient(circle, #ffffff, #ffff00, #ff8800, #ff0000, transparent)',
-          filter: 'blur(5px)',
+          filter: 'blur(4px)',
         }}
       />
       
       {/* Explosion rings */}
-      {[0, 1, 2].map(i => (
+      {[0, 1].map(i => (
         <motion.div
           key={i}
           className="absolute inset-0 rounded-full"
           style={{
-            border: `3px solid ${i === 0 ? '#ff8800' : i === 1 ? '#ff4400' : '#ff0000'}`,
+            border: `2px solid ${i === 0 ? '#ff8800' : '#ff0000'}`,
           }}
           initial={{ scale: 0.5, opacity: 1 }}
-          animate={{ scale: 1 + i * 0.5, opacity: 0 }}
-          transition={{ duration: 0.4, delay: i * 0.1 }}
-        />
-      ))}
-      
-      {/* Sparks */}
-      {[...Array(8)].map((_, i) => (
-        <motion.div
-          key={`spark-${i}`}
-          className="absolute w-2 h-2 rounded-full"
-          style={{
-            left: '50%',
-            top: '50%',
-            background: i % 2 === 0 ? '#ffff00' : '#ff8800',
-            boxShadow: `0 0 10px ${i % 2 === 0 ? '#ffff00' : '#ff8800'}`,
-          }}
-          initial={{ x: 0, y: 0, opacity: 1 }}
-          animate={{ 
-            x: Math.cos(i * Math.PI / 4) * explosion.size,
-            y: Math.sin(i * Math.PI / 4) * explosion.size,
-            opacity: 0,
-          }}
-          transition={{ duration: 0.5 }}
+          animate={{ scale: 1 + i * 0.4, opacity: 0 }}
+          transition={{ duration: 0.3, delay: i * 0.1 }}
         />
       ))}
     </motion.div>

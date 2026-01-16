@@ -7,91 +7,81 @@ interface GiftPanelProps {
 }
 
 export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
-  const giftsByTier: Record<GiftTier, typeof TIKTOK_GIFTS[string][]> = {
-    small: [],
-    medium: [],
-    large: [],
-  };
+  const gifts = Object.values(TIKTOK_GIFTS);
 
-  Object.values(TIKTOK_GIFTS).forEach(gift => {
-    giftsByTier[gift.tier].push(gift);
-  });
-
-  const tierLabels: Record<GiftTier, { label: string; color: string; bgColor: string; desc: string }> = {
-    small: { label: '🎮 CONTROLS', color: 'text-cyan-400', bgColor: 'bg-cyan-500/10', desc: '↑ UP ↓ DOWN → FORWARD' },
-    medium: { label: '⚡ POWER-UPS', color: 'text-purple-400', bgColor: 'bg-purple-500/10', desc: 'Jump, Dash, Heal!' },
-    large: { label: '🔥 ULTIMATE', color: 'text-yellow-400', bgColor: 'bg-yellow-500/10', desc: 'Game changers!' },
+  const getGiftStyle = (action: string) => {
+    switch (action) {
+      case 'move_forward':
+        return 'border-cyan-400/60 bg-cyan-950/40 hover:border-cyan-300 hover:shadow-[0_0_12px_rgba(0,255,255,0.5)]';
+      case 'shoot':
+        return 'border-orange-400/60 bg-orange-950/40 hover:border-orange-300 hover:shadow-[0_0_12px_rgba(255,165,0,0.5)]';
+      case 'armor':
+        return 'border-blue-400/60 bg-blue-950/40 hover:border-blue-300 hover:shadow-[0_0_12px_rgba(0,100,255,0.5)]';
+      case 'heal':
+        return 'border-green-400/60 bg-green-950/40 hover:border-green-300 hover:shadow-[0_0_12px_rgba(0,255,100,0.5)]';
+      case 'magic_dash':
+        return 'border-purple-400/60 bg-purple-950/40 hover:border-purple-300 hover:shadow-[0_0_15px_rgba(168,85,247,0.6)]';
+      default:
+        return 'border-gray-400/50 bg-gray-950/30';
+    }
   };
 
   return (
-    <div className="bg-gray-900/90 backdrop-blur-sm rounded-xl border border-purple-500/30 p-4 space-y-4">
-      <h3 className="font-black text-xl text-center text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400">
+    <div className="bg-gray-900/95 backdrop-blur-sm rounded-lg border border-purple-500/30 p-3 space-y-3">
+      <h3 className="font-black text-base text-center text-transparent bg-clip-text bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-400">
         🎁 GIFT = ACTION
       </h3>
-      <p className="text-xs text-center text-gray-400">
-        Each gift triggers ONE specific action!
-      </p>
 
-      {(['small', 'medium', 'large'] as GiftTier[]).map(tier => (
-        <div key={tier} className={`space-y-2 p-3 rounded-lg ${tierLabels[tier].bgColor}`}>
-          <div className="flex items-center justify-between">
-            <span className={`font-bold text-sm ${tierLabels[tier].color}`}>
-              {tierLabels[tier].label}
-            </span>
-            <span className="text-[10px] text-gray-400 font-semibold">{tierLabels[tier].desc}</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {giftsByTier[tier].map(gift => {
-              const actionInfo = GIFT_ACTION_INFO[gift.action] || { name: '⚡ ACTION', effect: 'help' };
-              const isMovement = ['move_forward', 'move_up', 'move_down'].includes(gift.action);
-              const isFunny = gift.action === 'spawn_chicken';
-              
-              return (
-                <motion.button
-                  key={gift.id}
-                  whileHover={{ scale: 1.15, y: -3 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => onTriggerGift(gift.id)}
-                  disabled={disabled}
-                  className={`
-                    px-3 py-2 rounded-lg border-2 transition-all flex flex-col items-center min-w-[72px]
-                    ${disabled 
-                      ? 'opacity-50 cursor-not-allowed' 
-                      : 'hover:bg-gray-800 cursor-pointer'
-                    }
-                    ${isMovement ? 'border-cyan-400/50 bg-cyan-950/30 hover:border-cyan-300 hover:shadow-[0_0_15px_rgba(0,255,255,0.5)]' : ''}
-                    ${isFunny ? 'border-orange-400/50 bg-orange-950/30 hover:border-orange-300 hover:shadow-[0_0_15px_rgba(255,165,0,0.5)]' : ''}
-                    ${tier === 'medium' && !isFunny ? 'border-purple-400/50 bg-purple-950/30 hover:border-purple-300 hover:shadow-[0_0_15px_rgba(168,85,247,0.5)]' : ''}
-                    ${tier === 'large' ? 'border-yellow-400/50 bg-yellow-950/30 hover:border-yellow-300 hover:shadow-[0_0_20px_rgba(255,255,0,0.5)]' : ''}
-                    ${tier === 'small' && !isMovement && !isFunny ? 'border-green-400/50 bg-green-950/30 hover:border-green-300 hover:shadow-[0_0_15px_rgba(0,255,100,0.5)]' : ''}
-                  `}
-                >
-                  <motion.div 
-                    className="text-2xl"
-                    animate={isMovement ? { y: [0, -2, 0] } : isFunny ? { rotate: [-5, 5, -5] } : {}}
-                    transition={{ duration: 0.5, repeat: Infinity }}
-                  >
-                    {gift.emoji}
-                  </motion.div>
-                  <div className="text-[10px] font-bold text-white mt-1">{actionInfo.name}</div>
-                  <div className="text-[9px] text-gray-400 font-semibold">
-                    💎 {gift.diamonds}
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+      {/* All 5 gifts in a compact grid */}
+      <div className="grid grid-cols-5 gap-2">
+        {gifts.map(gift => {
+          const actionInfo = GIFT_ACTION_INFO[gift.action];
+          
+          return (
+            <motion.button
+              key={gift.id}
+              whileHover={{ scale: 1.1, y: -2 }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => onTriggerGift(gift.id)}
+              disabled={disabled}
+              className={`
+                p-2 rounded-lg border-2 transition-all flex flex-col items-center
+                ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                ${getGiftStyle(gift.action)}
+              `}
+            >
+              <motion.div 
+                className="text-xl"
+                animate={gift.action === 'magic_dash' ? { rotate: [0, 360] } : { y: [0, -2, 0] }}
+                transition={{ duration: gift.action === 'magic_dash' ? 2 : 0.5, repeat: Infinity }}
+              >
+                {gift.emoji}
+              </motion.div>
+              <div className="text-[8px] font-bold text-white mt-1 leading-tight text-center">
+                {actionInfo.name.split(' ')[1] || actionInfo.name}
+              </div>
+              <div className="text-[7px] text-gray-400 font-semibold">
+                💎{gift.diamonds}
+              </div>
+            </motion.button>
+          );
+        })}
+      </div>
 
-      <div className="border-t border-gray-700 pt-3 space-y-1">
-        <div className="text-xs font-bold text-center text-cyan-400">
-          🎯 SHOOT TARGETS ENEMIES!
+      {/* Legend */}
+      <div className="border-t border-gray-700 pt-2 space-y-1">
+        <div className="flex flex-wrap gap-1 justify-center text-[9px]">
+          <span className="text-cyan-400">🌹 Move</span>
+          <span className="text-gray-500">•</span>
+          <span className="text-orange-400">🫰 Shoot</span>
+          <span className="text-gray-500">•</span>
+          <span className="text-blue-400">🧢 Armor</span>
+          <span className="text-gray-500">•</span>
+          <span className="text-green-400">💐 Heal</span>
+          <span className="text-gray-500">•</span>
+          <span className="text-purple-400">🌌 Magic</span>
         </div>
-        <div className="text-[10px] text-gray-400 text-center">
-          🌹 FORWARD • 🍦 UP • 🍩 DOWN • 🫰 SHOOT (auto-aim!)
-        </div>
-        <div className="text-[10px] text-pink-400 text-center font-bold">
+        <div className="text-[9px] text-pink-400 text-center font-bold">
           👑 REACH THE PRINCESS TO WIN!
         </div>
       </div>
