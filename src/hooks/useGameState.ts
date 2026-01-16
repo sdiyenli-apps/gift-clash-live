@@ -101,6 +101,8 @@ interface ExtendedGameState extends GameState {
   bossAttacks: BossAttack[];
   bossAttackCooldown: number;
   laserSweepAngle: number;
+  // Sound event triggers
+  lastBossAttack: BossAttackType | null;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -147,6 +149,7 @@ const INITIAL_STATE: ExtendedGameState = {
   bossAttacks: [],
   bossAttackCooldown: 0,
   laserSweepAngle: 0,
+  lastBossAttack: null,
 };
 
 // More varied enemy types
@@ -792,6 +795,9 @@ export const useGameState = () => {
             
             if (Math.random() > attackChance) {
               const attackType = availableAttacks[Math.floor(Math.random() * availableAttacks.length)];
+              
+              // Set the last boss attack for sound effect triggers
+              newState.lastBossAttack = attackType;
               
               switch (attackType) {
                 case 'fireball':
