@@ -196,7 +196,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         <motion.div
           className="relative w-full h-full"
           style={{
-            filter: `brightness(0) drop-shadow(0 0 ${isBoss ? 20 : 10}px ${color}) drop-shadow(0 0 4px #fff)`,
+            filter: `drop-shadow(0 0 ${isBoss ? 20 : 10}px ${color})`,
           }}
         >
           {sprite ? (

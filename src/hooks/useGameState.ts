@@ -73,6 +73,8 @@ interface ExtendedGameState extends GameState {
   magicFlash: number;
   bossTaunt: string | null;
   bossTauntTimer: number;
+  damageFlash: number;
+  shieldBlockFlash: number;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -113,6 +115,8 @@ const INITIAL_STATE: ExtendedGameState = {
   magicFlash: 0,
   bossTaunt: null,
   bossTauntTimer: 0,
+  damageFlash: 0,
+  shieldBlockFlash: 0,
 };
 
 // More varied enemy types
@@ -747,12 +751,18 @@ export const useGameState = () => {
             fireball.y + 30 > prev.player.y
           ) {
             if (newState.player.shield > 0 || newState.armorTimer > 0) {
-              // Armor blocks fireball damage
+              // Armor blocks fireball damage - with visual feedback
               newState.player.shield = Math.max(0, newState.player.shield - 20);
+              newState.shieldBlockFlash = 1;
+              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 20, 'spark', '#00ffff')];
               showSpeechBubble("🛡️ BLOCKED! 🛡️", 'excited');
             } else {
               newState.player.health -= fireball.damage;
               newState.player.animationState = 'hurt';
+              newState.damageFlash = 1;
+              if (navigator.vibrate) {
+                navigator.vibrate(150);
+              }
             }
             newState.fireballs = newState.fireballs.filter(f => f.id !== fireball.id);
             newState.particles = [...newState.particles, ...createParticles(fireball.x, fireball.y, 15, 'explosion', '#ff4400')];
@@ -785,6 +795,16 @@ export const useGameState = () => {
           if (newState.armorTimer <= 0) {
             newState.player.shield = 0;
           }
+        }
+        
+        // Damage flash decay
+        if (prev.damageFlash > 0) {
+          newState.damageFlash = Math.max(0, prev.damageFlash - delta * 4);
+        }
+        
+        // Shield block flash decay
+        if (prev.shieldBlockFlash > 0) {
+          newState.shieldBlockFlash = Math.max(0, prev.shieldBlockFlash - delta * 5);
         }
         
         // Magic Dash auto-actions - NUKE ALL ENEMIES ON SCREEN
@@ -908,7 +928,7 @@ export const useGameState = () => {
           }))
           .filter(p => p.x > prev.cameraX - 50);
         
-        // Enemy laser-player collision
+        // Enemy laser-player collision - with shield block and damage flash effects
         newState.enemyLasers.forEach(laser => {
           if (
             laser.x < prev.player.x + PLAYER_WIDTH &&
@@ -917,13 +937,24 @@ export const useGameState = () => {
             laser.y + 6 > prev.player.y
           ) {
             if (newState.player.shield > 0 || newState.armorTimer > 0) {
+              // SHIELD BLOCK - visual feedback
               newState.player.shield = Math.max(0, newState.player.shield - laser.damage);
+              newState.shieldBlockFlash = 1; // Trigger shield flash
+              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 15, 'spark', '#00ffff')];
+              newState.screenShake = 0.15;
             } else {
+              // DAMAGE - visual feedback + vibration
               newState.player.health -= laser.damage;
               newState.player.animationState = 'hurt';
+              newState.damageFlash = 1; // Trigger damage flash
+              newState.screenShake = 0.3;
+              // Trigger vibration if available
+              if (navigator.vibrate) {
+                navigator.vibrate(100);
+              }
             }
             newState.enemyLasers = newState.enemyLasers.filter(l => l.id !== laser.id);
-            newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 6, 'spark', '#ff0000')];
+            newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 8, 'spark', '#ff0000')];
           }
         });
         
@@ -1054,13 +1085,25 @@ export const useGameState = () => {
           const reachedMinDistance = enemy.x <= prev.player.x + ENEMY_MIN_DISTANCE;
           const newAnimPhase = (enemy.animationPhase + delta * 6) % (Math.PI * 2);
           
-          // JUMPING - enemies randomly jump sometimes (not flying types)
+          // JUMPING - enemies randomly jump to DODGE player lasers
           const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'flyer';
-          const shouldJump = !isFlying && Math.random() > 0.985; // ~1.5% chance per frame to jump
+          
+          // Check if a player projectile is nearby - then jump to dodge!
+          const nearbyProjectile = prev.projectiles.find(p => 
+            Math.abs(p.x - enemy.x) < 150 && 
+            Math.abs(p.y - (enemy.y + enemy.height / 2)) < 40
+          );
+          const shouldDodgeJump = !isFlying && nearbyProjectile && Math.random() > 0.4;
+          const randomJump = !isFlying && Math.random() > 0.98;
           let jumpOffset = 0;
-          if (shouldJump) {
-            jumpOffset = 30 + Math.random() * 40; // Jump height
+          if (shouldDodgeJump || randomJump) {
+            jumpOffset = 35 + Math.random() * 50; // Jump height
           }
+          
+          // BACK AND FORTH MOVEMENT - enemies move erratically
+          const movementPattern = Math.sin(newAnimPhase * 3) * 0.5 + 0.5; // 0-1 oscillation
+          const moveBackward = Math.random() > 0.92; // Sometimes retreat
+          const moveMultiplier = moveBackward ? -0.6 : (1 + movementPattern * 0.5); // Fast forward, sometimes back
           
           // DRONE shoots lasers MORE frequently
           if (enemy.type === 'drone' && reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.6) {
@@ -1116,15 +1159,30 @@ export const useGameState = () => {
             return { ...enemy, attackCooldown: 0.8 + Math.random() * 0.5, animationPhase: newAnimPhase };
           }
           
+          // Movement with back-and-forth pattern
           if (Math.abs(dx) < 500 && !tooClose && !reachedMinDistance) {
+            const speedBoost = 1.3; // Faster movement
             return {
               ...enemy,
-              x: enemy.x + direction * enemy.speed * delta,
+              x: enemy.x + direction * enemy.speed * delta * moveMultiplier * speedBoost,
               y: jumpOffset > 0 ? enemy.y + jumpOffset : enemy.y, // Apply jump
               animationPhase: newAnimPhase,
               attackCooldown: Math.max(0, enemy.attackCooldown - delta),
             };
           }
+          
+          // Even at min distance, do back-and-forth
+          if (reachedMinDistance) {
+            const sway = Math.sin(newAnimPhase * 5) * 25 * delta; // Sway back and forth
+            return {
+              ...enemy,
+              x: enemy.x + sway,
+              y: jumpOffset > 0 ? enemy.y + jumpOffset : enemy.y,
+              animationPhase: newAnimPhase,
+              attackCooldown: Math.max(0, enemy.attackCooldown - delta),
+            };
+          }
+          
           return { ...enemy, animationPhase: newAnimPhase, attackCooldown: Math.max(0, enemy.attackCooldown - delta) };
         });
         
