@@ -11,11 +11,12 @@ interface HeroProps {
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
   const screenX = player.x - cameraX;
-  
+  const isEmpowered = isUltraMode || player.isMagicDashing;
+
   // Compact hero size for mobile
   const heroWidth = 80;
   const heroHeight = 100;
-  
+
   return (
     <motion.div
       className="absolute z-20"
@@ -26,12 +27,12 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         height: heroHeight,
       }}
       animate={{
-        scale: isUltraMode || player.isMagicDashing ? [1, 1.05, 1] : 1,
+        scale: isEmpowered ? [1, 1.05, 1] : 1,
         rotate: player.isShooting ? [-2, 2, 0] : 0,
       }}
       transition={{
         duration: isUltraMode ? 0.15 : 0.1,
-        repeat: isUltraMode || player.isMagicDashing ? Infinity : 0,
+        repeat: isEmpowered ? Infinity : 0,
       }}
     >
       {/* Speech bubble */}
