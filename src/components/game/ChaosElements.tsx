@@ -12,61 +12,41 @@ const CHICKEN_SOUNDS = [
 
 interface ChaosElementsProps {
   flyingRobots: FlyingRobot[];
-  chickens: Chicken[];
+  chickens?: Chicken[]; // Optional, not used
   neonLights: NeonLight[];
   explosions: Explosion[];
   cameraX: number;
 }
 
-export const ChaosElements = ({ flyingRobots, chickens, neonLights, explosions, cameraX }: ChaosElementsProps) => {
+export const ChaosElements = ({ flyingRobots, neonLights, explosions, cameraX }: ChaosElementsProps) => {
   return (
     <>
       {/* Flying Robots in the sky */}
-      {flyingRobots.map(robot => (
+      {flyingRobots.slice(0, 3).map(robot => (
         <FlyingRobotSprite key={robot.id} robot={robot} cameraX={cameraX} />
       ))}
       
-      {/* Random Chickens */}
-      <AnimatePresence>
-        {chickens.map(chicken => (
-          <ChickenSprite key={chicken.id} chicken={chicken} cameraX={cameraX} />
-        ))}
-      </AnimatePresence>
+      {/* Neon Lights - reduced for performance */}
+      {neonLights.slice(0, 2).map(light => (
+        <div
+          key={light.id}
+          className="absolute pointer-events-none"
+          style={{
+            left: light.x - cameraX,
+            top: light.y,
+            width: light.size * 3,
+            height: light.size,
+            background: light.color,
+            borderRadius: '50%',
+            filter: `blur(${light.size / 4}px)`,
+            opacity: 0.6,
+          }}
+        />
+      ))}
       
-      {/* Neon Lights flying by - Dynamic flashing effects */}
+      {/* Explosions - limited */}
       <AnimatePresence>
-        {neonLights.map(light => (
-          <motion.div
-            key={light.id}
-            className="absolute pointer-events-none"
-            style={{
-              left: light.x - cameraX,
-              top: light.y,
-              width: light.size * 4,
-              height: light.size,
-              background: light.color,
-              borderRadius: '50%',
-              filter: `blur(${light.size / 3}px)`,
-              boxShadow: `0 0 ${light.size * 3}px ${light.color}, 0 0 ${light.size * 5}px ${light.color}`,
-            }}
-            initial={{ opacity: 0, scale: 0.5 }}
-            animate={{
-              opacity: [0.3, 1, 0.3],
-              scale: [0.8, 1.3, 0.8],
-              x: [0, light.speed],
-            }}
-            exit={{ opacity: 0, scale: 0 }}
-            transition={{
-              duration: 1.5,
-              ease: "easeInOut",
-            }}
-          />
-        ))}
-      </AnimatePresence>
-      
-      {/* Explosions */}
-      <AnimatePresence>
-        {explosions.map(explosion => (
+        {explosions.slice(0, 3).map(explosion => (
           <ExplosionSprite key={explosion.id} explosion={explosion} cameraX={cameraX} />
         ))}
       </AnimatePresence>

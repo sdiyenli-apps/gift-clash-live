@@ -203,27 +203,35 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Game Content - Full screen optimized for mobile */}
+      {/* Main Game Content */}
       <main className="flex-1 flex flex-col overflow-hidden min-h-0">
-        {/* Health bar - Compact floating bar */}
+        {/* Top HUD - HP, Shield, and Gifts */}
         {gameState.phase === 'playing' && (
-          <div 
-            className="absolute top-12 left-2 right-2 z-20 px-2 py-1 rounded-full"
-            style={{
-              background: 'rgba(0,0,0,0.75)',
-              backdropFilter: 'blur(8px)',
-              border: '1px solid rgba(0,255,255,0.2)',
-            }}
-          >
-            <HealthBar 
-              health={gameState.player.health}
-              maxHealth={gameState.player.maxHealth}
-              shield={gameState.player.shield}
+          <div className="absolute top-11 left-2 right-2 z-20 space-y-1.5">
+            {/* Health bar */}
+            <div 
+              className="px-2 py-1 rounded-lg"
+              style={{
+                background: 'rgba(0,0,0,0.8)',
+                border: '1px solid rgba(0,255,255,0.2)',
+              }}
+            >
+              <HealthBar 
+                health={gameState.player.health}
+                maxHealth={gameState.player.maxHealth}
+                shield={gameState.player.shield}
+              />
+            </div>
+            
+            {/* Gift buttons - under HP bar */}
+            <GiftPanel 
+              onTriggerGift={handleTriggerGift}
+              disabled={gameState.phase !== 'playing'}
             />
           </div>
         )}
 
-        {/* Game Arena - Full height with proper sizing */}
+        {/* Game Arena */}
         <div className="flex-1 min-h-0 relative overflow-hidden">
           <Arena gameState={gameState} />
           <GameOverlay 
@@ -246,21 +254,13 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom Controls - Modern floating panel */}
-        <div className="absolute bottom-0 left-0 right-0 z-20 p-2 space-y-2">
-          {/* Gift Controls */}
-          <GiftPanel 
-            onTriggerGift={handleTriggerGift}
-            disabled={gameState.phase !== 'playing'}
-          />
-
-          {/* Auto-simulate & Recent - Ultra compact */}
+        {/* Bottom Controls - Auto simulate only */}
+        <div className="absolute bottom-2 left-2 right-2 z-20">
           <div className="flex gap-2">
             <div 
               className="flex-1 rounded-lg px-3 py-1.5 flex items-center justify-between"
               style={{
-                background: 'rgba(0,0,0,0.7)',
-                backdropFilter: 'blur(10px)',
+                background: 'rgba(0,0,0,0.8)',
                 border: `1px solid ${autoSimulate ? 'rgba(0,255,0,0.4)' : 'rgba(255,255,255,0.1)'}`,
               }}
             >
@@ -269,9 +269,9 @@ const Index = () => {
                 onClick={() => setAutoSimulate(!autoSimulate)}
                 className={`w-10 h-5 rounded-full transition-colors relative ${autoSimulate ? 'bg-green-500' : 'bg-gray-700'}`}
               >
-                <motion.div
-                  className="w-4 h-4 bg-white rounded-full absolute top-0.5"
-                  animate={{ left: autoSimulate ? '22px' : '2px' }}
+                <div
+                  className="w-4 h-4 bg-white rounded-full absolute top-0.5 transition-all"
+                  style={{ left: autoSimulate ? '22px' : '2px' }}
                 />
               </button>
             </div>
@@ -279,17 +279,15 @@ const Index = () => {
             <div 
               className="flex-1 rounded-lg px-3 py-1.5"
               style={{
-                background: 'rgba(0,0,0,0.7)',
-                backdropFilter: 'blur(10px)',
+                background: 'rgba(0,0,0,0.8)',
                 border: '1px solid rgba(255,255,0,0.2)',
               }}
             >
-              <div className="text-[10px] text-yellow-400 font-bold mb-0.5">💫 Recent</div>
-              <div className="flex gap-1 overflow-x-auto">
-                {giftEvents.slice(0, 6).map((event) => (
+              <div className="text-[10px] text-yellow-400 font-bold">💫 Recent</div>
+              <div className="flex gap-1">
+                {giftEvents.slice(0, 5).map((event) => (
                   <span key={event.id} className="text-sm">{event.gift.emoji}</span>
                 ))}
-                {giftEvents.length === 0 && <span className="text-[10px] text-gray-500">None</span>}
               </div>
             </div>
           </div>
