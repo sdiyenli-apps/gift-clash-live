@@ -2,14 +2,14 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   GameState, Player, Enemy, Projectile, Particle, GiftEvent, GiftAction, 
   Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS,
-  FlyingRobot
+  FlyingRobot, NeonLight, Explosion
 } from '@/types/game';
 
-const GRAVITY = 0; // No gravity - static line
-const GROUND_Y = 100; // Fixed Y position for static line (adjusted for 280px arena)
+const GRAVITY = 0;
+const GROUND_Y = 100;
 const PLAYER_WIDTH = 64;
 const PLAYER_HEIGHT = 80;
-const BASE_LEVEL_LENGTH = 2000;
+const BASE_LEVEL_LENGTH = 6000; // Tripled level length
 const MAX_WAVES = 1000;
 const HELP_REQUEST_DELAY = 8000;
 
@@ -138,7 +138,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     animationPhase: 0,
   });
   
-  // Simple obstacles (no deadly traps since no jump)
+  // Simple obstacles
   for (let x = 400; x < levelLength - 800; x += 300 + Math.random() * 200) {
     if (Math.random() > 0.6) {
       obstacles.push({
@@ -243,7 +243,7 @@ export const useGameState = () => {
     }
   }, [gameState.currentWave, showSpeechBubble]);
 
-  // Process the 5 gift actions
+  // Process the 5 gift actions only
   const processGiftAction = useCallback((action: GiftAction, username: string) => {
     setGameState(prev => {
       if (prev.phase !== 'playing') return prev;
@@ -252,7 +252,6 @@ export const useGameState = () => {
       
       switch (action) {
         case 'move_forward':
-          // Move forward toward princess
           newState.player = {
             ...prev.player,
             x: prev.player.x + 60,
@@ -264,7 +263,6 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Target nearest enemy and shoot
           const nearbyEnemy = prev.enemies
             .filter(e => !e.isDying && e.x > prev.player.x && e.x < prev.player.x + 500)
             .sort((a, b) => a.x - b.x)[0];
@@ -296,7 +294,6 @@ export const useGameState = () => {
           break;
           
         case 'armor':
-          // Add shield protection
           newState.player = {
             ...prev.player,
             shield: Math.min(100, prev.player.shield + 50),
@@ -308,7 +305,6 @@ export const useGameState = () => {
           break;
           
         case 'heal':
-          // Heal the player
           newState.player = {
             ...prev.player,
             health: Math.min(prev.player.maxHealth, prev.player.health + 40),
@@ -319,7 +315,6 @@ export const useGameState = () => {
           break;
           
         case 'magic_dash':
-          // 6 second auto-play with special effects
           newState.player = {
             ...prev.player,
             isMagicDashing: true,
@@ -381,7 +376,7 @@ export const useGameState = () => {
     };
   }, [gameState.phase, gameState.lastGiftTime, gameState.speechBubble, requestHelp]);
 
-  // Game loop
+  // Main Game loop
   useEffect(() => {
     if (gameState.phase !== 'playing') return;
 
@@ -404,50 +399,69 @@ export const useGameState = () => {
           showSpeechBubble(BOSS_TAUNTS[Math.floor(Math.random() * BOSS_TAUNTS.length)], 'urgent');
         }
         
-        // Magic Dash auto-actions (6 second ability)
+        // Magic Dash auto-actions (6 second ability with auto-shoot)
         if (prev.player.isMagicDashing) {
           newState.player = {
             ...newState.player,
             magicDashTimer: prev.player.magicDashTimer - delta,
+            isShooting: true,
           };
           
-          // Auto move forward
-          newState.player.x += 200 * delta;
+          newState.player.x += 250 * delta;
           newState.player.animationState = 'dash';
           
-          // Auto shoot at nearby enemies
-          const nearbyEnemies = prev.enemies.filter(e => 
-            e.x > prev.player.x && 
-            e.x < prev.player.x + 400 && 
-            !e.isDying
-          );
+          // Auto shoot at nearby enemies rapidly
+          const nearbyEnemies = prev.enemies
+            .filter(e => e.x > prev.player.x && e.x < prev.player.x + 600 && !e.isDying)
+            .sort((a, b) => a.x - b.x);
           
-          if (nearbyEnemies.length > 0 && Math.random() > 0.4) {
+          if (nearbyEnemies.length > 0 && Math.random() > 0.2) {
             const target = nearbyEnemies[0];
+            const targetY = target.y + target.height / 2;
+            const playerY = newState.player.y + PLAYER_HEIGHT / 2;
+            
             const magicBullet: Projectile = {
               id: `magic-${Date.now()}-${Math.random()}`,
-              x: prev.player.x + PLAYER_WIDTH,
-              y: target.y + target.height / 2,
-              velocityX: 1200,
-              velocityY: 0,
-              damage: 80,
+              x: newState.player.x + PLAYER_WIDTH,
+              y: playerY,
+              velocityX: 1400,
+              velocityY: (targetY - playerY) * 2,
+              damage: 100,
               type: 'ultra',
             };
             newState.projectiles = [...newState.projectiles, magicBullet];
-            newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, magicBullet.y, 10, 'muzzle', '#ff00ff')];
+            newState.particles = [...newState.particles, ...createParticles(newState.player.x + PLAYER_WIDTH, playerY, 12, 'muzzle', '#ff00ff')];
+            
+            newState.explosions = [...newState.explosions, {
+              id: `exp-${Date.now()}-${Math.random()}`,
+              x: newState.player.x + PLAYER_WIDTH + 50,
+              y: playerY,
+              size: 40,
+              timer: 0.5,
+            }];
           }
           
-          // Magic particles
-          if (Math.random() > 0.4) {
+          // Magic particles trail
+          if (Math.random() > 0.25) {
             newState.particles = [...newState.particles, ...createParticles(
-              prev.player.x + Math.random() * PLAYER_WIDTH, 
-              prev.player.y + Math.random() * PLAYER_HEIGHT, 
-              3, 'ultra', '#ff00ff'
+              newState.player.x + Math.random() * PLAYER_WIDTH, 
+              newState.player.y + Math.random() * PLAYER_HEIGHT, 
+              5, 'ultra', '#ff00ff'
             )];
+            
+            newState.neonLights = [...newState.neonLights, {
+              id: `trail-${Date.now()}-${Math.random()}`,
+              x: newState.player.x - 20,
+              y: newState.player.y + PLAYER_HEIGHT / 2,
+              size: 15 + Math.random() * 15,
+              color: Math.random() > 0.5 ? '#ff00ff' : '#00ffff',
+              speed: 50,
+            }];
           }
           
           if (newState.player.magicDashTimer <= 0) {
             newState.player.isMagicDashing = false;
+            newState.player.isShooting = false;
             newState.player.animationState = 'idle';
             showSpeechBubble("Magic dash ended! 💫", 'normal');
           }
@@ -494,7 +508,6 @@ export const useGameState = () => {
                   health: newState.enemies[enemyIdx].health - proj.damage,
                 };
                 
-                // Hit particles
                 newState.particles = [...newState.particles, ...createParticles(
                   proj.x, proj.y, proj.type === 'ultra' ? 20 : 10, 'spark', 
                   proj.type === 'ultra' ? '#ff00ff' : '#ffff00'
@@ -512,7 +525,6 @@ export const useGameState = () => {
                   newState.comboTimer = 2;
                   newState.killStreak++;
                   
-                  // Death explosion
                   newState.particles = [...newState.particles, ...createParticles(
                     enemy.x + enemy.width/2, enemy.y + enemy.height/2, 
                     enemy.type === 'boss' ? 60 : 30, 'death', '#ff4400'
@@ -536,13 +548,22 @@ export const useGameState = () => {
           .map(e => e.isDying ? { ...e, deathTimer: e.deathTimer - delta } : e)
           .filter(e => !e.isDying || e.deathTimer > 0);
         
-        // Move enemies toward player - PREVENT OVERLAP
-        const minSpacing = 50;
+        // Move enemies toward player - PREVENT OVERLAP AND STOP AT PLAYER
+        const minSpacing = 60;
         newState.enemies = newState.enemies.map((enemy, idx) => {
           if (enemy.isDying) return enemy;
           
           const dx = prev.player.x - enemy.x;
           const direction = dx > 0 ? 1 : -1;
+          
+          // Push enemy in front of player if behind
+          if (enemy.x < prev.player.x - 10) {
+            return { 
+              ...enemy, 
+              x: prev.player.x + PLAYER_WIDTH + 20,
+              animationPhase: (enemy.animationPhase + delta * 6) % (Math.PI * 2),
+            };
+          }
           
           // Check if too close to another enemy
           const tooClose = newState.enemies.some((other, otherIdx) => {
@@ -551,9 +572,12 @@ export const useGameState = () => {
             return dist < minSpacing && other.x < enemy.x;
           });
           
+          // Stop at player position
+          const reachedPlayer = enemy.x <= prev.player.x + PLAYER_WIDTH + 30;
+          
           const newAnimPhase = (enemy.animationPhase + delta * 6) % (Math.PI * 2);
           
-          if (Math.abs(dx) < 400 && !tooClose) {
+          if (Math.abs(dx) < 500 && !tooClose && !reachedPlayer) {
             return {
               ...enemy,
               x: enemy.x + direction * enemy.speed * delta,
@@ -602,7 +626,7 @@ export const useGameState = () => {
           .map(robot => ({ ...robot, x: robot.x + robot.speed * delta }))
           .filter(robot => robot.x - prev.cameraX < 1200);
         
-        if (Math.random() > 0.994) {
+        if (Math.random() > 0.99) {
           const robotTypes: FlyingRobot['type'][] = ['ufo', 'jet', 'satellite'];
           newState.flyingRobots = [...newState.flyingRobots, {
             id: `flybot-${Date.now()}`,
@@ -610,6 +634,36 @@ export const useGameState = () => {
             y: 20 + Math.random() * 60,
             speed: 120 + Math.random() * 150,
             type: robotTypes[Math.floor(Math.random() * robotTypes.length)],
+          }];
+        }
+        
+        // Dynamic neon lights (flashing background effects)
+        newState.neonLights = prev.neonLights.filter(light => light.x - prev.cameraX < 1200);
+        
+        if (Math.random() > 0.92) {
+          const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0088', '#00ff88', '#8800ff'];
+          newState.neonLights = [...newState.neonLights, {
+            id: `neon-${Date.now()}-${Math.random()}`,
+            x: prev.cameraX + Math.random() * 800,
+            y: 30 + Math.random() * 150,
+            size: 10 + Math.random() * 30,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            speed: 100 + Math.random() * 100,
+          }];
+        }
+        
+        // Random explosions in background
+        newState.explosions = prev.explosions
+          .filter(exp => exp.timer > 0)
+          .map(exp => ({ ...exp, timer: exp.timer - delta }));
+        
+        if (Math.random() > 0.96) {
+          newState.explosions = [...newState.explosions, {
+            id: `exp-${Date.now()}-${Math.random()}`,
+            x: prev.cameraX + 100 + Math.random() * 700,
+            y: 40 + Math.random() * 120,
+            size: 30 + Math.random() * 50,
+            timer: 0.6,
           }];
         }
         
