@@ -36,16 +36,17 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         repeat: isEmpowered ? Infinity : 0,
       }}
     >
-      {/* Speech bubble - larger for visibility */}
+      {/* Speech bubble - text wraps properly */}
       {speechBubble && (
         <motion.div
           initial={{ opacity: 0, y: 8, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8 }}
-          className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap z-30"
+          className="absolute -top-16 left-0 z-30"
+          style={{ width: 160 }}
         >
           <div 
-            className="px-2 py-1.5 rounded-lg text-xs font-bold shadow-lg relative"
+            className="px-2.5 py-2 rounded-lg text-[10px] font-bold shadow-lg relative leading-tight"
             style={{
               background: speechBubble.type === 'help' 
                 ? 'linear-gradient(135deg, #ff6b6b, #ff8888)' 
@@ -53,19 +54,20 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
                 ? 'linear-gradient(135deg, #ff0000, #ff4400)'
                 : 'linear-gradient(135deg, #fff, #f0f0f0)',
               color: ['help', 'urgent'].includes(speechBubble.type) ? '#fff' : '#333',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
-              maxWidth: 140,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.5)',
+              wordWrap: 'break-word',
+              overflowWrap: 'break-word',
             }}
           >
             {speechBubble.text}
             <div 
-              className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0"
+              className="absolute bottom-0 left-6 translate-y-full w-0 h-0"
               style={{
-                borderLeft: '4px solid transparent',
-                borderRight: '4px solid transparent',
+                borderLeft: '6px solid transparent',
+                borderRight: '6px solid transparent',
                 borderTop: speechBubble.type === 'help' 
-                  ? '5px solid #ff6b6b' 
-                  : '5px solid white',
+                  ? '8px solid #ff6b6b' 
+                  : '8px solid white',
               }}
             />
           </div>
