@@ -10,7 +10,7 @@ export const GiftNotification = ({ notifications }: GiftNotificationProps) => {
     <div className="fixed top-24 left-4 z-50 space-y-2 max-w-xs">
       <AnimatePresence>
         {notifications.map((event, index) => {
-          const actionInfo = GIFT_ACTION_INFO[event.gift.action];
+          const actionInfo = GIFT_ACTION_INFO[event.gift.action] || { name: '⚡ ACTION', effect: 'help' as const };
           return (
             <motion.div
               key={event.id}
