@@ -4,190 +4,152 @@ interface CyberpunkBuildingsProps {
   cameraX: number;
 }
 
-interface Building {
+interface StreetLamp {
   id: string;
   x: number;
-  width: number;
-  height: number;
   layer: 'far' | 'mid' | 'near';
-  windowRows: number;
-  windowCols: number;
-  hasNeon: boolean;
-  neonColor: string;
+  height: number;
+  lightColor: string;
 }
 
-const NEON_COLORS = ['#ff00ff', '#00ffff', '#ff0080', '#00ff80'];
+const LIGHT_COLORS = ['#ffdd88', '#ff9944', '#ffcc66', '#ffffaa'];
 
-const generateBuildings = (): Building[] => {
-  const buildings: Building[] = [];
+const generateStreetLamps = (): StreetLamp[] => {
+  const lamps: StreetLamp[] = [];
   
-  // Far layer buildings
-  for (let i = 0; i < 20; i++) {
-    const height = 80 + Math.random() * 100;
-    buildings.push({
+  // Far layer lamps
+  for (let i = 0; i < 30; i++) {
+    lamps.push({
       id: `far-${i}`,
-      x: i * 250 - 500,
-      width: 50 + Math.random() * 50,
-      height,
+      x: i * 200 - 500,
       layer: 'far',
-      windowRows: Math.floor(height / 20),
-      windowCols: 3,
-      hasNeon: Math.random() > 0.7,
-      neonColor: NEON_COLORS[Math.floor(Math.random() * NEON_COLORS.length)],
+      height: 60,
+      lightColor: LIGHT_COLORS[Math.floor(Math.random() * LIGHT_COLORS.length)],
     });
   }
   
-  // Mid layer buildings
-  for (let i = 0; i < 15; i++) {
-    const height = 100 + Math.random() * 120;
-    buildings.push({
+  // Mid layer lamps
+  for (let i = 0; i < 25; i++) {
+    lamps.push({
       id: `mid-${i}`,
-      x: i * 350 - 400,
-      width: 70 + Math.random() * 60,
-      height,
+      x: i * 280 - 400,
       layer: 'mid',
-      windowRows: Math.floor(height / 22),
-      windowCols: 4,
-      hasNeon: Math.random() > 0.5,
-      neonColor: NEON_COLORS[Math.floor(Math.random() * NEON_COLORS.length)],
+      height: 80,
+      lightColor: LIGHT_COLORS[Math.floor(Math.random() * LIGHT_COLORS.length)],
     });
   }
   
-  // Near layer buildings
-  for (let i = 0; i < 12; i++) {
-    const height = 130 + Math.random() * 150;
-    buildings.push({
+  // Near layer lamps
+  for (let i = 0; i < 20; i++) {
+    lamps.push({
       id: `near-${i}`,
-      x: i * 500 - 300,
-      width: 90 + Math.random() * 80,
-      height,
+      x: i * 350 - 300,
       layer: 'near',
-      windowRows: Math.floor(height / 25),
-      windowCols: 5,
-      hasNeon: Math.random() > 0.4,
-      neonColor: NEON_COLORS[Math.floor(Math.random() * NEON_COLORS.length)],
+      height: 100,
+      lightColor: LIGHT_COLORS[Math.floor(Math.random() * LIGHT_COLORS.length)],
     });
   }
   
-  return buildings;
+  return lamps;
 };
 
 export const CyberpunkBuildings = ({ cameraX }: CyberpunkBuildingsProps) => {
-  const buildings = useMemo(() => generateBuildings(), []);
+  const lamps = useMemo(() => generateStreetLamps(), []);
   
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {buildings.map(building => {
-        const parallaxFactor = building.layer === 'far' ? 0.1 : building.layer === 'mid' ? 0.2 : 0.35;
-        const screenX = building.x - cameraX * parallaxFactor;
+      {lamps.map(lamp => {
+        const parallaxFactor = lamp.layer === 'far' ? 0.1 : lamp.layer === 'mid' ? 0.2 : 0.35;
+        const screenX = lamp.x - cameraX * parallaxFactor;
         
-        if (screenX < -building.width - 50 || screenX > 750) return null;
+        if (screenX < -50 || screenX > 750) return null;
         
-        const opacity = building.layer === 'far' ? 0.25 : building.layer === 'mid' ? 0.4 : 0.6;
-        const scale = building.layer === 'far' ? 0.5 : building.layer === 'mid' ? 0.7 : 1;
-        const bottom = building.layer === 'far' ? 90 : building.layer === 'mid' ? 70 : 50;
-        const zIndex = building.layer === 'far' ? 1 : building.layer === 'mid' ? 2 : 3;
+        const opacity = lamp.layer === 'far' ? 0.3 : lamp.layer === 'mid' ? 0.5 : 0.8;
+        const scale = lamp.layer === 'far' ? 0.4 : lamp.layer === 'mid' ? 0.6 : 1;
+        const bottom = lamp.layer === 'far' ? 95 : lamp.layer === 'mid' ? 80 : 60;
+        const zIndex = lamp.layer === 'far' ? 1 : lamp.layer === 'mid' ? 2 : 3;
         
-        const scaledWidth = building.width * scale;
-        const scaledHeight = building.height * scale;
+        const scaledHeight = lamp.height * scale;
+        const poleWidth = 3 * scale;
+        const armWidth = 15 * scale;
+        const lampHeadSize = 8 * scale;
         
         return (
           <div
-            key={building.id}
+            key={lamp.id}
             className="absolute"
             style={{
               left: screenX,
               bottom,
-              width: scaledWidth,
-              height: scaledHeight,
               opacity,
               zIndex,
             }}
           >
-            {/* Building body */}
+            {/* Pole */}
             <div 
-              className="absolute inset-0"
               style={{
-                background: 'linear-gradient(180deg, rgba(25,25,40,0.95) 0%, rgba(15,15,25,1) 100%)',
-                boxShadow: building.hasNeon 
-                  ? `0 0 15px ${building.neonColor}22`
-                  : 'none',
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                width: poleWidth,
+                height: scaledHeight,
+                background: 'linear-gradient(90deg, #2a2a35, #3a3a45, #2a2a35)',
+                borderRadius: 1,
               }}
             />
             
-            {/* Static white windows grid */}
+            {/* Horizontal arm */}
             <div 
-              className="absolute"
               style={{
-                top: 4,
-                left: 4,
-                right: 4,
-                bottom: building.layer === 'near' ? 20 : 4,
-                display: 'grid',
-                gridTemplateColumns: `repeat(${building.windowCols}, 1fr)`,
-                gridTemplateRows: `repeat(${building.windowRows}, 1fr)`,
-                gap: 2,
+                position: 'absolute',
+                bottom: scaledHeight - 2,
+                left: poleWidth - 1,
+                width: armWidth,
+                height: 2 * scale,
+                background: '#3a3a45',
               }}
-            >
-              {[...Array(building.windowRows * building.windowCols)].map((_, i) => (
-                <div
-                  key={i}
-                  style={{
-                    background: Math.random() > 0.3 
-                      ? 'rgba(255,255,200,0.6)' 
-                      : 'rgba(30,30,40,0.8)',
-                    boxShadow: Math.random() > 0.3 
-                      ? '0 0 2px rgba(255,255,200,0.4)' 
-                      : 'none',
-                  }}
-                />
-              ))}
-            </div>
+            />
             
-            {/* Door for near buildings */}
-            {building.layer === 'near' && (
-              <div 
-                className="absolute"
-                style={{
-                  bottom: 0,
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  width: 12 * scale,
-                  height: 18 * scale,
-                  background: 'linear-gradient(180deg, #2a2a35, #1a1a22)',
-                  border: '1px solid #333',
-                }}
-              >
-                {/* Door handle */}
-                <div 
-                  style={{
-                    position: 'absolute',
-                    right: 2,
-                    top: '50%',
-                    width: 2,
-                    height: 3,
-                    background: '#666',
-                    borderRadius: 1,
-                  }}
-                />
-              </div>
-            )}
+            {/* Lamp head */}
+            <div 
+              style={{
+                position: 'absolute',
+                bottom: scaledHeight - lampHeadSize - 2,
+                left: poleWidth + armWidth - lampHeadSize / 2,
+                width: lampHeadSize,
+                height: lampHeadSize * 0.6,
+                background: '#222',
+                borderRadius: '2px 2px 0 0',
+              }}
+            />
             
-            {/* Simple neon accent line */}
-            {building.hasNeon && (
-              <div
-                style={{
-                  position: 'absolute',
-                  top: '15%',
-                  left: '10%',
-                  width: '80%',
-                  height: 2,
-                  background: building.neonColor,
-                  boxShadow: `0 0 6px ${building.neonColor}`,
-                  opacity: 0.8,
-                }}
-              />
-            )}
+            {/* Light bulb */}
+            <div 
+              style={{
+                position: 'absolute',
+                bottom: scaledHeight - lampHeadSize - 4,
+                left: poleWidth + armWidth - lampHeadSize * 0.3,
+                width: lampHeadSize * 0.6,
+                height: lampHeadSize * 0.4,
+                background: lamp.lightColor,
+                borderRadius: '0 0 50% 50%',
+                boxShadow: `0 0 ${10 * scale}px ${lamp.lightColor}, 0 0 ${20 * scale}px ${lamp.lightColor}55`,
+              }}
+            />
+            
+            {/* Light cone / glow on ground */}
+            <div 
+              style={{
+                position: 'absolute',
+                bottom: -5,
+                left: poleWidth + armWidth - 20 * scale,
+                width: 40 * scale,
+                height: scaledHeight * 0.8,
+                background: `linear-gradient(180deg, transparent 0%, ${lamp.lightColor}15 50%, ${lamp.lightColor}25 100%)`,
+                clipPath: 'polygon(40% 0%, 60% 0%, 100% 100%, 0% 100%)',
+                opacity: 0.5,
+              }}
+            />
           </div>
         );
       })}

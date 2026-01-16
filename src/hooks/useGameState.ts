@@ -528,10 +528,12 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero fires FORWARD from hitbox (aim slightly lower to consistently hit ground enemies)
+          // Hero fires FORWARD from hero's screen position (screen X = 60, so world X = cameraX + 60 + heroWidth)
+          const heroScreenX = 60; // Hero's fixed screen position
+          const heroWorldX = prev.cameraX + heroScreenX + 48; // 48 = hero width, shoot from right edge
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
-            x: prev.player.x + PLAYER_WIDTH, // Start at edge of hero hitbox
+            x: heroWorldX, // Start from hero's actual screen position in world coords
             y: prev.player.y + PLAYER_HEIGHT * 0.7, // Lower than center to align with ground targets
             velocityX: 650, // SLOWER - more visible projectile speed
             velocityY: 0,
@@ -540,8 +542,8 @@ export const useGameState = () => {
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          // Muzzle flash particles at hero hitbox edge
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 15, 'muzzle', '#00ffff')];
+          // Muzzle flash particles at hero position
+          newState.particles = [...prev.particles, ...createParticles(heroWorldX, prev.player.y + PLAYER_HEIGHT / 2, 15, 'muzzle', '#00ffff')];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
