@@ -241,8 +241,57 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
             />
           </motion.div>
           
-          {/* Enemy shooting muzzle flash - MORE VISIBLE */}
-          {enemy.attackCooldown <= 0.5 && enemy.attackCooldown > 0 && (
+          {/* SLASH ATTACK - Melee visual effect */}
+          {enemy.isSlashing && (
+            <motion.div
+              className="absolute pointer-events-none"
+              style={{ 
+                left: -40,
+                top: '50%',
+                transform: 'translateY(-50%)',
+              }}
+              initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
+              animate={{ opacity: [0, 1, 1, 0], rotate: [45, -30], scale: [0.5, 1.2, 1.2, 0.8] }}
+              transition={{ duration: 0.25 }}
+            >
+              {/* Slash arc */}
+              <div
+                style={{
+                  width: 50,
+                  height: 8,
+                  background: 'linear-gradient(90deg, transparent, #ff4400, #ffff00, #fff, transparent)',
+                  borderRadius: 4,
+                  boxShadow: '0 0 15px #ff4400, 0 0 25px #ffff00',
+                  filter: 'blur(1px)',
+                }}
+              />
+              {/* Slash sparks */}
+              {[0, 1, 2].map(i => (
+                <motion.div
+                  key={`slash-spark-${i}`}
+                  className="absolute rounded-full"
+                  style={{
+                    width: 4,
+                    height: 4,
+                    background: '#ffff00',
+                    boxShadow: '0 0 6px #ffff00',
+                    left: 10 + i * 15,
+                    top: -5 + i * 5,
+                  }}
+                  animate={{ 
+                    x: [-10 - i * 20, -30 - i * 30], 
+                    y: [-5 + i * 10, -15 + i * 15],
+                    opacity: [1, 0],
+                    scale: [1, 0.5],
+                  }}
+                  transition={{ duration: 0.2, delay: i * 0.03 }}
+                />
+              ))}
+            </motion.div>
+          )}
+          
+          {/* Enemy shooting muzzle flash - ROCKET ATTACK for ranged */}
+          {enemy.attackCooldown <= 0.5 && enemy.attackCooldown > 0 && !enemy.isSlashing && (
             <motion.div
               className="absolute left-0 top-1/2 -translate-y-1/2"
               style={{ left: -25 }}
@@ -256,10 +305,10 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
                 style={{
                   background: enemy.type === 'drone' 
                     ? 'radial-gradient(circle, #fff, #00ffff, #0088ff, transparent)'
-                    : 'radial-gradient(circle, #fff, #ffff00, #ff4400, transparent)',
+                    : 'radial-gradient(circle, #fff, #ff8800, #ff4400, transparent)',
                   boxShadow: enemy.type === 'drone'
                     ? '0 0 20px #00ffff, 0 0 40px #0088ff'
-                    : '0 0 15px #ffff00, 0 0 30px #ff4400',
+                    : '0 0 15px #ff8800, 0 0 30px #ff4400',
                 }}
               />
               {/* Flash rings */}
@@ -272,12 +321,30 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
                     top: -5 - i * 5,
                     width: 16 + i * 10,
                     height: 16 + i * 10,
-                    borderColor: enemy.type === 'drone' ? '#00ffff' : '#ff4400',
+                    borderColor: enemy.type === 'drone' ? '#00ffff' : '#ff8800',
                   }}
                   animate={{ scale: [1, 2], opacity: [1, 0] }}
                   transition={{ duration: 0.2, repeat: Infinity, delay: i * 0.05 }}
                 />
               ))}
+              {/* Rocket smoke trail */}
+              {enemy.type !== 'drone' && (
+                <motion.div
+                  className="absolute"
+                  style={{
+                    left: -20,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: 30,
+                    height: 12,
+                    background: 'linear-gradient(90deg, transparent, rgba(100,100,100,0.6), rgba(200,200,200,0.4))',
+                    filter: 'blur(3px)',
+                    borderRadius: '50%',
+                  }}
+                  animate={{ opacity: [0.8, 0.3], x: [-5, -25] }}
+                  transition={{ duration: 0.3 }}
+                />
+              )}
             </motion.div>
           )}
         </motion.div>

@@ -14,7 +14,10 @@ const BASE_LEVEL_LENGTH = 12000; // Longer levels
 const MAX_WAVES = 1000;
 const HELP_REQUEST_DELAY = 8000;
 const KILL_RADIUS = 60;
-const ENEMY_MIN_DISTANCE = 120; // Regular enemies keep this distance
+const ENEMY_MIN_DISTANCE = 80; // Regular enemies keep this distance (collision prevention)
+const ENEMY_COLLISION_DISTANCE = 50; // Enemies stop here - no overlap with hero
+const SLASH_ATTACK_RANGE = 120; // Close range = slash/melee attack
+const ROCKET_ATTACK_RANGE = 400; // Far range = rocket/ranged attack
 const BOSS_FIREBALL_INTERVAL = 5;
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.3;
 const BOSS_KEEP_DISTANCE = 450; // Boss keeps FAR away from player - ranged combat only
@@ -1596,14 +1599,20 @@ export const useGameState = () => {
           const moveBackward = Math.random() > 0.92; // Sometimes retreat
           const moveMultiplier = moveBackward ? -0.6 : (1 + movementPattern * 0.5); // Fast forward, sometimes back
 
-          // ENEMIES ONLY SHOOT WHEN CLOSE TO HERO (not just on screen)
+          // COLLISION PREVENTION - enemies stop before overlapping hero
+          const distToHero = enemy.x - prev.player.x;
+          const wouldOverlap = distToHero < ENEMY_COLLISION_DISTANCE + PLAYER_WIDTH;
+          
+          // ENEMIES ONLY ATTACK WHEN CLOSE TO HERO (not just on screen)
           const screenLeft = prev.cameraX - 50;
           const screenRight = prev.cameraX + 700;
           const isOnScreen = enemy.x >= screenLeft && enemy.x <= screenRight;
-          const ATTACK_RANGE = 300; // Only attack when within 300px of hero
-          const isCloseToHero = Math.abs(dx) < ATTACK_RANGE;
           
-          const canShootDistance = isCloseToHero && isOnScreen;
+          // DUAL ATTACK MODES: Slash when close, Rockets when far
+          const isCloseForSlash = distToHero > 0 && distToHero < SLASH_ATTACK_RANGE;
+          const isCloseForRocket = distToHero >= SLASH_ATTACK_RANGE && distToHero < ROCKET_ATTACK_RANGE;
+          const canMeleeAttack = isCloseForSlash && isOnScreen;
+          const canRangedAttack = isCloseForRocket && isOnScreen;
 
           // DRONE SPIRAL FLYING PATTERN - up and down spiraling
           if (enemy.type === 'drone' || enemy.type === 'flyer') {
@@ -1612,8 +1621,8 @@ export const useGameState = () => {
             const spiralY = GROUND_Y + 60 + Math.sin(newAnimPhase * spiralSpeed) * spiralAmplitude;
             const horizontalWobble = Math.cos(newAnimPhase * 2) * 30 * delta;
             
-            // Drone shoots lasers when close
-            if (enemy.type === 'drone' && canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.7) {
+            // Drone shoots lasers when in range (ranged attack)
+            if (enemy.type === 'drone' && (canMeleeAttack || canRangedAttack) && enemy.attackCooldown <= 0 && Math.random() > 0.7) {
               const enemyLaser: Projectile = {
                 id: `elaser-${Date.now()}-${Math.random()}`,
                 x: enemy.x - 8,
@@ -1652,38 +1661,75 @@ export const useGameState = () => {
             return { ...enemy, x: teleportX, y: GROUND_Y, animationPhase: newAnimPhase, attackCooldown: 0.8 };
           }
 
-          // MECH and TANK shoot bullets - ONLY WHEN ON SCREEN
-          if ((enemy.type === 'mech' || enemy.type === 'tank') && canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.65) {
-            const enemyBullet: Projectile = {
-              id: `ebullet-${Date.now()}-${Math.random()}`,
-              x: enemy.x - 8,
+          // MELEE/SLASH ATTACK - when close to hero
+          if (canMeleeAttack && enemy.attackCooldown <= 0 && Math.random() > 0.5) {
+            // Slash attack - no projectile, direct damage with visual
+            newState.particles = [
+              ...newState.particles, 
+              ...createParticles(enemy.x - 20, currentY + enemy.height / 2, 12, 'spark', '#ff4400'),
+            ];
+            
+            // Mark enemy as attacking for visual slash effect
+            const updatedEnemy = { 
+              ...enemy, 
+              attackCooldown: 0.6 + Math.random() * 0.3, 
+              animationPhase: newAnimPhase,
+              isSlashing: true, // New flag for slash animation
+            };
+            
+            // Slash hits player if very close
+            if (distToHero < 70) {
+              if (newState.player.shield > 0) {
+                newState.player.shield = Math.max(0, newState.player.shield - enemy.damage * 0.8);
+                newState.shieldBlockFlash = 0.8;
+                newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT/2, 15, 'spark', '#00ffff')];
+              } else {
+                newState.player.health -= enemy.damage * 0.6;
+                newState.damageFlash = 0.6;
+                newState.screenShake = 0.2;
+              }
+            }
+            
+            return updatedEnemy;
+          }
+
+          // ROCKET/RANGED ATTACK - when further from hero
+          if (canRangedAttack && enemy.attackCooldown <= 0 && Math.random() > 0.6) {
+            // Different projectile based on enemy type
+            const isHeavy = enemy.type === 'mech' || enemy.type === 'tank';
+            const rocketSpeed = isHeavy ? -380 : -450;
+            const rocketDamage = isHeavy ? 14 : 9;
+            
+            const rocket: Projectile = {
+              id: `rocket-${Date.now()}-${Math.random()}`,
+              x: enemy.x - 10,
               y: currentY + enemy.height / 2,
-              velocityX: enemy.type === 'tank' ? -350 : -450,
+              velocityX: rocketSpeed,
               velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - currentY - enemy.height / 2) * 0.5,
-              damage: enemy.type === 'tank' ? 12 : 8,
-              type: 'normal',
+              damage: rocketDamage,
+              type: isHeavy ? 'mega' : 'normal',
             };
-            newState.enemyLasers = [...newState.enemyLasers, enemyBullet];
-            return { ...enemy, y: currentY, attackCooldown: enemy.type === 'tank' ? 1.5 : 1.0, animationPhase: newAnimPhase };
+            newState.enemyLasers = [...newState.enemyLasers, rocket];
+            
+            // Rocket launch particles
+            newState.particles = [
+              ...newState.particles, 
+              ...createParticles(enemy.x - 5, currentY + enemy.height / 2, 8, 'muzzle', '#ff8800'),
+            ];
+            
+            return { 
+              ...enemy, 
+              y: currentY, 
+              attackCooldown: isHeavy ? 1.2 : 0.9, 
+              animationPhase: newAnimPhase,
+              isSlashing: false,
+            };
           }
 
-          // Regular enemy shooting - ONLY WHEN ON SCREEN
-          if (canShootDistance && enemy.attackCooldown <= 0 && Math.random() > 0.7) {
-            const enemyLaser: Projectile = {
-              id: `elaser-${Date.now()}-${Math.random()}`,
-              x: enemy.x - 8,
-              y: currentY + enemy.height / 2,
-              velocityX: -400,
-              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - currentY - enemy.height / 2) * 0.6,
-              damage: 6,
-              type: 'normal',
-            };
-            newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
-            return { ...enemy, y: currentY, attackCooldown: 0.8 + Math.random() * 0.5, animationPhase: newAnimPhase };
-          }
-
-          // Movement with back-and-forth pattern
-          if (Math.abs(dx) < 500 && !tooClose && !reachedMinDistance) {
+          // Movement with collision prevention - enemies stop before overlapping
+          const canMoveForward = !wouldOverlap && !tooClose && !reachedMinDistance;
+          
+          if (Math.abs(dx) < 500 && canMoveForward) {
             const speedBoost = 1.3; // Faster movement
             return {
               ...enemy,
@@ -1691,22 +1737,26 @@ export const useGameState = () => {
               y: nextY,
               animationPhase: newAnimPhase,
               attackCooldown: Math.max(0, enemy.attackCooldown - delta),
+              isSlashing: false,
             };
           }
 
-          // Even at min distance, do back-and-forth
-          if (reachedMinDistance) {
-            const sway = Math.sin(newAnimPhase * 5) * 25 * delta; // Sway back and forth
+          // At min distance or collision distance - sway but don't advance
+          if (reachedMinDistance || wouldOverlap) {
+            const sway = Math.sin(newAnimPhase * 5) * 15 * delta; // Sway back and forth
+            // Push back if too close
+            const pushBack = wouldOverlap ? 2 : 0;
             return {
               ...enemy,
-              x: enemy.x + sway,
+              x: enemy.x + sway + pushBack,
               y: nextY,
               animationPhase: newAnimPhase,
               attackCooldown: Math.max(0, enemy.attackCooldown - delta),
+              isSlashing: false,
             };
           }
 
-          return { ...enemy, y: nextY, animationPhase: newAnimPhase, attackCooldown: Math.max(0, enemy.attackCooldown - delta) };
+          return { ...enemy, y: nextY, animationPhase: newAnimPhase, attackCooldown: Math.max(0, enemy.attackCooldown - delta), isSlashing: false };
         });
         
         // Player-enemy collision - ARMOR ABSORBS DAMAGE with impact FX

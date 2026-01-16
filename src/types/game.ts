@@ -67,6 +67,7 @@ export interface Enemy {
   isFlying?: boolean;
   flyHeight?: number;
   bossPhase?: number; // 1 = normal, 2 = 50% health, 3 = 25% health
+  isSlashing?: boolean; // True when enemy is doing melee slash attack
 }
 
 export interface FlyingRobot {

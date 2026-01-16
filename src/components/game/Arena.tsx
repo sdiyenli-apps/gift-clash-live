@@ -9,6 +9,8 @@ import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
 import { MiniMap } from './MiniMap';
+import { CyberpunkBuildings } from './CyberpunkBuildings';
+import { FloorAssets } from './FloorAssets';
 
 interface NeonLaser {
   id: string;
@@ -152,6 +154,9 @@ export const Arena = ({ gameState }: ArenaProps) => {
         className="absolute inset-0"
         style={{ filter: player.isMagicDashing ? 'saturate(1.3) contrast(1.05)' : 'none' }}
       >
+        {/* Cyberpunk buildings in background */}
+        <CyberpunkBuildings cameraX={cameraX} />
+        
         {/* Video-like background */}
         <BackgroundVideo 
           distance={distance}
@@ -283,34 +288,103 @@ export const Arena = ({ gameState }: ArenaProps) => {
         
         <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
         
-        {/* Floor - optimized visual balance */}
+        {/* Floor Assets - dustbins, rats, debris */}
+        <FloorAssets cameraX={cameraX} levelLength={levelLength} />
+        
+        {/* Floor - CONCRETE TEXTURE with cyberpunk styling */}
         <div 
           className="absolute bottom-0 left-0 right-0 z-5"
           style={{
             height: 50,
-            background: 'linear-gradient(180deg, rgba(20,20,40,0.95) 0%, rgba(10,10,25,1) 50%, #08080f 100%)',
-            borderTop: '2px solid rgba(0, 255, 255, 0.5)',
-            boxShadow: '0 -4px 20px rgba(0, 255, 255, 0.2), inset 0 8px 25px rgba(0,0,0,0.6)',
           }}
         >
-          {/* Floor grid lines */}
+          {/* Concrete base texture */}
           <div 
-            className="absolute inset-0 opacity-25"
+            className="absolute inset-0"
             style={{
-              backgroundImage: `
-                linear-gradient(90deg, rgba(0,255,255,0.2) 1px, transparent 1px),
-                linear-gradient(0deg, rgba(0,255,255,0.1) 1px, transparent 1px)
+              background: `
+                linear-gradient(180deg, 
+                  rgba(60,55,50,0.95) 0%, 
+                  rgba(45,42,38,1) 30%,
+                  rgba(35,32,28,1) 70%, 
+                  rgba(25,22,18,1) 100%
+                )
               `,
-              backgroundSize: '50px 12px',
-              transform: `translateX(${-cameraX % 50}px)`,
+              boxShadow: 'inset 0 8px 25px rgba(0,0,0,0.7)',
             }}
           />
-          {/* Floor glow line */}
+          
+          {/* Concrete texture overlay - cracks and grain */}
           <div 
-            className="absolute top-0 left-0 right-0 h-0.5"
+            className="absolute inset-0 opacity-40"
             style={{
-              background: 'linear-gradient(90deg, rgba(0,255,255,0.3), rgba(0,255,255,0.8), rgba(0,255,255,0.3))',
-              boxShadow: '0 0 8px rgba(0,255,255,0.5)',
+              backgroundImage: `
+                url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E")
+              `,
+              backgroundSize: '150px 150px',
+              transform: `translateX(${-cameraX % 150}px)`,
+            }}
+          />
+          
+          {/* Concrete cracks */}
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `
+                linear-gradient(45deg, transparent 48%, rgba(0,0,0,0.3) 49%, rgba(0,0,0,0.3) 51%, transparent 52%),
+                linear-gradient(-30deg, transparent 48%, rgba(0,0,0,0.2) 49%, rgba(0,0,0,0.2) 51%, transparent 52%)
+              `,
+              backgroundSize: '80px 40px, 120px 60px',
+              transform: `translateX(${-cameraX % 120}px)`,
+            }}
+          />
+          
+          {/* Neon edge lines on concrete */}
+          <div 
+            className="absolute inset-0 opacity-30"
+            style={{
+              backgroundImage: `
+                linear-gradient(90deg, rgba(0,255,255,0.15) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(255,0,255,0.1) 1px, transparent 1px)
+              `,
+              backgroundSize: '100px 25px',
+              transform: `translateX(${-cameraX % 100}px)`,
+            }}
+          />
+          
+          {/* Top edge - neon glow on concrete */}
+          <div 
+            className="absolute top-0 left-0 right-0"
+            style={{
+              height: 3,
+              background: 'linear-gradient(90deg, rgba(0,255,255,0.4), rgba(255,0,255,0.6), rgba(0,255,255,0.4))',
+              boxShadow: '0 0 12px rgba(0,255,255,0.5), 0 2px 15px rgba(255,0,255,0.3)',
+            }}
+          />
+          
+          {/* Puddle reflections */}
+          <div 
+            className="absolute opacity-20"
+            style={{
+              width: 60,
+              height: 8,
+              background: 'linear-gradient(90deg, transparent, rgba(0,255,255,0.4), transparent)',
+              left: `${(200 - cameraX % 400)}px`,
+              top: 15,
+              borderRadius: '50%',
+              filter: 'blur(2px)',
+            }}
+          />
+          <div 
+            className="absolute opacity-15"
+            style={{
+              width: 40,
+              height: 6,
+              background: 'linear-gradient(90deg, transparent, rgba(255,0,255,0.3), transparent)',
+              left: `${(350 - cameraX % 500)}px`,
+              top: 25,
+              borderRadius: '50%',
+              filter: 'blur(2px)',
             }}
           />
           
