@@ -447,20 +447,20 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero fires BACKWARD (negative velocity) - the projectile travels left
+          // Hero fires FORWARD (positive velocity) - towards enemies
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
-            x: prev.player.x - 10, // Start behind the player
+            x: prev.player.x + PLAYER_WIDTH + 10, // Start in front of player
             y: prev.player.y + PLAYER_HEIGHT / 2,
-            velocityX: -1400, // Fires BACKWARD (negative = left direction)
+            velocityX: 1400, // Fires FORWARD (positive = right direction towards enemies)
             velocityY: 0,
             damage: prev.player.isMagicDashing ? 120 : 50,
             type: prev.player.isMagicDashing ? 'ultra' : 'mega',
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          // Visual laser effect from hero forward
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH + 20, prev.player.y + PLAYER_HEIGHT / 2, 15, 'muzzle', '#00ffff')];
+          // Muzzle flash particles in front of hero
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH + 15, prev.player.y + PLAYER_HEIGHT / 2, 15, 'muzzle', '#00ffff')];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
@@ -1053,19 +1053,19 @@ export const useGameState = () => {
           const reachedMinDistance = enemy.x <= prev.player.x + ENEMY_MIN_DISTANCE;
           const newAnimPhase = (enemy.animationPhase + delta * 6) % (Math.PI * 2);
           
-          // DRONE shoots lasers more frequently
-          if (enemy.type === 'drone' && reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.92) {
+          // DRONE shoots lasers frequently
+          if (enemy.type === 'drone' && reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.85) {
             const enemyLaser: Projectile = {
               id: `elaser-${Date.now()}-${Math.random()}`,
               x: enemy.x - 8,
               y: enemy.y + enemy.height / 2,
-              velocityX: -550,
+              velocityX: -600,
               velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - enemy.y - enemy.height / 2) * 0.8,
               damage: 8,
               type: 'normal',
             };
             newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
-            return { ...enemy, attackCooldown: 1.5 + Math.random(), animationPhase: newAnimPhase };
+            return { ...enemy, attackCooldown: 1.0 + Math.random() * 0.5, animationPhase: newAnimPhase };
           }
           
           // NINJA teleports when close to player
@@ -1077,8 +1077,23 @@ export const useGameState = () => {
             return { ...enemy, x: teleportX, animationPhase: newAnimPhase, attackCooldown: 1 };
           }
           
+          // MECH and TANK shoot bullets
+          if ((enemy.type === 'mech' || enemy.type === 'tank') && reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.88) {
+            const enemyBullet: Projectile = {
+              id: `ebullet-${Date.now()}-${Math.random()}`,
+              x: enemy.x - 8,
+              y: enemy.y + enemy.height / 2,
+              velocityX: enemy.type === 'tank' ? -350 : -450,
+              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - enemy.y - enemy.height / 2) * 0.5,
+              damage: enemy.type === 'tank' ? 12 : 8,
+              type: 'normal',
+            };
+            newState.enemyLasers = [...newState.enemyLasers, enemyBullet];
+            return { ...enemy, attackCooldown: enemy.type === 'tank' ? 2.5 : 1.8, animationPhase: newAnimPhase };
+          }
+          
           // Regular enemy shooting
-          if (reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.96) {
+          if (reachedMinDistance && enemy.attackCooldown <= 0 && Math.random() > 0.92) {
             const enemyLaser: Projectile = {
               id: `elaser-${Date.now()}-${Math.random()}`,
               x: enemy.x - 8,
@@ -1089,7 +1104,7 @@ export const useGameState = () => {
               type: 'normal',
             };
             newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
-            return { ...enemy, attackCooldown: 2 + Math.random() * 2, animationPhase: newAnimPhase };
+            return { ...enemy, attackCooldown: 1.5 + Math.random(), animationPhase: newAnimPhase };
           }
           
           if (Math.abs(dx) < 500 && !tooClose && !reachedMinDistance) {
