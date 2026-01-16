@@ -20,6 +20,15 @@ interface NeonLaser {
   life: number;
 }
 
+interface EMPGrenade {
+  id: string;
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  timer: number;
+}
+
 interface ExtendedGameState extends GameState {
   fireballs?: { id: string; x: number; y: number; velocityX: number; velocityY: number; damage: number }[];
   redFlash?: number;
@@ -30,6 +39,7 @@ interface ExtendedGameState extends GameState {
   damageFlash?: number;
   shieldBlockFlash?: number;
   neonLasers?: NeonLaser[];
+  empGrenades?: EMPGrenade[];
 }
 
 interface ArenaProps {
@@ -44,7 +54,8 @@ export const Arena = ({ gameState }: ArenaProps) => {
     flyingRobots, chickens, neonLights, explosions, giftBlocks = [],
     fireballs = [], redFlash = 0, armorTimer = 0, enemyLasers = [],
     magicFlash = 0, bossTaunt = null, currentWave,
-    damageFlash = 0, shieldBlockFlash = 0, neonLasers = []
+    damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
+    empGrenades = []
   } = gameState;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -193,6 +204,79 @@ export const Arena = ({ gameState }: ArenaProps) => {
               }}
               transition={{ duration: 0.2, repeat: Infinity }}
             />
+          );
+        })}
+        
+        {/* EMP Grenades - thrown by hero */}
+        {empGrenades.map(grenade => {
+          const screenX = grenade.x - cameraX;
+          // Grenade is falling from arc - y increases as it goes up (bottom-based)
+          const screenY = Math.max(80, 120 - grenade.y + 100);
+          
+          return (
+            <motion.div
+              key={grenade.id}
+              className="absolute pointer-events-none z-35"
+              style={{
+                left: screenX,
+                bottom: screenY,
+                width: 24,
+                height: 24,
+              }}
+            >
+              {/* Grenade body */}
+              <motion.div
+                className="w-full h-full rounded-full relative"
+                style={{
+                  background: 'linear-gradient(135deg, #333 0%, #111 50%, #444 100%)',
+                  border: '2px solid #00ffff',
+                  boxShadow: '0 0 15px #00ffff, 0 0 30px rgba(0,255,255,0.5), inset 0 2px 4px rgba(255,255,255,0.3)',
+                }}
+                animate={{ 
+                  rotate: [0, 360],
+                }}
+                transition={{ 
+                  duration: 0.3,
+                  repeat: Infinity,
+                  ease: 'linear',
+                }}
+              >
+                {/* EMP lightning symbol */}
+                <div 
+                  className="absolute inset-0 flex items-center justify-center text-xs font-bold"
+                  style={{ color: '#00ffff', textShadow: '0 0 5px #00ffff' }}
+                >
+                  ⚡
+                </div>
+              </motion.div>
+              
+              {/* Trail effect */}
+              <motion.div
+                className="absolute -z-10"
+                style={{
+                  left: -15,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: 25,
+                  height: 8,
+                  background: 'linear-gradient(90deg, transparent, #00ffff)',
+                  filter: 'blur(3px)',
+                  opacity: 0.7,
+                }}
+              />
+              
+              {/* Warning flash as it's about to explode */}
+              {grenade.timer < 0.3 && (
+                <motion.div
+                  className="absolute -inset-4 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(0,255,255,0.8) 0%, transparent 70%)',
+                  }}
+                  animate={{ scale: [1, 2, 1], opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 0.1, repeat: Infinity }}
+                />
+              )}
+            </motion.div>
           );
         })}
         

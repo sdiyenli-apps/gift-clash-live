@@ -85,6 +85,16 @@ const INITIAL_PLAYER: Player = {
   magicDashTimer: 0,
 };
 
+// EMP Grenade projectile type
+interface EMPGrenade {
+  id: string;
+  x: number;
+  y: number;
+  velocityX: number;
+  velocityY: number;
+  timer: number; // Time until explosion
+}
+
 interface ExtendedGameState extends GameState {
   fireballs: Fireball[];
   bossFireballTimer: number;
@@ -103,6 +113,8 @@ interface ExtendedGameState extends GameState {
   laserSweepAngle: number;
   // Sound event triggers
   lastBossAttack: BossAttackType | null;
+  // EMP Grenade
+  empGrenades: EMPGrenade[];
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -150,6 +162,7 @@ const INITIAL_STATE: ExtendedGameState = {
   bossAttackCooldown: 0,
   laserSweepAngle: 0,
   lastBossAttack: null,
+  empGrenades: [],
 };
 
 // More varied enemy types
@@ -582,32 +595,21 @@ export const useGameState = () => {
           break;
 
         case 'emp_grenade' as GiftAction:
-          // EMP kills all drones on screen
-          const dronesKilled = prev.enemies.filter(e => 
-            e.type === 'drone' && !e.isDying && !e.isSpawning &&
-            e.x > prev.cameraX - 50 && e.x < prev.cameraX + 600
-          );
-          
-          dronesKilled.forEach(drone => {
-            const droneIdx = newState.enemies.findIndex(e => e.id === drone.id);
-            if (droneIdx !== -1) {
-              newState.enemies[droneIdx] = {
-                ...newState.enemies[droneIdx],
-                isDying: true,
-                deathTimer: 0.5,
-              };
-              newState.score += 75;
-              newState.particles = [...newState.particles, ...createParticles(
-                drone.x + drone.width/2, drone.y + drone.height/2, 
-                25, 'spark', '#00ffff'
-              )];
-            }
-          });
-          
-          newState.screenShake = 0.5;
-          newState.magicFlash = 0.4;
-          showSpeechBubble(`⚡ EMP BLAST! ${dronesKilled.length} DRONES FRIED! ⚡`, 'excited');
+          // Hero THROWS an EMP grenade - arc trajectory
+          const grenade: EMPGrenade = {
+            id: `emp-${Date.now()}`,
+            x: prev.player.x + PLAYER_WIDTH,
+            y: prev.player.y + PLAYER_HEIGHT / 2,
+            velocityX: 350,
+            velocityY: 200, // Arc upward
+            timer: 1.2, // Explodes after 1.2 seconds
+          };
+          newState.empGrenades = [...prev.empGrenades, grenade];
+          newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 8, 'spark', '#ffff00')];
+          setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 300);
           newState.score += 100;
+          showSpeechBubble("⚡ EMP OUT! YEET! ⚡", 'excited');
           break;
       }
       
@@ -1048,6 +1050,60 @@ export const useGameState = () => {
           }))
           .filter(block => block.life > 0 && block.x < prev.cameraX + 700);
         
+        // Update EMP Grenades - arc trajectory and explosion
+        newState.empGrenades = prev.empGrenades
+          .map(g => ({
+            ...g,
+            x: g.x + g.velocityX * delta,
+            y: g.y + g.velocityY * delta,
+            velocityY: g.velocityY - 600 * delta, // Gravity pulls down (negative = up on screen)
+            timer: g.timer - delta,
+          }))
+          .filter(g => g.timer > 0);
+        
+        // Check for EMP grenade explosions
+        prev.empGrenades.forEach(grenade => {
+          if (grenade.timer <= delta) {
+            // EXPLODE! Kill all drones on screen
+            const dronesKilled = newState.enemies.filter(e => 
+              e.type === 'drone' && !e.isDying && !e.isSpawning &&
+              e.x > prev.cameraX - 50 && e.x < prev.cameraX + 600
+            );
+            
+            dronesKilled.forEach(drone => {
+              const droneIdx = newState.enemies.findIndex(e => e.id === drone.id);
+              if (droneIdx !== -1) {
+                newState.enemies[droneIdx] = {
+                  ...newState.enemies[droneIdx],
+                  isDying: true,
+                  deathTimer: 0.5,
+                };
+                newState.score += 75;
+                newState.particles = [...newState.particles, ...createParticles(
+                  drone.x + drone.width/2, drone.y + drone.height/2, 
+                  25, 'spark', '#00ffff'
+                )];
+              }
+            });
+            
+            // Big EMP explosion effect at grenade position
+            newState.particles = [
+              ...newState.particles,
+              ...createParticles(grenade.x, grenade.y, 40, 'spark', '#00ffff'),
+              ...createParticles(grenade.x, grenade.y, 30, 'explosion', '#ffff00'),
+              ...createParticles(grenade.x, grenade.y, 20, 'magic', '#00ff88'),
+            ];
+            newState.screenShake = 0.8;
+            newState.magicFlash = 0.6;
+            
+            if (dronesKilled.length > 0) {
+              showSpeechBubble(`⚡ BOOM! ${dronesKilled.length} DRONES FRIED! ⚡`, 'excited');
+            } else {
+              showSpeechBubble("⚡ EMP BLAST! NO DRONES THO! ⚡", 'funny');
+            }
+          }
+        });
+        
         // Magic flash decay
         if (prev.magicFlash > 0) {
           newState.magicFlash = prev.magicFlash - delta * 2;
@@ -1357,13 +1413,22 @@ export const useGameState = () => {
                   
                   newState.screenShake = enemy.type === 'boss' ? 1.5 : 0.25;
                   
-                  // Hero taunts enemies on kills!
-                  if (newState.killStreak > 4 && newState.killStreak % 5 === 0) {
+                  // Hero taunts enemies on kills - MORE FREQUENT!
+                  if (newState.killStreak > 3 && newState.killStreak % 4 === 0) {
                     showSpeechBubble(`${newState.killStreak} KILL STREAK! 🔥`, 'excited');
-                  } else if (Math.random() > 0.75) {
-                    // Random taunt or quip on kill
-                    const allQuips = [...HERO_QUIPS, ...ENEMY_TAUNTS];
-                    showSpeechBubble(allQuips[Math.floor(Math.random() * allQuips.length)], 'excited');
+                  } else if (Math.random() > 0.55) {
+                    // Much more frequent quips and taunts!
+                    const roll = Math.random();
+                    if (roll > 0.7) {
+                      // Gift request
+                      showSpeechBubble(GIFT_REQUESTS[Math.floor(Math.random() * GIFT_REQUESTS.length)], 'help');
+                    } else if (roll > 0.35) {
+                      // Enemy taunt
+                      showSpeechBubble(ENEMY_TAUNTS[Math.floor(Math.random() * ENEMY_TAUNTS.length)], 'excited');
+                    } else {
+                      // Hero quip
+                      showSpeechBubble(HERO_QUIPS[Math.floor(Math.random() * HERO_QUIPS.length)], 'excited');
+                    }
                   }
                 }
               }

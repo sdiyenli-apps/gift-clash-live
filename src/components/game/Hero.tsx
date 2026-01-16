@@ -13,9 +13,9 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
   const screenX = player.x - cameraX;
   const isEmpowered = isUltraMode || player.isMagicDashing;
 
-  // Half size hero for mobile
-  const heroWidth = 45;
-  const heroHeight = 55;
+  // BIGGER hero for visibility (8K quality vibes)
+  const heroWidth = 80;
+  const heroHeight = 100;
 
   return (
     <motion.div
@@ -35,16 +35,16 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         repeat: isEmpowered ? Infinity : 0,
       }}
     >
-      {/* Speech bubble - smaller */}
+      {/* Speech bubble - larger for visibility */}
       {speechBubble && (
         <motion.div
           initial={{ opacity: 0, y: 8, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8 }}
-          className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap z-30"
+          className="absolute -top-14 left-1/2 -translate-x-1/2 whitespace-nowrap z-30"
         >
           <div 
-            className="px-1.5 py-1 rounded-lg text-[9px] font-bold shadow-lg relative"
+            className="px-2 py-1.5 rounded-lg text-xs font-bold shadow-lg relative"
             style={{
               background: speechBubble.type === 'help' 
                 ? 'linear-gradient(135deg, #ff6b6b, #ff8888)' 
@@ -140,13 +140,13 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           }}
         />
         
-        {/* Video Hero - ORIGINAL STYLE */}
+        {/* Video Hero - 8K QUALITY ENHANCED */}
         <motion.div
-          className="relative w-full h-full overflow-hidden rounded-md"
+          className="relative w-full h-full overflow-hidden rounded-lg"
           style={{
             filter: isUltraMode || player.isMagicDashing
-              ? 'drop-shadow(0 0 12px #ff00ff) drop-shadow(0 0 20px #00ffff)' 
-              : 'drop-shadow(0 0 6px #00ccff)',
+              ? 'drop-shadow(0 0 20px #ff00ff) drop-shadow(0 0 35px #00ffff) brightness(1.2) contrast(1.1)' 
+              : 'drop-shadow(0 0 15px #00ccff) drop-shadow(0 0 25px #0088ff) brightness(1.1) contrast(1.05)',
           }}
           animate={player.animationState === 'hurt' ? { x: [-2, 2, -2, 0] } : {}}
           transition={{ duration: 0.1 }}
@@ -157,11 +157,23 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
             loop
             muted
             playsInline
-            className="w-full h-full object-cover rounded-md"
+            className="w-full h-full object-cover rounded-lg"
             style={{
-              transform: player.animationState === 'dash' ? 'rotate(-3deg) scale(1.05)' : 
-                        player.isShooting ? 'rotate(1deg)' : 'none',
+              transform: player.animationState === 'dash' ? 'rotate(-3deg) scale(1.08)' : 
+                        player.isShooting ? 'rotate(2deg) scale(1.02)' : 'none',
+              imageRendering: 'crisp-edges',
             }}
+          />
+          
+          {/* 8K glow overlay for extra visibility */}
+          <motion.div
+            className="absolute inset-0 rounded-lg pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,200,255,0.15) 100%)',
+              mixBlendMode: 'overlay',
+            }}
+            animate={{ opacity: [0.3, 0.6, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity }}
           />
           
           {/* Damage flash */}
