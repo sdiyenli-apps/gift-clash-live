@@ -18,14 +18,15 @@ export interface GiftEvent {
   action: GiftAction;
 }
 
-// Simplified to 5 core actions
+// 7 Core actions
 export type GiftAction = 
   | 'move_forward'
   | 'shoot'
   | 'armor'
   | 'heal'
   | 'magic_dash'
-  | 'spawn_enemies';
+  | 'spawn_enemies'
+  | 'emp_grenade';
 
 export interface GiftActionConfig {
   action: GiftAction;
@@ -63,6 +64,9 @@ export interface Enemy {
   isFriendly?: boolean;
   isSpawning?: boolean;
   spawnTimer?: number;
+  isFlying?: boolean;
+  flyHeight?: number;
+  bossPhase?: number; // 1 = normal, 2 = 50% health, 3 = 25% health
 }
 
 export interface FlyingRobot {
@@ -189,7 +193,7 @@ export interface Gifter {
   giftCount: number;
 }
 
-// 6 CORE GIFTS - Simple and clear!
+// 7 CORE GIFTS - Simple and clear!
 export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   // MOVE FORWARD
   rose: { id: 'rose', name: 'Rose', tier: 'small', diamonds: 1, emoji: '🌹', action: 'move_forward' },
@@ -208,6 +212,9 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   
   // SPAWN DANGEROUS ENEMIES (chaos gift)
   skull: { id: 'skull', name: 'Skull', tier: 'medium', diamonds: 50, emoji: '💀', action: 'spawn_enemies' },
+  
+  // EMP GRENADE - Kills all drones!
+  lightning: { id: 'lightning', name: 'EMP Grenade', tier: 'medium', diamonds: 75, emoji: '⚡', action: 'emp_grenade' },
 };
 
 // Gift action descriptions for UI
@@ -218,6 +225,7 @@ export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: s
   heal: { name: '💚 HEAL', description: '+40 HP!', effect: 'help' },
   magic_dash: { name: '✨ MAGIC DASH', description: '6s auto-attack!', effect: 'help' },
   spawn_enemies: { name: '💀 DANGER', description: 'Spawns enemies!', effect: 'chaos' },
+  emp_grenade: { name: '⚡ EMP', description: 'Kills all drones!', effect: 'help' },
 };
 
 // Bro-style hero quips

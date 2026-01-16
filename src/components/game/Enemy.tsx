@@ -50,9 +50,17 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   
   // Scale enemies - scaled for mobile
   const isBoss = enemy.type === 'boss';
-  const scaleFactor = isBoss ? 0.8 : 1.0;
+  const bossPhase = enemy.bossPhase || 1;
+  
+  // Boss grows bigger with each phase
+  const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.2) : 1;
+  const scaleFactor = (isBoss ? 0.8 : 1.0) * bossPhaseScale;
   const displayWidth = enemy.width * scaleFactor;
   const displayHeight = enemy.height * scaleFactor;
+  
+  // Flying enemies (drones) hover higher
+  const isFlying = enemy.isFlying || enemy.type === 'drone';
+  const flyOffset = isFlying ? (enemy.flyHeight || 50) : 0;
   
   // Portal spawn animation
   const isSpawning = enemy.isSpawning && (enemy.spawnTimer ?? 0) > 0;
@@ -63,7 +71,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
       className="absolute z-10"
       style={{
         left: screenX,
-        bottom: 80,
+        bottom: 80 + flyOffset,
         width: displayWidth,
         height: displayHeight,
       }}
@@ -253,31 +261,104 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
           )}
         </motion.div>
         
-        {/* Boss special effects - SCARY */}
+        {/* Boss special effects - SCARY with phases */}
         {enemy.type === 'boss' && !enemy.isDying && (
           <>
-            {/* Menacing aura */}
+            {/* Menacing aura - intensifies with phase */}
             <motion.div
               className="absolute -inset-12 rounded-full"
               style={{
-                background: 'radial-gradient(circle, rgba(255,0,0,0.4), rgba(50,0,0,0.2), transparent)',
-                filter: 'blur(15px)',
+                background: bossPhase === 3 
+                  ? 'radial-gradient(circle, rgba(255,0,0,0.6), rgba(100,0,0,0.4), transparent)'
+                  : bossPhase === 2
+                  ? 'radial-gradient(circle, rgba(255,50,0,0.5), rgba(75,0,0,0.3), transparent)'
+                  : 'radial-gradient(circle, rgba(255,0,0,0.4), rgba(50,0,0,0.2), transparent)',
+                filter: `blur(${10 + bossPhase * 5}px)`,
               }}
-              animate={{ scale: [1, 1.2, 1], opacity: [0.4, 0.7, 0.4] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
+              animate={{ 
+                scale: [1, 1.2 + bossPhase * 0.1, 1], 
+                opacity: [0.4, 0.7 + bossPhase * 0.1, 0.4] 
+              }}
+              transition={{ duration: 1.5 / bossPhase, repeat: Infinity }}
             />
             
-            {/* Fire breathing */}
+            {/* Phase 2+ evil eyes */}
+            {bossPhase >= 2 && (
+              <>
+                <motion.div
+                  className="absolute w-4 h-4 rounded-full"
+                  style={{
+                    left: '30%',
+                    top: '20%',
+                    background: 'radial-gradient(circle, #ff0000, #aa0000)',
+                    boxShadow: '0 0 20px #ff0000, 0 0 40px #ff0000',
+                  }}
+                  animate={{ scale: [1, 1.5, 1], opacity: [0.8, 1, 0.8] }}
+                  transition={{ duration: 0.3, repeat: Infinity }}
+                />
+                <motion.div
+                  className="absolute w-4 h-4 rounded-full"
+                  style={{
+                    right: '30%',
+                    top: '20%',
+                    background: 'radial-gradient(circle, #ff0000, #aa0000)',
+                    boxShadow: '0 0 20px #ff0000, 0 0 40px #ff0000',
+                  }}
+                  animate={{ scale: [1, 1.5, 1], opacity: [0.8, 1, 0.8] }}
+                  transition={{ duration: 0.3, repeat: Infinity, delay: 0.15 }}
+                />
+              </>
+            )}
+            
+            {/* Phase 3 rage flames */}
+            {bossPhase === 3 && (
+              <>
+                <motion.div
+                  className="absolute -inset-6 rounded-full"
+                  style={{
+                    background: 'conic-gradient(from 0deg, #ff0000, #ff4400, #ff0000, #ffff00, #ff0000)',
+                    filter: 'blur(8px)',
+                    opacity: 0.6,
+                  }}
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                />
+                {[0, 1, 2, 3].map(i => (
+                  <motion.div
+                    key={`flame-${i}`}
+                    className="absolute w-6 h-12"
+                    style={{
+                      left: `${15 + i * 25}%`,
+                      top: '-20%',
+                      background: 'linear-gradient(0deg, #ff4400, #ffff00, transparent)',
+                      borderRadius: '50%',
+                      filter: 'blur(3px)',
+                    }}
+                    animate={{ 
+                      height: [12, 24, 12], 
+                      opacity: [0.6, 1, 0.6],
+                      y: [0, -10, 0],
+                    }}
+                    transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.1 }}
+                  />
+                ))}
+              </>
+            )}
+            
+            {/* Fire breathing - faster with phase */}
             <motion.div
               className="absolute left-0 top-1/2 -translate-y-1/2"
-              style={{ left: -50 }}
-              animate={{ scaleX: [0.4, 1, 0.4], opacity: [0.4, 0.9, 0.4] }}
-              transition={{ duration: 0.25, repeat: Infinity }}
+              style={{ left: -50 - bossPhase * 10 }}
+              animate={{ scaleX: [0.4, 1 + bossPhase * 0.2, 0.4], opacity: [0.4, 0.9, 0.4] }}
+              transition={{ duration: 0.25 / bossPhase, repeat: Infinity }}
             >
               <div 
                 className="w-16 h-8 rounded-full"
                 style={{
-                  background: 'linear-gradient(90deg, transparent, #ff4400, #ffff00)',
+                  width: 64 + bossPhase * 16,
+                  background: bossPhase === 3 
+                    ? 'linear-gradient(90deg, transparent, #ff0000, #ff4400, #ffff00)'
+                    : 'linear-gradient(90deg, transparent, #ff4400, #ffff00)',
                   filter: 'blur(4px)',
                 }}
               />
@@ -291,11 +372,13 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
                 style={{
                   left: `${30 + i * 25}%`,
                   top: '80%',
-                  height: 10 + Math.random() * 8,
-                  background: 'linear-gradient(180deg, #ff2200, #aa0000)',
+                  height: 10 + Math.random() * 8 + bossPhase * 4,
+                  background: bossPhase === 3 
+                    ? 'linear-gradient(180deg, #ff0000, #660000)'
+                    : 'linear-gradient(180deg, #ff2200, #aa0000)',
                 }}
                 animate={{
-                  height: [10, 18, 10],
+                  height: [10, 18 + bossPhase * 4, 10],
                   opacity: [0.6, 1, 0.6],
                 }}
                 transition={{ duration: 0.8 + i * 0.2, repeat: Infinity, delay: i * 0.2 }}

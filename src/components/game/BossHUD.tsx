@@ -6,11 +6,13 @@ interface BossHUDProps {
   bossName: string;
   isVisible: boolean;
   bossTaunt?: string | null;
+  bossPhase?: number;
 }
 
-export const BossHUD = ({ bossHealth, bossMaxHealth, bossName, isVisible, bossTaunt }: BossHUDProps) => {
+export const BossHUD = ({ bossHealth, bossMaxHealth, bossName, isVisible, bossTaunt, bossPhase = 1 }: BossHUDProps) => {
   const healthPercent = (bossHealth / bossMaxHealth) * 100;
-  const isRaging = healthPercent <= 30;
+  const isRaging = healthPercent <= 30 || bossPhase === 3;
+  const isEnraged = bossPhase >= 2;
   
   return (
     <AnimatePresence>
@@ -21,7 +23,7 @@ export const BossHUD = ({ bossHealth, bossMaxHealth, bossName, isVisible, bossTa
           exit={{ y: -100, opacity: 0 }}
           className="absolute top-2 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-md"
         >
-          {/* Boss Name */}
+          {/* Boss Name with Phase */}
           <motion.div
             className="text-center mb-1"
             animate={isRaging ? { scale: [1, 1.05, 1] } : {}}
@@ -30,12 +32,25 @@ export const BossHUD = ({ bossHealth, bossMaxHealth, bossName, isVisible, bossTa
             <span 
               className="font-bold text-sm tracking-widest"
               style={{ 
-                color: isRaging ? '#ff0000' : '#ff4400',
-                textShadow: `0 0 10px ${isRaging ? '#ff0000' : '#ff4400'}, 0 0 20px ${isRaging ? '#ff0000' : '#ff4400'}`,
+                color: bossPhase === 3 ? '#ff0000' : bossPhase === 2 ? '#ff4400' : '#ff6600',
+                textShadow: `0 0 10px ${bossPhase === 3 ? '#ff0000' : '#ff4400'}, 0 0 20px ${bossPhase === 3 ? '#ff0000' : '#ff4400'}`,
               }}
             >
-              👹 {bossName} 👹
+              {bossPhase === 3 ? '☠️' : bossPhase === 2 ? '😈' : '👹'} {bossName} {bossPhase === 3 ? '☠️' : bossPhase === 2 ? '😈' : '👹'}
             </span>
+            {bossPhase > 1 && (
+              <motion.span
+                className="ml-2 text-xs font-bold"
+                style={{ 
+                  color: bossPhase === 3 ? '#ff0000' : '#ff8800',
+                  textShadow: '0 0 5px currentColor',
+                }}
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+              >
+                PHASE {bossPhase}
+              </motion.span>
+            )}
           </motion.div>
           
           {/* Health Bar */}
