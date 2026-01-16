@@ -142,11 +142,11 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     animationPhase: 0,
   });
   
-  // Generate varied obstacles
-  for (let x = 500; x < levelLength - 1000; x += 350 + Math.random() * 400) {
+  // Generate varied obstacles including DEADLY TRAPS
+  for (let x = 500; x < levelLength - 1000; x += 250 + Math.random() * 300) {
     const obstacleRoll = Math.random();
     
-    if (obstacleRoll > 0.6) {
+    if (obstacleRoll > 0.75) {
       obstacles.push({
         id: `platform-${x}`,
         x,
@@ -155,7 +155,29 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         height: 20,
         type: 'platform',
       });
-    } else if (obstacleRoll > 0.4) {
+    } else if (obstacleRoll > 0.6) {
+      // DEADLY SPIKE TRAP - Must dodge with UP!
+      obstacles.push({
+        id: `spike-${x}`,
+        x,
+        y: GROUND_Y,
+        width: 60,
+        height: 30,
+        type: 'spike',
+        isDeadly: true,
+      });
+    } else if (obstacleRoll > 0.45) {
+      // DEADLY TRAP - Must dodge with UP or DOWN!
+      obstacles.push({
+        id: `trap-${x}`,
+        x,
+        y: GROUND_Y - 40 - Math.random() * 60,
+        width: 80,
+        height: 40,
+        type: 'trap',
+        isDeadly: true,
+      });
+    } else if (obstacleRoll > 0.3) {
       obstacles.push({
         id: `crate-${x}`,
         x,
@@ -164,7 +186,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         height: 50,
         type: 'crate',
       });
-    } else if (obstacleRoll > 0.2) {
+    } else if (obstacleRoll > 0.15) {
       obstacles.push({
         id: `barrel-${x}`,
         x,
@@ -856,6 +878,116 @@ export const useGameState = () => {
             life: p.life - delta,
           }))
           .filter(p => p.life > 0);
+        
+        // ===== CHAOS ELEMENTS =====
+        
+        // Update flying robots in the sky
+        newState.flyingRobots = prev.flyingRobots
+          .map(robot => ({
+            ...robot,
+            x: robot.x + robot.speed * delta,
+          }))
+          .filter(robot => robot.x - prev.cameraX < 1500);
+        
+        // Spawn new flying robots randomly
+        if (Math.random() > 0.995) {
+          const robotTypes: FlyingRobot['type'][] = ['ufo', 'jet', 'satellite'];
+          newState.flyingRobots = [...newState.flyingRobots, {
+            id: `flybot-${Date.now()}`,
+            x: prev.cameraX - 100,
+            y: 30 + Math.random() * 80,
+            speed: 150 + Math.random() * 200,
+            type: robotTypes[Math.floor(Math.random() * robotTypes.length)],
+          }];
+        }
+        
+        // Update chickens state machine
+        newState.chickens = prev.chickens
+          .map(chicken => {
+            let newState = { ...chicken };
+            newState.timer -= delta;
+            
+            if (chicken.state === 'appearing' && chicken.timer <= 2.5) {
+              newState.state = 'stopped';
+              newState.timer = 1.5;
+            } else if (chicken.state === 'stopped' && chicken.timer <= 0) {
+              newState.state = 'walking';
+              newState.timer = 2;
+            } else if (chicken.state === 'walking' && chicken.timer <= 0) {
+              newState.state = 'gone';
+            }
+            
+            return newState;
+          })
+          .filter(chicken => chicken.state !== 'gone');
+        
+        // Random neon lights flying by
+        if (Math.random() > 0.98) {
+          const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
+          newState.neonLights = [...prev.neonLights, {
+            id: `neon-${Date.now()}`,
+            x: prev.cameraX - 50,
+            y: 50 + Math.random() * 350,
+            color: neonColors[Math.floor(Math.random() * neonColors.length)],
+            size: 10 + Math.random() * 20,
+            speed: 400 + Math.random() * 300,
+          }];
+        }
+        
+        // Update neon lights
+        newState.neonLights = prev.neonLights
+          .map(light => ({
+            ...light,
+            x: light.x + light.speed * delta,
+          }))
+          .filter(light => light.x - prev.cameraX < 1300);
+        
+        // Random explosions in the background
+        if (Math.random() > 0.992) {
+          newState.explosions = [...prev.explosions, {
+            id: `explosion-${Date.now()}`,
+            x: prev.cameraX + 200 + Math.random() * 800,
+            y: 100 + Math.random() * 250,
+            size: 40 + Math.random() * 60,
+            timer: 0.6,
+          }];
+          newState.screenShake = Math.max(newState.screenShake, 0.2);
+        }
+        
+        // Update explosions
+        newState.explosions = prev.explosions
+          .map(exp => ({ ...exp, timer: exp.timer - delta }))
+          .filter(exp => exp.timer > 0);
+        
+        // Check player collision with DEADLY TRAPS
+        prev.obstacles.forEach(obstacle => {
+          if (!obstacle.isDeadly) return;
+          
+          const obstacleScreenX = obstacle.x;
+          const playerRight = prev.player.x + PLAYER_WIDTH - 15;
+          const playerLeft = prev.player.x + 15;
+          const playerBottom = prev.player.y + PLAYER_HEIGHT;
+          const playerTop = prev.player.y;
+          
+          // Check collision with trap
+          if (
+            playerRight > obstacleScreenX &&
+            playerLeft < obstacleScreenX + obstacle.width &&
+            playerBottom > obstacle.y &&
+            playerTop < obstacle.y + obstacle.height
+          ) {
+            if (newState.player.shield > 0) {
+              newState.player.shield = Math.max(0, newState.player.shield - 50);
+            } else {
+              // INSTANT KILL from traps!
+              newState.player.health -= 30 * delta;
+              newState.screenShake = 0.5;
+              if (!prev.speechBubble || Date.now() - prev.speechBubble.timestamp > 2000) {
+                showSpeechBubble("OW! TRAP! SEND UP OR DOWN GIFTS! 💀", 'urgent');
+              }
+            }
+          }
+        });
         
         // Combo timer
         if (prev.comboTimer > 0) {
