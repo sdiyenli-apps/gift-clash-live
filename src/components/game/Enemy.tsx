@@ -68,10 +68,10 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   
   return (
     <motion.div
-      className="absolute z-20"
+      className="absolute z-25"
       style={{
         left: screenX,
-        bottom: 50 + flyOffset, // Standing on floor (floor height is 50px)
+        bottom: 50 + flyOffset,
         width: displayWidth,
         height: displayHeight,
       }}
