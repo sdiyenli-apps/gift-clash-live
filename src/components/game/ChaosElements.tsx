@@ -33,31 +33,36 @@ export const ChaosElements = ({ flyingRobots, chickens, neonLights, explosions, 
         ))}
       </AnimatePresence>
       
-      {/* Neon Lights flying by */}
-      {neonLights.map(light => (
-        <motion.div
-          key={light.id}
-          className="absolute pointer-events-none"
-          style={{
-            left: light.x - cameraX,
-            top: light.y,
-            width: light.size * 3,
-            height: light.size,
-            background: light.color,
-            borderRadius: '50%',
-            filter: `blur(${light.size / 2}px)`,
-            boxShadow: `0 0 ${light.size * 2}px ${light.color}`,
-          }}
-          animate={{
-            x: [-100, 1200],
-            opacity: [0, 1, 1, 0],
-          }}
-          transition={{
-            duration: 2,
-            ease: "linear",
-          }}
-        />
-      ))}
+      {/* Neon Lights flying by - Dynamic flashing effects */}
+      <AnimatePresence>
+        {neonLights.map(light => (
+          <motion.div
+            key={light.id}
+            className="absolute pointer-events-none"
+            style={{
+              left: light.x - cameraX,
+              top: light.y,
+              width: light.size * 4,
+              height: light.size,
+              background: light.color,
+              borderRadius: '50%',
+              filter: `blur(${light.size / 3}px)`,
+              boxShadow: `0 0 ${light.size * 3}px ${light.color}, 0 0 ${light.size * 5}px ${light.color}`,
+            }}
+            initial={{ opacity: 0, scale: 0.5 }}
+            animate={{
+              opacity: [0.3, 1, 0.3],
+              scale: [0.8, 1.3, 0.8],
+              x: [0, light.speed],
+            }}
+            exit={{ opacity: 0, scale: 0 }}
+            transition={{
+              duration: 1.5,
+              ease: "easeInOut",
+            }}
+          />
+        ))}
+      </AnimatePresence>
       
       {/* Explosions */}
       <AnimatePresence>
@@ -180,41 +185,74 @@ const ChickenSprite = ({ chicken, cameraX }: { chicken: Chicken; cameraX: number
 
 const ExplosionSprite = ({ explosion, cameraX }: { explosion: Explosion; cameraX: number }) => {
   const screenX = explosion.x - cameraX;
+  if (screenX < -100 || screenX > 1100) return null;
   
   return (
     <motion.div
-      className="absolute pointer-events-none"
+      className="absolute pointer-events-none z-5"
       style={{
         left: screenX - explosion.size / 2,
         top: explosion.y - explosion.size / 2,
         width: explosion.size,
         height: explosion.size,
       }}
-      initial={{ scale: 0.5, opacity: 1 }}
-      animate={{ scale: [0.5, 1.5, 2], opacity: [1, 0.8, 0] }}
+      initial={{ scale: 0.3, opacity: 1 }}
+      animate={{ scale: [0.3, 1.5, 2.5], opacity: [1, 0.9, 0] }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.6 }}
     >
-      {/* Core explosion */}
+      {/* Core explosion - bright white center */}
       <div 
         className="absolute inset-0 rounded-full"
         style={{
-          background: 'radial-gradient(circle, #ffffff, #ffff00, #ff8800, #ff0000, transparent)',
-          filter: 'blur(4px)',
+          background: 'radial-gradient(circle, #ffffff 0%, #ffff00 20%, #ff8800 40%, #ff4400 60%, #ff0000 80%, transparent 100%)',
+          filter: 'blur(3px)',
         }}
       />
       
+      {/* Outer glow */}
+      <motion.div
+        className="absolute -inset-4 rounded-full"
+        style={{
+          background: 'radial-gradient(circle, rgba(255,100,0,0.6), transparent 70%)',
+        }}
+        animate={{ scale: [1, 1.5], opacity: [0.8, 0] }}
+        transition={{ duration: 0.4 }}
+      />
+      
       {/* Explosion rings */}
-      {[0, 1].map(i => (
+      {[0, 1, 2].map(i => (
         <motion.div
           key={i}
           className="absolute inset-0 rounded-full"
           style={{
-            border: `2px solid ${i === 0 ? '#ff8800' : '#ff0000'}`,
+            border: `3px solid ${i === 0 ? '#ffff00' : i === 1 ? '#ff8800' : '#ff0000'}`,
+            boxShadow: `0 0 10px ${i === 0 ? '#ffff00' : i === 1 ? '#ff8800' : '#ff0000'}`,
           }}
           initial={{ scale: 0.5, opacity: 1 }}
-          animate={{ scale: 1 + i * 0.4, opacity: 0 }}
-          transition={{ duration: 0.3, delay: i * 0.1 }}
+          animate={{ scale: 1.5 + i * 0.5, opacity: 0 }}
+          transition={{ duration: 0.4, delay: i * 0.08 }}
+        />
+      ))}
+      
+      {/* Sparks flying out */}
+      {[...Array(8)].map((_, i) => (
+        <motion.div
+          key={`spark-${i}`}
+          className="absolute w-2 h-2 rounded-full"
+          style={{
+            left: '50%',
+            top: '50%',
+            background: i % 2 === 0 ? '#ffff00' : '#ff6600',
+            boxShadow: `0 0 6px ${i % 2 === 0 ? '#ffff00' : '#ff6600'}`,
+          }}
+          initial={{ x: 0, y: 0, opacity: 1 }}
+          animate={{
+            x: Math.cos(i * Math.PI / 4) * explosion.size,
+            y: Math.sin(i * Math.PI / 4) * explosion.size,
+            opacity: 0,
+          }}
+          transition={{ duration: 0.5, ease: 'easeOut' }}
         />
       ))}
     </motion.div>
