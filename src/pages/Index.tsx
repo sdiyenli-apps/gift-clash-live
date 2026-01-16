@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useGameState } from '@/hooks/useGameState';
 import { useTikTokSimulator } from '@/hooks/useTikTokSimulator';
@@ -8,11 +8,14 @@ import { HealthBar } from '@/components/game/HealthBar';
 import { GiftPanel } from '@/components/game/GiftPanel';
 import { GiftNotification } from '@/components/game/GiftNotification';
 import { GameOverlay } from '@/components/game/GameOverlay';
+import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
 
 const Index = () => {
   const [autoSimulate, setAutoSimulate] = useState(false);
+  const [audioOn, setAudioOn] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { gameState, giftEvents, notifications, startGame, startNextWave, handleGift } = useGameState();
-  const { playSound, startMusic, stopMusic } = useSoundEffects();
+  const { playSound } = useSoundEffects();
   
   const { triggerGift } = useTikTokSimulator(
     autoSimulate && gameState.phase === 'playing',
@@ -20,14 +23,26 @@ const Index = () => {
     'medium'
   );
 
-  // Start music when game starts
+  // Handle audio toggle
   useEffect(() => {
-    if (gameState.phase === 'playing') {
-      startMusic();
-    } else {
-      stopMusic();
+    if (!audioRef.current) {
+      audioRef.current = new Audio(gameTheme);
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.5;
     }
-  }, [gameState.phase, startMusic, stopMusic]);
+    
+    if (audioOn) {
+      audioRef.current.play().catch(console.error);
+    } else {
+      audioRef.current.pause();
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, [audioOn]);
 
   // Play sound effects
   useEffect(() => {
@@ -80,21 +95,37 @@ const Index = () => {
             </h1>
           </div>
 
-          {gameState.phase === 'playing' && (
-            <div className="flex items-center gap-2 text-[9px]">
-              <div className="text-cyan-400 font-bold">⭐ {gameState.score}</div>
-              <div className="text-yellow-400 font-bold">W{gameState.currentWave}</div>
-              {gameState.player.isMagicDashing && (
-                <motion.div
-                  className="text-pink-400 font-bold"
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 0.2, repeat: Infinity }}
-                >
-                  ✨ {gameState.player.magicDashTimer.toFixed(1)}s
-                </motion.div>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Audio Toggle Button */}
+            <motion.button
+              onClick={() => setAudioOn(!audioOn)}
+              className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
+                audioOn 
+                  ? 'bg-cyan-500/30 text-cyan-400 border border-cyan-500/50' 
+                  : 'bg-gray-700/50 text-gray-400 border border-gray-600/50'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {audioOn ? '🔊 Audio ON' : '🔇 Audio OFF'}
+            </motion.button>
+
+            {gameState.phase === 'playing' && (
+              <div className="flex items-center gap-2 text-[9px]">
+                <div className="text-cyan-400 font-bold">⭐ {gameState.score}</div>
+                <div className="text-yellow-400 font-bold">W{gameState.currentWave}</div>
+                {gameState.player.isMagicDashing && (
+                  <motion.div
+                    className="text-pink-400 font-bold"
+                    animate={{ opacity: [1, 0.5, 1] }}
+                    transition={{ duration: 0.2, repeat: Infinity }}
+                  >
+                    ✨ {gameState.player.magicDashTimer.toFixed(1)}s
+                  </motion.div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
