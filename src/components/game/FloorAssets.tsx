@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 
 interface FloorAssetsProps {
@@ -56,20 +55,19 @@ export const FloorAssets = ({ cameraX, levelLength }: FloorAssetsProps) => {
   const assets = useMemo(() => generateAssets(levelLength), [levelLength]);
   
   return (
-    <>
+    <div className="absolute inset-0 pointer-events-none z-8">
       {assets.map(asset => {
         const screenX = asset.x - cameraX;
         
-        // Only render if on screen
-        if (screenX < -80 || screenX > 700) return null;
+        if (screenX < -50 || screenX > 650) return null;
         
         return (
           <div
             key={asset.id}
-            className="absolute z-10 pointer-events-none"
+            className="absolute"
             style={{
               left: screenX,
-              bottom: 50, // On the floor
+              bottom: 50,
             }}
           >
             {asset.type === 'dustbin' && (
@@ -115,100 +113,44 @@ export const FloorAssets = ({ cameraX, levelLength }: FloorAssetsProps) => {
             )}
             
             {asset.type === 'rat' && (
-              <motion.div 
-                className="relative"
+              <div 
                 style={{ 
-                  width: 16 * asset.size, 
-                  height: 10 * asset.size,
-                }}
-                animate={{
-                  x: [0, -30, -60, -90],
-                  opacity: [1, 1, 0.8, 0],
-                }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  repeatDelay: 3 + Math.random() * 5,
+                  width: 14 * asset.size, 
+                  height: 8 * asset.size,
                 }}
               >
-                {/* Rat body */}
                 <div 
-                  className="absolute w-full h-full rounded-full"
+                  className="w-full h-full rounded-full"
                   style={{
                     background: 'linear-gradient(135deg, #4a3c3c, #2d2424)',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.5)',
                   }}
                 />
-                {/* Rat tail */}
                 <div 
-                  className="absolute"
                   style={{
-                    right: -8 * asset.size,
+                    position: 'absolute',
+                    right: -6 * asset.size,
                     top: '40%',
-                    width: 12 * asset.size,
-                    height: 2 * asset.size,
-                    background: 'linear-gradient(90deg, #3d3030, #1a1515)',
-                    borderRadius: 2,
-                    transform: 'rotate(-10deg)',
-                  }}
-                />
-                {/* Eye */}
-                <div 
-                  className="absolute rounded-full"
-                  style={{
-                    width: 2,
+                    width: 10 * asset.size,
                     height: 2,
-                    background: '#ff0000',
-                    left: '15%',
-                    top: '30%',
-                    boxShadow: '0 0 3px #ff0000',
+                    background: '#3d3030',
+                    borderRadius: 2,
                   }}
                 />
-              </motion.div>
+              </div>
             )}
             
             {asset.type === 'pipe' && (
               <div 
-                className="relative"
                 style={{ 
-                  width: 40 * asset.size, 
-                  height: 12 * asset.size,
+                  width: 35 * asset.size, 
+                  height: 10 * asset.size,
                 }}
               >
-                {/* Pipe body */}
                 <div 
-                  className="absolute w-full rounded-full"
+                  className="w-full h-full rounded-full"
                   style={{
-                    height: '100%',
-                    background: 'linear-gradient(180deg, #666 0%, #333 50%, #666 100%)',
-                    boxShadow: 'inset 0 2px 4px rgba(255,255,255,0.2), 0 2px 5px rgba(0,0,0,0.5)',
+                    background: 'linear-gradient(180deg, #555 0%, #333 50%, #555 100%)',
                   }}
-                />
-                {/* Rust spots */}
-                <div 
-                  className="absolute rounded-full"
-                  style={{
-                    width: 8 * asset.size,
-                    height: 6 * asset.size,
-                    background: 'rgba(139,69,19,0.5)',
-                    left: '20%',
-                    top: '20%',
-                  }}
-                />
-                {/* Cyan glow leak */}
-                <motion.div 
-                  className="absolute"
-                  style={{
-                    width: 4,
-                    height: 4,
-                    background: '#00ffff',
-                    borderRadius: '50%',
-                    left: '60%',
-                    bottom: -2,
-                    boxShadow: '0 0 8px #00ffff, 0 0 15px #00ffff',
-                  }}
-                  animate={{ opacity: [0.4, 1, 0.4], scale: [0.8, 1.2, 0.8] }}
-                  transition={{ duration: 1, repeat: Infinity }}
                 />
               </div>
             )}
@@ -332,6 +274,6 @@ export const FloorAssets = ({ cameraX, levelLength }: FloorAssetsProps) => {
           </div>
         );
       })}
-    </>
+    </div>
   );
 };

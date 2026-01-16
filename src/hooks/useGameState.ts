@@ -353,16 +353,18 @@ export const useGameState = () => {
     const particles: Particle[] = [];
     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
     
-    for (let i = 0; i < Math.min(count, 15); i++) { // Limit particles
+    // Optimized: fewer particles for performance
+    const maxParticles = Math.min(count, 8);
+    for (let i = 0; i < maxParticles; i++) {
       particles.push({
-        id: `particle-${Date.now()}-${Math.random()}`,
+        id: `p-${Date.now()}-${i}`,
         x,
         y,
-        velocityX: (Math.random() - 0.5) * 350,
-        velocityY: (Math.random() - 0.8) * 350,
+        velocityX: (Math.random() - 0.5) * 300,
+        velocityY: (Math.random() - 0.8) * 300,
         color: color || colors[Math.floor(Math.random() * colors.length)],
-        size: 3 + Math.random() * 6,
-        life: 0.25 + Math.random() * 0.4,
+        size: 3 + Math.random() * 5,
+        life: 0.2 + Math.random() * 0.3,
         type,
       });
     }
@@ -1614,39 +1616,46 @@ export const useGameState = () => {
           const canMeleeAttack = isCloseForSlash && isOnScreen;
           const canRangedAttack = isCloseForRocket && isOnScreen;
 
-          // DRONE SPIRAL FLYING PATTERN - up and down spiraling
+          // DRONE VERTICAL FLYING PATTERN - fly up and down the screen
           if (enemy.type === 'drone' || enemy.type === 'flyer') {
-            const spiralSpeed = 3 + Math.sin(newAnimPhase) * 2; // Varying speed
-            const spiralAmplitude = 80; // How high/low they go
-            const spiralY = GROUND_Y + 60 + Math.sin(newAnimPhase * spiralSpeed) * spiralAmplitude;
-            const horizontalWobble = Math.cos(newAnimPhase * 2) * 30 * delta;
+            // Vertical movement - drones fly UP and DOWN the screen
+            const verticalSpeed = 2.5;
+            const maxHeight = 180; // Maximum height above floor
+            const minHeight = 40;  // Minimum height above floor
             
-            // Drone shoots lasers when in range (ranged attack)
+            // Calculate new Y position using sine wave for smooth up/down
+            const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
+            const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
+            
+            // Smooth horizontal approach toward player
+            const horizontalMove = direction * enemy.speed * delta * 0.25;
+            
+            // Drone shoots lasers when in range
             if (enemy.type === 'drone' && (canMeleeAttack || canRangedAttack) && enemy.attackCooldown <= 0 && Math.random() > 0.7) {
               const enemyLaser: Projectile = {
                 id: `elaser-${Date.now()}-${Math.random()}`,
                 x: enemy.x - 8,
-                y: spiralY + enemy.height / 2,
+                y: targetY + enemy.height / 2,
                 velocityX: -550,
-                velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - spiralY - enemy.height / 2) * 0.6,
+                velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - targetY - enemy.height / 2) * 0.6,
                 damage: 8,
                 type: 'normal',
               };
               newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
               return { 
                 ...enemy, 
-                y: spiralY, 
-                x: enemy.x + horizontalWobble,
+                y: targetY, 
+                x: enemy.x + horizontalMove,
                 attackCooldown: 0.8 + Math.random() * 0.4, 
                 animationPhase: newAnimPhase 
               };
             }
             
-            // Continue spiral movement
+            // Continue vertical flying movement
             return {
               ...enemy,
-              y: spiralY,
-              x: enemy.x + direction * enemy.speed * delta * 0.3 + horizontalWobble,
+              y: targetY,
+              x: enemy.x + horizontalMove,
               animationPhase: newAnimPhase,
               attackCooldown: Math.max(0, enemy.attackCooldown - delta),
             };
@@ -1807,46 +1816,47 @@ export const useGameState = () => {
           }
         });
         
-        // Update particles - limit
+        // Update particles - optimized limit
         newState.particles = prev.particles
-          .slice(0, 80)
+          .slice(0, 40) // Reduced from 80
           .map(p => ({
             ...p,
             x: p.x + p.velocityX * delta,
             y: p.y + p.velocityY * delta,
-            velocityY: p.velocityY + 450 * delta,
+            velocityY: p.velocityY + 400 * delta,
             life: p.life - delta,
           }))
           .filter(p => p.life > 0);
         
-        // Flying robots - reduced
+        // Flying robots - reduced spawn rate
         newState.flyingRobots = prev.flyingRobots
           .map(robot => ({ ...robot, x: robot.x + robot.speed * delta }))
-          .filter(robot => robot.x - prev.cameraX < 1000);
+          .filter(robot => robot.x - prev.cameraX < 800)
+          .slice(0, 3);
         
-        if (Math.random() > 0.996) {
+        if (Math.random() > 0.998) {
           const robotTypes: FlyingRobot['type'][] = ['ufo', 'jet', 'satellite'];
           newState.flyingRobots = [...newState.flyingRobots, {
             id: `flybot-${Date.now()}`,
             x: prev.cameraX - 60,
             y: 15 + Math.random() * 50,
-            speed: 100 + Math.random() * 120,
+            speed: 80 + Math.random() * 80,
             type: robotTypes[Math.floor(Math.random() * robotTypes.length)],
           }];
         }
         
         // Neon lights - reduced
-        newState.neonLights = prev.neonLights.filter(light => light.x - prev.cameraX < 1000).slice(0, 8);
+        newState.neonLights = prev.neonLights.filter(light => light.x - prev.cameraX < 800).slice(0, 4);
         
-        if (Math.random() > 0.97) {
-          const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0088', '#00ff88'];
+        if (Math.random() > 0.985) {
+          const colors = ['#ff00ff', '#00ffff', '#ffff00'];
           newState.neonLights = [...newState.neonLights, {
-            id: `neon-${Date.now()}-${Math.random()}`,
-            x: prev.cameraX + Math.random() * 700,
-            y: 25 + Math.random() * 120,
-            size: 8 + Math.random() * 25,
+            id: `neon-${Date.now()}`,
+            x: prev.cameraX + Math.random() * 600,
+            y: 25 + Math.random() * 100,
+            size: 10 + Math.random() * 20,
             color: colors[Math.floor(Math.random() * colors.length)],
-            speed: 80 + Math.random() * 80,
+            speed: 60 + Math.random() * 60,
           }];
         }
         

@@ -20,10 +20,10 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
 
   return (
     <motion.div
-      className="absolute z-25"
+      className="absolute z-30"
       style={{
         left: screenX,
-        bottom: 50, // Standing on top of the floor (floor height is 50px)
+        bottom: 50,
         width: heroWidth,
         height: heroHeight,
       }}
