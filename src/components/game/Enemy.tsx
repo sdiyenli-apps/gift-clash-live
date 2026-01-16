@@ -48,14 +48,18 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const healthPercent = (enemy.health / enemy.maxHealth) * 100;
   const sprite = ENEMY_SPRITES[enemy.type];
   
+  // Bigger enemies
+  const displayWidth = enemy.width * 1.3;
+  const displayHeight = enemy.height * 1.3;
+  
   return (
     <motion.div
       className="absolute z-10"
       style={{
         left: screenX,
-        bottom: 280 - enemy.y - enemy.height,
-        width: enemy.width,
-        height: enemy.height,
+        bottom: 80,
+        width: displayWidth,
+        height: displayHeight,
       }}
       animate={enemy.isDying ? {
         scale: [1, 1.4, 0],
@@ -131,7 +135,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         </>
       )}
       
-      {/* Enemy Sprite Image */}
+      {/* Enemy Sprite Image - with blend mode to remove background */}
       <motion.div
         className="relative w-full h-full"
         animate={enemy.isDying ? {} : {
@@ -145,7 +149,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         <motion.div
           className="relative w-full h-full"
           style={{
-            filter: `drop-shadow(0 0 15px ${color}) drop-shadow(0 0 30px ${color}66)`,
+            filter: `drop-shadow(0 0 20px ${color}) drop-shadow(0 0 40px ${color}66)`,
           }}
         >
           {sprite ? (
@@ -155,6 +159,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               className="w-full h-full object-contain"
               style={{
                 transform: 'scaleX(-1)', // Face the hero
+                mixBlendMode: 'screen', // Helps with background removal
               }}
             />
           ) : (
@@ -183,13 +188,31 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
             transition={{ duration: 0.5, repeat: Infinity }}
           >
             <div 
-              className="absolute top-1/4 left-1/3 w-3 h-3 rounded-full"
+              className="absolute top-1/4 left-1/3 w-4 h-4 rounded-full"
               style={{ 
                 background: '#ff0000',
-                boxShadow: '0 0 20px #ff0000, 0 0 40px #ff0000',
+                boxShadow: '0 0 25px #ff0000, 0 0 50px #ff0000',
               }}
             />
           </motion.div>
+          
+          {/* Enemy shooting indicator */}
+          {enemy.attackCooldown <= 0.5 && enemy.attackCooldown > 0 && (
+            <motion.div
+              className="absolute left-0 top-1/2 -translate-y-1/2"
+              style={{ left: -20 }}
+              animate={{ opacity: [0.5, 1, 0.5], scale: [0.8, 1.2, 0.8] }}
+              transition={{ duration: 0.2, repeat: Infinity }}
+            >
+              <div 
+                className="w-4 h-4 rounded-full"
+                style={{
+                  background: 'radial-gradient(circle, #ff0000, #ff4400, transparent)',
+                  boxShadow: '0 0 10px #ff0000',
+                }}
+              />
+            </motion.div>
+          )}
         </motion.div>
         
         {/* Boss special effects */}
@@ -198,12 +221,12 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
             {/* Fire breathing effect */}
             <motion.div
               className="absolute left-0 top-1/2 -translate-y-1/2"
-              style={{ left: -60 }}
+              style={{ left: -80 }}
               animate={{ scaleX: [0.5, 1.2, 0.5], opacity: [0.5, 1, 0.5] }}
               transition={{ duration: 0.3, repeat: Infinity }}
             >
               <div 
-                className="w-16 h-8 rounded-full"
+                className="w-24 h-12 rounded-full"
                 style={{
                   background: 'linear-gradient(90deg, transparent, #ff4400, #ffff00)',
                   filter: 'blur(5px)',
@@ -213,18 +236,35 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
             
             {/* Boss title */}
             <motion.div
-              className="absolute -top-16 left-1/2 -translate-x-1/2 whitespace-nowrap"
+              className="absolute -top-20 left-1/2 -translate-x-1/2 whitespace-nowrap"
               animate={{ opacity: [0.8, 1, 0.8], scale: [1, 1.05, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
             >
-              <span className="text-2xl font-black tracking-wider" style={{ color: '#ff0000', textShadow: '0 0 30px #ff0000, 0 0 60px #ff4400' }}>
+              <span className="text-3xl font-black tracking-wider" style={{ color: '#ff0000', textShadow: '0 0 30px #ff0000, 0 0 60px #ff4400' }}>
                 🐉 DRAGON LORD 🐉
+              </span>
+            </motion.div>
+            
+            {/* Boss health percent */}
+            <motion.div
+              className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap"
+              animate={{ scale: healthPercent <= 30 ? [1, 1.1, 1] : 1 }}
+              transition={{ duration: 0.3, repeat: Infinity }}
+            >
+              <span 
+                className="text-lg font-black"
+                style={{ 
+                  color: healthPercent <= 30 ? '#ff0000' : '#fff',
+                  textShadow: healthPercent <= 30 ? '0 0 20px #ff0000' : '0 0 10px #000',
+                }}
+              >
+                {Math.round(healthPercent)}%
               </span>
             </motion.div>
             
             {/* Boss aura */}
             <motion.div
-              className="absolute -inset-12 rounded-full"
+              className="absolute -inset-16 rounded-full"
               style={{
                 background: 'radial-gradient(circle, rgba(255,0,0,0.4), transparent)',
                 filter: 'blur(20px)',
@@ -245,7 +285,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         {/* Drone propeller effect */}
         {enemy.type === 'drone' && (
           <motion.div
-            className="absolute -top-3 left-1/2 -translate-x-1/2 w-16 h-3"
+            className="absolute -top-3 left-1/2 -translate-x-1/2 w-20 h-4"
             style={{ background: 'linear-gradient(90deg, transparent, #00ffff88, transparent)' }}
             animate={{ scaleX: [0.4, 1.3, 0.4], opacity: [0.4, 1, 0.4] }}
             transition={{ duration: 0.06, repeat: Infinity }}
@@ -255,7 +295,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
       
       {/* Health bar */}
       <div 
-        className="absolute -top-6 left-0 w-full h-4 rounded-full overflow-hidden"
+        className="absolute -top-8 left-0 w-full h-5 rounded-full overflow-hidden"
         style={{ 
           background: 'rgba(0,0,0,0.9)', 
           border: `2px solid ${color}`,
@@ -280,7 +320,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
           {[...Array(4)].map((_, i) => (
             <motion.div
               key={`spark-${i}`}
-              className="absolute w-2 h-2 rounded-full"
+              className="absolute w-3 h-3 rounded-full"
               style={{
                 background: '#ffff00',
                 left: `${20 + i * 20}%`,
@@ -293,7 +333,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
           ))}
           {/* Smoke */}
           <motion.div
-            className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-gray-500/50"
+            className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10 rounded-full bg-gray-500/50"
             animate={{ y: [-10, -30], opacity: [0.5, 0], scale: [0.5, 1.5] }}
             transition={{ duration: 0.8, repeat: Infinity }}
           />

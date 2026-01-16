@@ -17,9 +17,9 @@ export const Princess = ({ x, cameraX, isVisible }: PrincessProps) => {
       className="absolute z-15"
       style={{
         left: screenX,
-        bottom: 80, // Adjusted for 280px arena
-        width: 80,
-        height: 100,
+        bottom: 80,
+        width: 90,
+        height: 110,
       }}
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -27,7 +27,7 @@ export const Princess = ({ x, cameraX, isVisible }: PrincessProps) => {
     >
       {/* Sparkle aura */}
       <motion.div
-        className="absolute -inset-8 rounded-full"
+        className="absolute -inset-10 rounded-full"
         style={{
           background: 'radial-gradient(circle, rgba(255,182,193,0.5), rgba(255,105,180,0.3), transparent)',
           filter: 'blur(15px)',
@@ -57,7 +57,7 @@ export const Princess = ({ x, cameraX, isVisible }: PrincessProps) => {
         </motion.div>
       ))}
       
-      {/* Princess sprite */}
+      {/* Princess sprite - bigger */}
       <motion.img
         src={princessSprite}
         alt="Princess"
