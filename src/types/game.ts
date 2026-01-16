@@ -6,7 +6,7 @@ export interface TikTokGift {
   tier: GiftTier;
   diamonds: number;
   emoji: string;
-  action: GiftAction; // Direct mapping of gift to action
+  action: GiftAction;
 }
 
 export interface GiftEvent {
@@ -34,13 +34,14 @@ export type GiftAction =
   | 'nuke'
   | 'speed_boost'
   | 'triple_shot'
-  | 'time_slow';
+  | 'time_slow'
+  | 'spawn_chicken';
 
 export interface GiftActionConfig {
   action: GiftAction;
   name: string;
   description: string;
-  effect: 'help' | 'sabotage' | 'chaos';
+  effect: 'help' | 'sabotage' | 'chaos' | 'funny';
   value: number;
 }
 
@@ -64,11 +65,29 @@ export interface Enemy {
   maxHealth: number;
   speed: number;
   damage: number;
-  type: 'robot' | 'drone' | 'mech' | 'boss' | 'ninja' | 'tank' | 'flyer';
+  type: 'robot' | 'drone' | 'mech' | 'boss' | 'ninja' | 'tank' | 'flyer' | 'chicken';
   isDying: boolean;
   deathTimer: number;
   attackCooldown: number;
   animationPhase: number;
+  isFriendly?: boolean;
+}
+
+export interface FlyingRobot {
+  id: string;
+  x: number;
+  y: number;
+  speed: number;
+  type: 'ufo' | 'jet' | 'satellite';
+}
+
+export interface Chicken {
+  id: string;
+  x: number;
+  y: number;
+  state: 'appearing' | 'stopped' | 'walking' | 'gone';
+  timer: number;
+  direction: number;
 }
 
 export interface Obstacle {
@@ -77,7 +96,8 @@ export interface Obstacle {
   y: number;
   width: number;
   height: number;
-  type: 'platform' | 'spike' | 'gap' | 'wall' | 'crate' | 'barrel';
+  type: 'platform' | 'spike' | 'gap' | 'wall' | 'crate' | 'barrel' | 'trap';
+  isDeadly?: boolean;
 }
 
 export interface Player {
@@ -111,14 +131,31 @@ export interface Particle {
   color: string;
   size: number;
   life: number;
-  type: 'spark' | 'explosion' | 'muzzle' | 'death' | 'ultra' | 'blood' | 'magic' | 'dash';
+  type: 'spark' | 'explosion' | 'muzzle' | 'death' | 'ultra' | 'blood' | 'magic' | 'dash' | 'neon' | 'confetti';
+}
+
+export interface NeonLight {
+  id: string;
+  x: number;
+  y: number;
+  color: string;
+  size: number;
+  speed: number;
+}
+
+export interface Explosion {
+  id: string;
+  x: number;
+  y: number;
+  size: number;
+  timer: number;
 }
 
 export interface SpeechBubble {
   id: string;
   text: string;
   timestamp: number;
-  type: 'normal' | 'urgent' | 'excited' | 'help';
+  type: 'normal' | 'urgent' | 'excited' | 'help' | 'funny';
 }
 
 export interface GameState {
@@ -145,6 +182,10 @@ export interface GameState {
   killStreak: number;
   currentWave: number;
   maxWaves: number;
+  flyingRobots: FlyingRobot[];
+  chickens: Chicken[];
+  neonLights: NeonLight[];
+  explosions: Explosion[];
 }
 
 export interface Gifter {
@@ -154,21 +195,24 @@ export interface Gifter {
   giftCount: number;
 }
 
-// EACH GIFT HAS A SPECIFIC ACTION - Clear mapping for TikTok Live!
+// EACH GIFT HAS A SPECIFIC ACTION - Clear controls for TikTok Live!
 export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
-  // SMALL GIFTS - Basic controls
+  // MOVEMENT GIFTS - Each does ONE specific thing
   rose: { id: 'rose', name: 'Rose', tier: 'small', diamonds: 1, emoji: '🌹', action: 'move_forward' },
   ice_cream: { id: 'ice_cream', name: 'Ice Cream', tier: 'small', diamonds: 1, emoji: '🍦', action: 'move_up' },
-  finger_heart: { id: 'finger_heart', name: 'Finger Heart', tier: 'small', diamonds: 5, emoji: '🫰', action: 'shoot' },
-  doughnut: { id: 'doughnut', name: 'Doughnut', tier: 'small', diamonds: 30, emoji: '🍩', action: 'move_down' },
+  doughnut: { id: 'doughnut', name: 'Doughnut', tier: 'small', diamonds: 5, emoji: '🍩', action: 'move_down' },
   
-  // MEDIUM GIFTS - Power moves
+  // ACTION GIFTS
+  finger_heart: { id: 'finger_heart', name: 'Finger Heart', tier: 'small', diamonds: 5, emoji: '🫰', action: 'shoot' },
   cap: { id: 'cap', name: 'Cap', tier: 'medium', diamonds: 99, emoji: '🧢', action: 'jump' },
   hand_hearts: { id: 'hand_hearts', name: 'Hand Hearts', tier: 'medium', diamonds: 100, emoji: '💗', action: 'triple_shot' },
   perfume: { id: 'perfume', name: 'Perfume', tier: 'medium', diamonds: 199, emoji: '💐', action: 'heal' },
   fire: { id: 'fire', name: 'Fire', tier: 'medium', diamonds: 299, emoji: '🔥', action: 'dash_forward' },
   
-  // LARGE GIFTS - Ultimate powers
+  // CHAOS GIFTS
+  chicken: { id: 'chicken', name: 'Chicken', tier: 'small', diamonds: 10, emoji: '🐔', action: 'spawn_chicken' },
+  
+  // ULTIMATE POWERS
   galaxy: { id: 'galaxy', name: 'Galaxy', tier: 'large', diamonds: 1000, emoji: '🌌', action: 'ultra_mode' },
   planet: { id: 'planet', name: 'Planet', tier: 'large', diamonds: 2000, emoji: '🪐', action: 'nuke' },
   universe: { id: 'universe', name: 'Universe', tier: 'large', diamonds: 5000, emoji: '✨', action: 'shield' },
@@ -176,13 +220,13 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
 };
 
 // Gift action descriptions for UI
-export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: string; effect: 'help' | 'sabotage' | 'chaos' }> = {
-  move_forward: { name: '➡️ FORWARD', description: 'Move hero forward!', effect: 'help' },
-  move_up: { name: '⬆️ UP', description: 'Move hero up!', effect: 'help' },
-  move_down: { name: '⬇️ DOWN', description: 'Move hero down!', effect: 'help' },
+export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: string; effect: 'help' | 'sabotage' | 'chaos' | 'funny' }> = {
+  move_forward: { name: '➡️ FORWARD', description: 'Move hero forward only!', effect: 'help' },
+  move_up: { name: '⬆️ UP', description: 'Dodge traps by going UP!', effect: 'help' },
+  move_down: { name: '⬇️ DOWN', description: 'Fast fall DOWN!', effect: 'help' },
   shoot: { name: '🔫 SHOOT', description: 'Fire weapon!', effect: 'help' },
-  jump: { name: '🦘 JUMP', description: 'Jump!', effect: 'help' },
-  dash_forward: { name: '⚡ DASH', description: 'Quick dash!', effect: 'help' },
+  jump: { name: '🦘 JUMP', description: 'Big jump!', effect: 'help' },
+  dash_forward: { name: '⚡ DASH', description: 'Quick dash forward!', effect: 'help' },
   double_jump: { name: '🚀 DOUBLE JUMP', description: 'Super jump!', effect: 'help' },
   mega_shot: { name: '💥 MEGA SHOT', description: 'Huge damage!', effect: 'help' },
   heal: { name: '💚 HEAL', description: '+40 HP!', effect: 'help' },
@@ -193,25 +237,31 @@ export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: s
   speed_boost: { name: '⚡ SPEED', description: 'Faster!', effect: 'help' },
   triple_shot: { name: '🔥 TRIPLE', description: '3x bullets!', effect: 'help' },
   time_slow: { name: '⏰ SLOW-MO', description: 'Matrix mode!', effect: 'help' },
+  spawn_chicken: { name: '🐔 CHICKEN', description: 'Random chicken appears!', effect: 'funny' },
 };
 
-// Bro-style hero quips
+// Bro-style hero quips - FUNNY and WITTY
 export const HERO_QUIPS = [
   "LET'S GOOO! 🔥",
   "THAT'S WHAT I'M TALKIN' ABOUT, BRO!",
   "YOU'RE INSANE, CHAT! 💪",
   "CERTIFIED W MOMENT!",
-  "MY NOSE TINGLES... DANGER AHEAD!",
+  "MY NOSE SMELLS VICTORY!",
   "NO CAP, THESE ROBOTS ARE TRASH!",
   "SHEEEESH! 🔥🔥🔥",
   "BRO THAT WAS FIRE!",
   "CHAT'S GOATED FR FR!",
-  "PRINCESS, WAIT FOR ME!",
-  "I'M BUILT DIFFERENT!",
+  "PRINCESS, YOUR CHONKY HERO IS COMING!",
+  "I'M BUILT DIFFERENT... AND ROUNDER!",
   "EZ CLAP, NEXT!",
   "ABSOLUTE CINEMA! 🎬",
   "CHAT DIFF, GG!",
   "THEY CAN'T HANDLE THE NOSE!",
+  "MY BELLY IS MY POWER SOURCE!",
+  "I MAY BE THICC BUT I'M QUICK!",
+  "NOSE SO BIG I CAN SMELL THEIR FEAR!",
+  "FAT? NAH, I'M AERODYNAMIC!",
+  "THIS TUMMY ABSORBS DAMAGE!",
 ];
 
 // Help requests when no gifts for 8 seconds
@@ -223,9 +273,11 @@ export const HELP_REQUESTS = [
   "CHAT?! WHERE'S MY SUPPORT?!",
   "PLEASE BRO, JUST ONE GIFT! 🎁",
   "I CAN'T DO THIS ALONE, FAM!",
-  "SEND HELP! 🆘",
+  "SEND HELP! MY NOSE CAN ONLY DO SO MUCH! 🆘",
   "ROBOTS ARE TOO OP WITHOUT Y'ALL!",
   "CHAT CARRIED ME BEFORE, DO IT AGAIN! 😭",
+  "MY BELLY IS GETTING HUNGRY! 🍔",
+  "THIS FAT BOY NEEDS YOUR ENERGY!",
 ];
 
 export const ENEMY_DEATH_SOUNDS = [
@@ -236,12 +288,23 @@ export const ENEMY_DEATH_SOUNDS = [
   "SHUTTING... DOWN...",
   "*SPARKS INTENSELY*",
   "DOES NOT COMPUTE!",
+  "NOSE TOO POWERFUL!",
+  "BELLY BUMP'D!",
 ];
 
 export const BOSS_TAUNTS = [
-  "FOOLISH HUMAN... YOUR NOSE CANNOT SAVE YOU!",
-  "I AM THE FINAL BOSS... PREPARE TO BE DELETED!",
-  "YOUR GIFTS MEAN NOTHING TO ME!",
+  "FOOLISH CHONKY HUMAN... YOUR NOSE CANNOT SAVE YOU!",
+  "I AM THE FINAL BOSS... PREPARE TO BE DELETED, FAT MAN!",
+  "YOUR GIFTS MEAN NOTHING TO MY CIRCUITS!",
   "INITIATING... DESTRUCTION PROTOCOL!",
-  "YOU DARE CHALLENGE OMEGA-X9000?!",
+  "YOU DARE CHALLENGE MEGA DESTROYER-9000?!",
+  "YOUR BELLY IS NO MATCH FOR MY LASERS!",
+];
+
+export const CHICKEN_SOUNDS = [
+  "BAWK BAWK! 🐔",
+  "CLUCK CLUCK!",
+  "BOK BOK BOK!",
+  "*angry chicken noises*",
+  "BRRAWK!",
 ];
