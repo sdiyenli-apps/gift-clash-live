@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { TikTokConnectionState } from '@/hooks/useTikTokLive';
 
 interface ConnectionStatusProps {
   isConnected: boolean;
