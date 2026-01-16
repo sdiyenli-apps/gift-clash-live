@@ -205,23 +205,21 @@ const Index = () => {
 
       {/* Main Game Content - Full screen optimized for mobile */}
       <main className="flex-1 flex flex-col overflow-hidden min-h-0">
-        {/* Health bar - Floating at top when playing */}
+        {/* Health bar - Compact floating bar */}
         {gameState.phase === 'playing' && (
-          <div className="absolute top-14 left-2 right-2 z-20">
-            <div 
-              className="rounded-lg p-1.5"
-              style={{
-                background: 'rgba(0,0,0,0.6)',
-                backdropFilter: 'blur(8px)',
-                border: '1px solid rgba(255,255,255,0.1)',
-              }}
-            >
-              <HealthBar 
-                health={gameState.player.health}
-                maxHealth={gameState.player.maxHealth}
-                shield={gameState.player.shield}
-              />
-            </div>
+          <div 
+            className="absolute top-12 left-2 right-2 z-20 px-2 py-1 rounded-full"
+            style={{
+              background: 'rgba(0,0,0,0.75)',
+              backdropFilter: 'blur(8px)',
+              border: '1px solid rgba(0,255,255,0.2)',
+            }}
+          >
+            <HealthBar 
+              health={gameState.player.health}
+              maxHealth={gameState.player.maxHealth}
+              shield={gameState.player.shield}
+            />
           </div>
         )}
 

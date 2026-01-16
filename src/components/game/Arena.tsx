@@ -66,17 +66,14 @@ export const Arena = ({ gameState }: ArenaProps) => {
   
   return (
     <div 
-      className="relative w-full h-full rounded-lg overflow-hidden border-2"
+      className="absolute inset-0 rounded-lg overflow-hidden border border-cyan-900/50"
       style={{
-        borderColor: isBossFight ? '#ff0000' : player.isMagicDashing ? '#ff00ff' : '#222244',
         boxShadow: isBossFight 
-          ? '0 0 30px #ff0000, inset 0 0 40px rgba(255,0,0,0.2)' 
+          ? '0 0 20px rgba(255,0,0,0.5), inset 0 0 30px rgba(255,0,0,0.15)' 
           : player.isMagicDashing 
-            ? '0 0 20px #ff00ff, inset 0 0 40px rgba(255,0,255,0.2)' 
-            : '0 0 10px rgba(0, 255, 255, 0.15)',
-        height: '100%',
-        transform: `translate(${shakeX}px, ${shakeY}px) scale(0.92)`,
-        transformOrigin: 'center center',
+            ? '0 0 15px rgba(255,0,255,0.4), inset 0 0 25px rgba(255,0,255,0.15)' 
+            : 'inset 0 0 20px rgba(0, 255, 255, 0.08)',
+        transform: `translate(${shakeX}px, ${shakeY}px)`,
       }}
     >
       {/* Mini-map */}
