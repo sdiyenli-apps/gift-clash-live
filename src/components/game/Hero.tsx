@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
-import heroVideo from '@/assets/hero-video.mp4';
+import heroCharacter from '@/assets/hero-character.png';
 
 interface HeroProps {
   player: Player;
@@ -13,9 +13,9 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
   const screenX = player.x - cameraX;
   const isEmpowered = isUltraMode || player.isMagicDashing;
 
-  // Half size hero for mobile
-  const heroWidth = 45;
-  const heroHeight = 55;
+  // Character size
+  const heroWidth = 60;
+  const heroHeight = 75;
 
   return (
     <motion.div
@@ -35,16 +35,16 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         repeat: isEmpowered ? Infinity : 0,
       }}
     >
-      {/* Speech bubble - smaller */}
+      {/* Speech bubble */}
       {speechBubble && (
         <motion.div
           initial={{ opacity: 0, y: 8, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8 }}
-          className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap z-30"
+          className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap z-30"
         >
           <div 
-            className="px-1.5 py-1 rounded-lg text-[9px] font-bold shadow-lg relative"
+            className="px-2 py-1.5 rounded-lg text-[10px] font-bold shadow-lg relative"
             style={{
               background: speechBubble.type === 'help' 
                 ? 'linear-gradient(135deg, #ff6b6b, #ff8888)' 
@@ -53,18 +53,18 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
                 : 'linear-gradient(135deg, #fff, #f0f0f0)',
               color: ['help', 'urgent'].includes(speechBubble.type) ? '#fff' : '#333',
               boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
-              maxWidth: 140,
+              maxWidth: 150,
             }}
           >
             {speechBubble.text}
             <div 
               className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-full w-0 h-0"
               style={{
-                borderLeft: '4px solid transparent',
-                borderRight: '4px solid transparent',
+                borderLeft: '5px solid transparent',
+                borderRight: '5px solid transparent',
                 borderTop: speechBubble.type === 'help' 
-                  ? '5px solid #ff6b6b' 
-                  : '5px solid white',
+                  ? '6px solid #ff6b6b' 
+                  : '6px solid white',
               }}
             />
           </div>
@@ -89,7 +89,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           {[0, 1, 2, 3].map(i => (
             <motion.div
               key={i}
-              className="absolute w-1 h-1 rounded-full"
+              className="absolute w-1.5 h-1.5 rounded-full"
               style={{
                 background: i % 2 === 0 ? '#ff00ff' : '#00ffff',
                 left: `${20 + i * 15}%`,
@@ -113,11 +113,11 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
       {/* Shield bubble */}
       {player.shield > 0 && (
         <motion.div
-          className="absolute -inset-2 rounded-full"
+          className="absolute -inset-3 rounded-full"
           style={{
             background: 'radial-gradient(circle, rgba(0,255,255,0.1) 0%, rgba(0,255,255,0.2) 80%, rgba(0,255,255,0.4) 100%)',
-            border: '1px solid #00ffff',
-            boxShadow: '0 0 12px #00ffff, inset 0 0 12px rgba(0, 255, 255, 0.2)',
+            border: '2px solid #00ffff',
+            boxShadow: '0 0 15px #00ffff, inset 0 0 15px rgba(0, 255, 255, 0.2)',
             opacity: Math.min(1, player.shield / 50),
           }}
           animate={{ scale: [1, 1.02, 1] }}
@@ -125,52 +125,53 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         />
       )}
       
-      {/* Hero Character - mirrored to face right */}
+      {/* Hero Character - PNG image */}
       <motion.div
         className="relative w-full h-full"
-        style={{ transform: 'scaleX(-1)' }}
       >
         {/* Shadow */}
         <motion.div 
-          className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 rounded-full opacity-35"
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full opacity-40"
           style={{ 
             background: 'radial-gradient(ellipse, #000, transparent)',
-            width: 35,
-            height: 6,
+            width: 50,
+            height: 8,
           }}
         />
         
-        {/* Video Hero - ORIGINAL STYLE */}
+        {/* Hero Image */}
         <motion.div
-          className="relative w-full h-full overflow-hidden rounded-md"
+          className="relative w-full h-full"
           style={{
             filter: isUltraMode || player.isMagicDashing
               ? 'drop-shadow(0 0 12px #ff00ff) drop-shadow(0 0 20px #00ffff)' 
-              : 'drop-shadow(0 0 6px #00ccff)',
+              : 'drop-shadow(0 0 8px #00ccff)',
           }}
-          animate={player.animationState === 'hurt' ? { x: [-2, 2, -2, 0] } : {}}
+          animate={player.animationState === 'hurt' ? { x: [-3, 3, -3, 0] } : {}}
           transition={{ duration: 0.1 }}
         >
-          <video
-            src={heroVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover rounded-md"
+          <motion.img
+            src={heroCharacter}
+            alt="Hero"
+            className="w-full h-full object-contain"
+            animate={{
+              y: player.isDashing || player.isMagicDashing ? [0, -2, 0] : 0,
+              rotate: player.animationState === 'dash' ? -5 : 
+                      player.isShooting ? 2 : 0,
+            }}
+            transition={{ duration: 0.15, repeat: player.isDashing ? Infinity : 0 }}
             style={{
-              transform: player.animationState === 'dash' ? 'rotate(-3deg) scale(1.05)' : 
-                        player.isShooting ? 'rotate(1deg)' : 'none',
+              imageRendering: 'auto',
             }}
           />
           
           {/* Damage flash */}
           {player.animationState === 'hurt' && (
             <motion.div
-              className="absolute inset-0 bg-red-500/50 rounded-md"
+              className="absolute inset-0 bg-red-500/60 rounded-md"
               initial={{ opacity: 1 }}
               animate={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
+              transition={{ duration: 0.15 }}
             />
           )}
           
@@ -179,7 +180,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
             <motion.div
               className="absolute inset-0 rounded-md pointer-events-none"
               style={{
-                background: 'radial-gradient(circle, rgba(255,0,255,0.3), transparent)',
+                background: 'radial-gradient(circle, rgba(255,0,255,0.4), transparent)',
                 mixBlendMode: 'screen',
               }}
               animate={{ opacity: [0.2, 0.6, 0.2] }}
@@ -188,25 +189,25 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           )}
         </motion.div>
         
-        {/* Shooting muzzle flash */}
+        {/* Shooting muzzle flash - positioned at gun */}
         {player.isShooting && (
           <>
             <motion.div
-              initial={{ opacity: 1, scale: 0.4 }}
-              animate={{ opacity: 0, scale: 2 }}
-              transition={{ duration: 0.1 }}
-              className="absolute right-0 top-1/3"
-              style={{ right: -8 }}
+              initial={{ opacity: 1, scale: 0.5 }}
+              animate={{ opacity: 0, scale: 2.5 }}
+              transition={{ duration: 0.12 }}
+              className="absolute"
+              style={{ right: -15, top: '40%' }}
             >
               <div 
-                className="w-8 h-8 rounded-full"
+                className="w-10 h-10 rounded-full"
                 style={{
                   background: player.isMagicDashing 
                     ? 'radial-gradient(circle, #fff, #ff00ff, #00ffff, transparent)'
                     : 'radial-gradient(circle, #fff, #ffff00, #ff8800, transparent)',
                   boxShadow: player.isMagicDashing
-                    ? '0 0 20px #ff00ff, 0 0 35px #00ffff'
-                    : '0 0 15px #ffff00, 0 0 25px #ff8800',
+                    ? '0 0 25px #ff00ff, 0 0 40px #00ffff'
+                    : '0 0 20px #ffff00, 0 0 30px #ff8800',
                 }}
               />
             </motion.div>
@@ -214,17 +215,17 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
             {[0, 1].map(i => (
               <motion.div
                 key={`ring-${i}`}
-                className="absolute rounded-full border"
+                className="absolute rounded-full border-2"
                 style={{
-                  right: -5,
-                  top: '30%',
-                  width: 10,
-                  height: 10,
+                  right: -8,
+                  top: '38%',
+                  width: 14,
+                  height: 14,
                   borderColor: player.isMagicDashing ? '#ff00ff' : '#ffff00',
                 }}
-                initial={{ scale: 0.4, opacity: 1 }}
-                animate={{ scale: 1.5 + i, opacity: 0 }}
-                transition={{ duration: 0.15, delay: i * 0.04 }}
+                initial={{ scale: 0.5, opacity: 1 }}
+                animate={{ scale: 2 + i, opacity: 0 }}
+                transition={{ duration: 0.18, delay: i * 0.05 }}
               />
             ))}
           </>
@@ -234,43 +235,41 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         {player.isShooting && (
           <motion.div
             initial={{ scaleX: 0, opacity: 1 }}
-            animate={{ scaleX: 1, opacity: 0.7 }}
+            animate={{ scaleX: 1, opacity: 0.8 }}
             transition={{ duration: 0.1 }}
-            className="absolute top-1/3 h-2"
+            className="absolute h-2.5"
             style={{ 
-              left: heroWidth - 2, 
-              width: 200,
+              left: heroWidth, 
+              top: '42%',
+              width: 220,
               background: player.isMagicDashing
                 ? 'linear-gradient(90deg, #fff, #ff00ff, #00ffff, transparent)'
                 : 'linear-gradient(90deg, #fff, #ffff00, #ff6600, transparent)',
               transformOrigin: 'left center',
               filter: 'blur(1px)',
-              boxShadow: player.isMagicDashing ? '0 0 10px #ff00ff' : '0 0 8px #ffff00',
+              boxShadow: player.isMagicDashing ? '0 0 12px #ff00ff' : '0 0 10px #ffff00',
             }}
           />
         )}
         
-        {/* Magic dash trail */}
+        {/* Magic dash trail - ghost images */}
         {player.isMagicDashing && (
           <>
             {[...Array(3)].map((_, i) => (
               <motion.div
                 key={`dash-${i}`}
-                className="absolute inset-0 overflow-hidden rounded-md"
-                initial={{ opacity: 0.4, x: 0 }}
-                animate={{ opacity: 0, x: -12 - i * 6 }}
-                transition={{ duration: 0.15, delay: i * 0.015 }}
+                className="absolute inset-0"
+                initial={{ opacity: 0.5, x: 0 }}
+                animate={{ opacity: 0, x: -15 - i * 8 }}
+                transition={{ duration: 0.18, delay: i * 0.02 }}
               >
-                <video 
-                  src={heroVideo}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  className="w-full h-full object-cover"
+                <img 
+                  src={heroCharacter}
+                  alt=""
+                  className="w-full h-full object-contain"
                   style={{ 
-                    filter: `blur(${i * 1.5}px) hue-rotate(${i * 30}deg)`,
-                    opacity: 0.3 - i * 0.08,
+                    filter: `blur(${i * 2}px) hue-rotate(${i * 40}deg)`,
+                    opacity: 0.35 - i * 0.1,
                   }}
                 />
               </motion.div>
@@ -282,24 +281,24 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
       {/* Speed lines */}
       {(player.isDashing || player.isMagicDashing) && (
         <div className="absolute inset-0 pointer-events-none overflow-visible">
-          {[...Array(3)].map((_, i) => (
+          {[...Array(4)].map((_, i) => (
             <motion.div
               key={`speed-${i}`}
-              className="absolute h-px"
+              className="absolute h-0.5"
               style={{
                 background: 'linear-gradient(90deg, transparent, #fff, transparent)',
-                width: 25 + Math.random() * 15,
-                top: 8 + i * 15,
+                width: 30 + Math.random() * 20,
+                top: 10 + i * 18,
                 right: heroWidth,
               }}
               animate={{
-                x: [-15, -50],
-                opacity: [0.6, 0],
+                x: [-20, -60],
+                opacity: [0.7, 0],
               }}
               transition={{
-                duration: 0.1,
+                duration: 0.12,
                 repeat: Infinity,
-                delay: i * 0.02,
+                delay: i * 0.025,
               }}
             />
           ))}
