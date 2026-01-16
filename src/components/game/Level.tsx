@@ -206,6 +206,189 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
     return items;
   }, [cameraX, currentZone.color]);
   
+  // Render obstacles including DEADLY TRAPS
+  const obstacleElements = useMemo(() => {
+    return obstacles.map(obstacle => {
+      const screenX = obstacle.x - cameraX;
+      if (screenX < -150 || screenX > 1100) return null;
+      const obstZone = getZone(obstacle.x).zone;
+      
+      if (obstacle.type === 'spike') {
+        // DEADLY SPIKE TRAP
+        return (
+          <motion.div
+            key={obstacle.id}
+            className="absolute"
+            style={{
+              left: screenX,
+              bottom: 100,
+              width: obstacle.width,
+              height: obstacle.height,
+            }}
+            animate={{ opacity: [0.8, 1, 0.8] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          >
+            {/* Spikes */}
+            <div className="flex justify-center gap-1 h-full">
+              {[...Array(5)].map((_, i) => (
+                <div 
+                  key={i}
+                  className="w-0 h-0"
+                  style={{
+                    borderLeft: '6px solid transparent',
+                    borderRight: '6px solid transparent',
+                    borderBottom: '25px solid #ff4444',
+                    filter: 'drop-shadow(0 0 5px #ff0000)',
+                  }}
+                />
+              ))}
+            </div>
+            {/* Warning glow */}
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                background: 'radial-gradient(ellipse, rgba(255,0,0,0.3), transparent)',
+              }}
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 0.5, repeat: Infinity }}
+            />
+            {/* DANGER label */}
+            <motion.div
+              className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-bold text-red-500"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 0.5, repeat: Infinity }}
+            >
+              ⚠️ DANGER
+            </motion.div>
+          </motion.div>
+        );
+      }
+      
+      if (obstacle.type === 'trap') {
+        // DEADLY FLOATING TRAP
+        return (
+          <motion.div
+            key={obstacle.id}
+            className="absolute"
+            style={{
+              left: screenX,
+              bottom: 480 - obstacle.y - obstacle.height,
+              width: obstacle.width,
+              height: obstacle.height,
+            }}
+            animate={{ 
+              y: [0, -5, 0],
+              rotate: [0, 5, 0, -5, 0],
+            }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            {/* Electric trap body */}
+            <div 
+              className="w-full h-full rounded-lg"
+              style={{
+                background: 'linear-gradient(135deg, #ff0000, #880000)',
+                border: '3px solid #ff4444',
+                boxShadow: '0 0 20px #ff0000, inset 0 0 15px rgba(255,255,255,0.2)',
+              }}
+            >
+              {/* Electric bolts */}
+              <motion.div
+                className="absolute inset-0 flex items-center justify-center text-2xl"
+                animate={{ opacity: [0.5, 1, 0.5], scale: [0.9, 1.1, 0.9] }}
+                transition={{ duration: 0.3, repeat: Infinity }}
+              >
+                ⚡
+              </motion.div>
+            </div>
+            {/* Warning particles */}
+            {[...Array(4)].map((_, i) => (
+              <motion.div
+                key={i}
+                className="absolute w-2 h-2 rounded-full bg-yellow-400"
+                style={{
+                  left: `${25 * i}%`,
+                  top: '50%',
+                }}
+                animate={{
+                  y: [-10, 10, -10],
+                  opacity: [0, 1, 0],
+                }}
+                transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.2 }}
+              />
+            ))}
+          </motion.div>
+        );
+      }
+      
+      if (obstacle.type === 'platform') {
+        return (
+          <motion.div
+            key={obstacle.id}
+            className="absolute"
+            style={{
+              left: screenX,
+              bottom: 480 - obstacle.y,
+              width: obstacle.width,
+              height: obstacle.height,
+            }}
+          >
+            <div 
+              className="w-full h-full rounded-sm"
+              style={{
+                background: `linear-gradient(180deg, #4a4a6a, #2a2a4a)`,
+                borderTop: `3px solid ${obstZone.color}`,
+                boxShadow: isUltraMode 
+                  ? `0 0 20px ${currentZone.color}66, 0 4px 8px rgba(0,0,0,0.5)` 
+                  : '0 4px 8px rgba(0,0,0,0.3)',
+              }}
+            />
+            <motion.div
+              className="absolute inset-x-0 -top-1 h-1 rounded-full"
+              style={{ background: obstZone.color }}
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            />
+          </motion.div>
+        );
+      }
+      
+      if (obstacle.type === 'crate' || obstacle.type === 'barrel') {
+        return (
+          <motion.div
+            key={obstacle.id}
+            className="absolute"
+            style={{
+              left: screenX,
+              bottom: 100,
+              width: obstacle.width,
+              height: obstacle.height,
+            }}
+          >
+            <div 
+              className={`w-full h-full ${obstacle.type === 'barrel' ? 'rounded-lg' : 'rounded-sm'}`}
+              style={{
+                background: obstacle.type === 'barrel' 
+                  ? 'linear-gradient(135deg, #8B4513, #654321)'
+                  : 'linear-gradient(135deg, #8B7355, #6B5344)',
+                border: '2px solid #5a4a3a',
+                boxShadow: 'inset -3px -3px 10px rgba(0,0,0,0.4), inset 3px 3px 10px rgba(255,255,255,0.1)',
+              }}
+            >
+              {obstacle.type === 'barrel' && (
+                <>
+                  <div className="absolute top-2 left-1 right-1 h-1 bg-gray-600 rounded" />
+                  <div className="absolute bottom-2 left-1 right-1 h-1 bg-gray-600 rounded" />
+                </>
+              )}
+            </div>
+          </motion.div>
+        );
+      }
+      
+      return null;
+    });
+  }, [obstacles, cameraX, currentZone.color, isUltraMode]);
+  
   // Princess at the end!
   const princessX = levelLength - 200 - cameraX;
   const showPrincess = princessX > -150 && princessX < 1200;
@@ -214,7 +397,6 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
     <div className="absolute inset-0 overflow-hidden">
       {/* Background with zone transition */}
       <div className="absolute inset-0">
-        {/* Current zone background */}
         <motion.div
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
@@ -222,7 +404,6 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             opacity: 1 - Math.min(zoneProgress * 0.5, 0.5),
           }}
         />
-        {/* Next zone background (fading in) */}
         {zoneProgress > 0.5 && (
           <motion.div
             initial={{ opacity: 0 }}
@@ -231,7 +412,6 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             style={{ backgroundImage: `url(${nextZone.bg})` }}
           />
         )}
-        {/* Overlay gradient */}
         <div 
           className="absolute inset-0"
           style={{
@@ -277,44 +457,8 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
       {/* Ground tiles */}
       {groundTiles}
       
-      {/* Platforms with zone styling */}
-      {obstacles.filter(o => o.type === 'platform').map(platform => {
-        const screenX = platform.x - cameraX;
-        if (screenX < -150 || screenX > 1100) return null;
-        const platZone = getZone(platform.x).zone;
-        
-        return (
-          <motion.div
-            key={platform.id}
-            className="absolute"
-            style={{
-              left: screenX,
-              bottom: 480 - platform.y,
-              width: platform.width,
-              height: platform.height,
-            }}
-          >
-            {/* Platform main */}
-            <div 
-              className="w-full h-full rounded-sm"
-              style={{
-                background: `linear-gradient(180deg, #4a4a6a, #2a2a4a)`,
-                borderTop: `3px solid ${platZone.color}`,
-                boxShadow: isUltraMode 
-                  ? `0 0 20px ${currentZone.color}66, 0 4px 8px rgba(0,0,0,0.5)` 
-                  : '0 4px 8px rgba(0,0,0,0.3)',
-              }}
-            />
-            {/* Platform glow */}
-            <motion.div
-              className="absolute inset-x-0 -top-1 h-1 rounded-full"
-              style={{ background: platZone.color }}
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            />
-          </motion.div>
-        );
-      })}
+      {/* Obstacles */}
+      {obstacleElements}
       
       {/* Princess Goal */}
       {showPrincess && (
@@ -324,7 +468,6 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
           animate={{ y: [0, -8, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
         >
-          {/* Castle/Tower structure */}
           <div 
             className="relative w-32 h-48 rounded-t-lg overflow-hidden"
             style={{
@@ -332,7 +475,6 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
               boxShadow: '0 0 50px #ff00ff66, 0 0 100px #ff00ff33',
             }}
           >
-            {/* Tower spire */}
             <div 
               className="absolute -top-8 left-1/2 -translate-x-1/2 w-0 h-0"
               style={{
@@ -342,7 +484,6 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
               }}
             />
             
-            {/* Princess window */}
             <div 
               className="absolute top-8 left-1/2 -translate-x-1/2 w-20 h-24 rounded-t-full overflow-hidden"
               style={{
@@ -350,7 +491,6 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
                 boxShadow: 'inset 0 0 20px #ff00ff',
               }}
             >
-              {/* Princess sprite */}
               <motion.img
                 src={princessSprite}
                 alt="Princess"
@@ -360,32 +500,23 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
               />
             </div>
             
-            {/* Decorative elements */}
             <div className="absolute bottom-4 left-4 w-8 h-12 bg-purple-800 rounded-t" />
             <div className="absolute bottom-4 right-4 w-8 h-12 bg-purple-800 rounded-t" />
           </div>
           
-          {/* Help text */}
           <motion.div
             className="absolute -top-20 left-1/2 -translate-x-1/2 whitespace-nowrap text-center"
-            animate={{ 
-              opacity: [0.7, 1, 0.7],
-              scale: [1, 1.05, 1],
-            }}
+            animate={{ opacity: [0.7, 1, 0.7], scale: [1, 1.05, 1] }}
             transition={{ duration: 1.5, repeat: Infinity }}
           >
             <span 
               className="text-lg font-bold"
-              style={{ 
-                color: '#ff66ff',
-                textShadow: '0 0 20px #ff00ff, 0 0 40px #ff00ff',
-              }}
+              style={{ color: '#ff66ff', textShadow: '0 0 20px #ff00ff, 0 0 40px #ff00ff' }}
             >
               💕 SAVE ME! 💕
             </span>
           </motion.div>
           
-          {/* Sparkles around princess */}
           {[...Array(8)].map((_, i) => (
             <motion.div
               key={`sparkle-${i}`}
@@ -396,15 +527,8 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
                 background: '#ff00ff',
                 boxShadow: '0 0 10px #ff00ff',
               }}
-              animate={{ 
-                scale: [0, 1, 0],
-                opacity: [0, 1, 0],
-              }}
-              transition={{ 
-                duration: 2,
-                repeat: Infinity,
-                delay: i * 0.25,
-              }}
+              animate={{ scale: [0, 1, 0], opacity: [0, 1, 0] }}
+              transition={{ duration: 2, repeat: Infinity, delay: i * 0.25 }}
             />
           ))}
         </motion.div>
@@ -417,10 +541,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
         </div>
         <div 
           className="h-4 rounded-full overflow-hidden border-2"
-          style={{ 
-            background: 'rgba(0,0,0,0.5)',
-            borderColor: `${currentZone.color}66`,
-          }}
+          style={{ background: 'rgba(0,0,0,0.5)', borderColor: `${currentZone.color}66` }}
         >
           <motion.div
             className="h-full"
@@ -434,7 +555,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
         <div className="flex justify-between text-xs text-gray-400 mt-1 font-bold">
           <span>🏃 {Math.floor(distance)}m</span>
           <span>{Math.floor((distance / levelLength) * 100)}%</span>
-          <span>👸 {levelLength}m</span>
+          <span>👸 {Math.floor(levelLength)}m</span>
         </div>
       </div>
       
@@ -449,7 +570,6 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             animate={{ opacity: [0.3, 0.6, 0.3] }}
             transition={{ duration: 0.2, repeat: Infinity }}
           />
-          {/* Speed lines */}
           {[...Array(10)].map((_, i) => (
             <motion.div
               key={`speed-line-${i}`}
@@ -460,15 +580,8 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
                 right: 0,
                 background: `linear-gradient(90deg, transparent, ${currentZone.color}88, transparent)`,
               }}
-              animate={{ 
-                x: [0, -100, 0],
-                opacity: [0, 1, 0],
-              }}
-              transition={{ 
-                duration: 0.3,
-                repeat: Infinity,
-                delay: i * 0.05,
-              }}
+              animate={{ x: [0, -100, 0], opacity: [0, 1, 0] }}
+              transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.05 }}
             />
           ))}
         </>
