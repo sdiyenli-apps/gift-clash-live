@@ -91,35 +91,35 @@ const Index = () => {
 
   return (
     <div 
-      className="h-screen w-screen flex flex-col overflow-hidden"
+      className="h-screen w-screen flex flex-col overflow-hidden safe-area-inset"
       style={{
         background: 'linear-gradient(135deg, #0a0a1a 0%, #1a0a2a 50%, #0a1a2a 100%)',
       }}
     >
       <GiftNotification notifications={notifications} />
 
-      {/* Compact Header */}
-      <header className="p-1 bg-black/80 border-b border-purple-500/30 flex-shrink-0">
+      {/* Compact Header - optimized for mobile */}
+      <header className="px-2 py-1 bg-black/90 border-b border-purple-500/30 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1">
-            <span className="text-base">🐿️</span>
+          <div className="flex items-center gap-1.5">
+            <span className="text-lg">🐿️</span>
             <h1 
-              className="font-bold text-xs"
+              className="font-bold text-sm sm:text-base"
               style={{
                 background: 'linear-gradient(90deg, #ff00ff, #00ffff)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              CAPTAIN SQUIRBERT
+              CPT SQUIRBERT
             </h1>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Audio Toggle Button */}
             <motion.button
               onClick={() => setAudioOn(!audioOn)}
-              className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
+              className={`px-2 py-1 rounded text-xs font-bold transition-all ${
                 audioOn 
                   ? 'bg-cyan-500/30 text-cyan-400 border border-cyan-500/50' 
                   : 'bg-gray-700/50 text-gray-400 border border-gray-600/50'
@@ -127,11 +127,11 @@ const Index = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              {audioOn ? '🔊 Audio ON' : '🔇 Audio OFF'}
+              {audioOn ? '🔊' : '🔇'}
             </motion.button>
 
             {gameState.phase === 'playing' && (
-              <div className="flex items-center gap-2 text-[9px]">
+              <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
                 <div className="text-cyan-400 font-bold">⭐ {gameState.score}</div>
                 <div className="text-yellow-400 font-bold">W{gameState.currentWave}</div>
                 {gameState.player.isMagicDashing && (
@@ -140,7 +140,7 @@ const Index = () => {
                     animate={{ opacity: [1, 0.5, 1] }}
                     transition={{ duration: 0.2, repeat: Infinity }}
                   >
-                    ✨ {gameState.player.magicDashTimer.toFixed(1)}s
+                    ✨ {gameState.player.magicDashTimer.toFixed(0)}s
                   </motion.div>
                 )}
               </div>
@@ -149,11 +149,11 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Content - Full mobile optimized */}
-      <main className="flex-1 flex flex-col p-1 gap-1 overflow-hidden min-h-0">
-        {/* Health bar - only when playing */}
+      {/* Main Content - Full mobile optimized with better POV */}
+      <main className="flex-1 flex flex-col p-1.5 gap-1.5 overflow-hidden min-h-0">
+        {/* Health bar - only when playing - larger for visibility */}
         {gameState.phase === 'playing' && (
-          <div className="bg-gray-900/90 rounded p-1 border border-cyan-500/30 flex-shrink-0">
+          <div className="bg-gray-900/90 rounded-lg p-1.5 border border-cyan-500/30 flex-shrink-0">
             <HealthBar 
               health={gameState.player.health}
               maxHealth={gameState.player.maxHealth}
@@ -162,8 +162,8 @@ const Index = () => {
           </div>
         )}
 
-        {/* Game Arena - takes all available space */}
-        <div className="relative flex-1 min-h-0">
+        {/* Game Arena - takes all available space with better aspect ratio */}
+        <div className="relative flex-1 min-h-0 rounded-lg overflow-hidden" style={{ minHeight: '45vh' }}>
           <Arena gameState={gameState} />
           <GameOverlay 
             phase={gameState.phase}
@@ -176,7 +176,7 @@ const Index = () => {
           />
         </div>
 
-        {/* Gift Controls - compact */}
+        {/* Gift Controls - larger buttons for mobile */}
         <div className="flex-shrink-0">
           <GiftPanel 
             onTriggerGift={handleTriggerGift}
@@ -184,39 +184,39 @@ const Index = () => {
           />
         </div>
 
-        {/* Auto-simulate & Recent - very compact */}
-        <div className="flex gap-1 flex-shrink-0">
-          <div className="flex-1 bg-gray-900/90 rounded p-1 border border-green-500/30">
+        {/* Auto-simulate & Recent - compact but readable */}
+        <div className="flex gap-1.5 flex-shrink-0">
+          <div className="flex-1 bg-gray-900/90 rounded-lg p-1.5 border border-green-500/30">
             <label className="flex items-center justify-between cursor-pointer">
-              <span className="font-bold text-[9px] text-gray-300">🤖 Auto</span>
+              <span className="font-bold text-xs text-gray-300">🤖 Auto</span>
               <button
                 onClick={() => setAutoSimulate(!autoSimulate)}
-                className={`w-7 h-3.5 rounded-full transition-colors relative ${autoSimulate ? 'bg-green-500' : 'bg-gray-700'}`}
+                className={`w-10 h-5 rounded-full transition-colors relative ${autoSimulate ? 'bg-green-500' : 'bg-gray-700'}`}
               >
                 <motion.div
-                  className="w-2.5 h-2.5 bg-white rounded-full absolute top-0.5"
-                  animate={{ left: autoSimulate ? '14px' : '2px' }}
+                  className="w-4 h-4 bg-white rounded-full absolute top-0.5"
+                  animate={{ left: autoSimulate ? '22px' : '2px' }}
                 />
               </button>
             </label>
           </div>
 
-          <div className="flex-1 bg-gray-900/90 rounded p-1 border border-yellow-500/30">
-            <div className="text-[8px] text-yellow-400 font-bold">💫 Recent</div>
-            <div className="flex gap-0.5 overflow-x-auto">
+          <div className="flex-1 bg-gray-900/90 rounded-lg p-1.5 border border-yellow-500/30">
+            <div className="text-xs text-yellow-400 font-bold mb-0.5">💫 Recent</div>
+            <div className="flex gap-1 overflow-x-auto">
               {giftEvents.slice(0, 5).map((event) => (
-                <span key={event.id} className="text-xs">{event.gift.emoji}</span>
+                <span key={event.id} className="text-base">{event.gift.emoji}</span>
               ))}
-              {giftEvents.length === 0 && <span className="text-[7px] text-gray-500">None</span>}
+              {giftEvents.length === 0 && <span className="text-xs text-gray-500">None</span>}
             </div>
           </div>
         </div>
       </main>
 
       {/* Footer - minimal */}
-      <footer className="p-0.5 text-center bg-black/80 border-t border-purple-500/30 flex-shrink-0">
-        <p className="text-[7px] text-gray-500">
-          🎮 Gifts control hero! 👑 Save Princess!
+      <footer className="py-1 text-center bg-black/90 border-t border-purple-500/30 flex-shrink-0">
+        <p className="text-xs text-gray-400">
+          🎮 Send gifts to control hero! 👑 Save the Princess!
         </p>
       </footer>
     </div>
