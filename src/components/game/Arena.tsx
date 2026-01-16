@@ -296,10 +296,11 @@ export const Arena = ({ gameState }: ArenaProps) => {
           })}
         </div>
         
+        {/* Princess only visible at wave 1000 */}
         <Princess
           x={levelLength - 100} 
           cameraX={cameraX} 
-          isVisible={!isBossFight && distance > levelLength - 600}
+          isVisible={currentWave === 1000 && !isBossFight && distance > levelLength - 600}
         />
         
         <Particles particles={particles} cameraX={cameraX} />
@@ -312,8 +313,8 @@ export const Arena = ({ gameState }: ArenaProps) => {
           cameraX={cameraX} 
         />
         
-        {/* Armor timer */}
-        {armorTimer > 0 && (
+        {/* Shield indicator - permanent (no timer) */}
+        {gameState.player.shield > 0 && (
           <motion.div
             className="absolute bottom-2 left-2 z-30"
             initial={{ scale: 0 }}
@@ -327,7 +328,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
                 boxShadow: '0 0 12px #00ffff',
               }}
             >
-              🛡️ {armorTimer.toFixed(1)}s
+              🛡️ {Math.ceil(gameState.player.shield)}
             </div>
           </motion.div>
         )}
