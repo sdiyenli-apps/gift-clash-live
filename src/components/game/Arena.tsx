@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { GameState, Projectile } from '@/types/game';
+import { GameState, Projectile, GiftBlock } from '@/types/game';
 import { BackgroundVideo } from './BackgroundVideo';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
@@ -28,7 +28,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
     player, enemies, projectiles, particles, obstacles,
     cameraX, distance, levelLength, isUltraMode, speechBubble,
     combo, comboTimer, isFrozen, isBossFight, screenShake,
-    flyingRobots, chickens, neonLights, explosions,
+    flyingRobots, chickens, neonLights, explosions, giftBlocks = [],
     fireballs = [], redFlash = 0, armorTimer = 0, enemyLasers = [],
     magicFlash = 0, bossTaunt = null, currentWave
   } = gameState;
@@ -159,6 +159,52 @@ export const Arena = ({ gameState }: ArenaProps) => {
               background: 'linear-gradient(90deg, transparent, rgba(0,255,255,0.6), transparent)',
             }}
           />
+          
+          {/* Gift blocks flying on the floor */}
+          {giftBlocks.map(block => (
+            <motion.div
+              key={block.id}
+              className="absolute flex flex-col items-center"
+              style={{
+                left: block.x - cameraX,
+                bottom: 30,
+              }}
+              initial={{ scale: 0, y: 20 }}
+              animate={{ 
+                scale: 1, 
+                y: [0, -8, 0],
+                rotate: [0, 5, -5, 0],
+              }}
+              transition={{
+                scale: { duration: 0.2 },
+                y: { duration: 0.6, repeat: Infinity },
+                rotate: { duration: 0.8, repeat: Infinity },
+              }}
+            >
+              {/* Glowing gift block */}
+              <div 
+                className="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255,0,255,0.8), rgba(0,255,255,0.8))',
+                  boxShadow: '0 0 15px rgba(255,0,255,0.6), 0 0 25px rgba(0,255,255,0.4)',
+                  border: '2px solid rgba(255,255,255,0.5)',
+                }}
+              >
+                {block.emoji}
+              </div>
+              {/* Username label */}
+              <div 
+                className="absolute -top-4 text-[8px] font-bold whitespace-nowrap px-1 rounded"
+                style={{
+                  background: 'rgba(0,0,0,0.7)',
+                  color: '#00ffff',
+                  textShadow: '0 0 5px #00ffff',
+                }}
+              >
+                {block.username.slice(0, 8)}
+              </div>
+            </motion.div>
+          ))}
         </div>
         
         <Princess

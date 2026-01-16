@@ -156,6 +156,17 @@ export interface SpeechBubble {
   type: 'normal' | 'urgent' | 'excited' | 'help' | 'funny';
 }
 
+export interface GiftBlock {
+  id: string;
+  x: number;
+  y: number;
+  emoji: string;
+  username: string;
+  giftName: string;
+  velocityX: number;
+  life: number;
+}
+
 export interface GameState {
   phase: 'waiting' | 'playing' | 'gameover' | 'victory';
   score: number;
@@ -184,6 +195,7 @@ export interface GameState {
   chickens: Chicken[];
   neonLights: NeonLight[];
   explosions: Explosion[];
+  giftBlocks: GiftBlock[];
 }
 
 export interface Gifter {

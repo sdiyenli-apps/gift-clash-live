@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { 
   GameState, Player, Enemy, Projectile, Particle, GiftEvent, GiftAction, 
   Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS,
-  FlyingRobot, NeonLight, Explosion, Chicken
+  FlyingRobot, NeonLight, Explosion, Chicken, GiftBlock, TIKTOK_GIFTS
 } from '@/types/game';
 
 const GRAVITY = 0;
@@ -103,6 +103,7 @@ const INITIAL_STATE: ExtendedGameState = {
   chickens: [],
   neonLights: [],
   explosions: [],
+  giftBlocks: [],
   fireballs: [],
   bossFireballTimer: BOSS_FIREBALL_INTERVAL,
   bossMegaAttackUsed: false,
@@ -446,19 +447,20 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero laser only fires forward (no homing)
+          // Hero fires BACKWARD (negative velocity) - the projectile travels left
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
-            x: prev.player.x + PLAYER_WIDTH,
+            x: prev.player.x - 10, // Start behind the player
             y: prev.player.y + PLAYER_HEIGHT / 2,
-            velocityX: 1400,
-            velocityY: 0, // Always fires straight forward
+            velocityX: -1400, // Fires BACKWARD (negative = left direction)
+            velocityY: 0,
             damage: prev.player.isMagicDashing ? 120 : 50,
             type: prev.player.isMagicDashing ? 'ultra' : 'mega',
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 12, 'muzzle', '#ffff00')];
+          // Visual laser effect from hero forward
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH + 20, prev.player.y + PLAYER_HEIGHT / 2, 15, 'muzzle', '#00ffff')];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
@@ -564,6 +566,23 @@ export const useGameState = () => {
         giftCount: 1,
       }].sort((a, b) => b.totalDiamonds - a.totalDiamonds);
     });
+    
+    // Create a gift block that flies across the floor
+    const newGiftBlock: GiftBlock = {
+      id: `gift-block-${Date.now()}-${Math.random()}`,
+      x: 50, // Start from left side of screen
+      y: GROUND_Y + 10, // On the floor
+      emoji: event.gift.emoji,
+      username: event.username,
+      giftName: event.gift.name,
+      velocityX: 150 + Math.random() * 100, // Fly forward
+      life: 8, // Lives for 8 seconds
+    };
+    
+    setGameState(prev => ({
+      ...prev,
+      giftBlocks: [...prev.giftBlocks, newGiftBlock].slice(-20), // Keep max 20 blocks
+    }));
     
     processGiftAction(event.gift.action, event.username);
     
@@ -740,6 +759,15 @@ export const useGameState = () => {
             newState.screenShake = 0.4;
           }
         });
+        
+        // Update gift blocks - animate them moving forward on the floor
+        newState.giftBlocks = prev.giftBlocks
+          .map(block => ({
+            ...block,
+            x: block.x + block.velocityX * delta,
+            life: block.life - delta,
+          }))
+          .filter(block => block.life > 0 && block.x < prev.cameraX + 700);
         
         // Magic flash decay
         if (prev.magicFlash > 0) {
