@@ -14,18 +14,24 @@ export const Arena = ({ gameState }: ArenaProps) => {
   const { 
     player, enemies, projectiles, particles, obstacles,
     cameraX, distance, levelLength, isUltraMode, speechBubble,
-    combo, comboTimer, isFrozen
+    combo, comboTimer, isFrozen, isBossFight, screenShake
   } = gameState;
+  
+  const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 10 : 0;
+  const shakeY = screenShake ? (Math.random() - 0.5) * screenShake * 10 : 0;
   
   return (
     <div 
       className="relative w-full h-full rounded-xl overflow-hidden border-2"
       style={{
-        borderColor: isUltraMode ? '#ff00ff' : '#333366',
-        boxShadow: isUltraMode 
-          ? '0 0 50px #ff00ff, inset 0 0 100px rgba(255,0,255,0.2)' 
-          : '0 0 30px rgba(0, 255, 255, 0.2)',
+        borderColor: isBossFight ? '#ff0000' : isUltraMode ? '#ff00ff' : '#333366',
+        boxShadow: isBossFight 
+          ? '0 0 60px #ff0000, inset 0 0 100px rgba(255,0,0,0.3)' 
+          : isUltraMode 
+            ? '0 0 50px #ff00ff, inset 0 0 100px rgba(255,0,255,0.2)' 
+            : '0 0 30px rgba(0, 255, 255, 0.2)',
         minHeight: 480,
+        transform: `translate(${shakeX}px, ${shakeY}px)`,
       }}
     >
       <div 

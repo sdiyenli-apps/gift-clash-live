@@ -18,7 +18,7 @@ export interface GiftEvent {
 }
 
 export type GiftAction = 
-  | 'move_forward'
+  | 'dash_forward'
   | 'jump'
   | 'shoot'
   | 'double_jump'
@@ -28,7 +28,9 @@ export type GiftAction =
   | 'spawn_enemy'
   | 'ultra_mode'
   | 'nuke'
-  | 'speed_boost';
+  | 'speed_boost'
+  | 'triple_shot'
+  | 'time_slow';
 
 export interface GiftActionConfig {
   action: GiftAction;
@@ -43,8 +45,9 @@ export interface Projectile {
   x: number;
   y: number;
   velocityX: number;
+  velocityY: number;
   damage: number;
-  type: 'normal' | 'mega' | 'ultra';
+  type: 'normal' | 'mega' | 'ultra' | 'triple';
 }
 
 export interface Enemy {
@@ -57,9 +60,11 @@ export interface Enemy {
   maxHealth: number;
   speed: number;
   damage: number;
-  type: 'robot' | 'drone' | 'mech' | 'boss';
+  type: 'robot' | 'drone' | 'mech' | 'boss' | 'ninja' | 'tank' | 'flyer';
   isDying: boolean;
   deathTimer: number;
+  attackCooldown: number;
+  animationPhase: number;
 }
 
 export interface Obstacle {
@@ -68,7 +73,7 @@ export interface Obstacle {
   y: number;
   width: number;
   height: number;
-  type: 'platform' | 'spike' | 'gap' | 'wall';
+  type: 'platform' | 'spike' | 'gap' | 'wall' | 'crate' | 'barrel';
 }
 
 export interface Player {
@@ -77,12 +82,20 @@ export interface Player {
   shield: number;
   x: number;
   y: number;
+  velocityX: number;
   velocityY: number;
   isGrounded: boolean;
   isJumping: boolean;
   isShooting: boolean;
+  isDashing: boolean;
+  isDodging: boolean;
+  isIdle: boolean;
   facingRight: boolean;
   speedMultiplier: number;
+  animationState: 'idle' | 'run' | 'jump' | 'attack' | 'dodge' | 'hurt' | 'dash';
+  animationFrame: number;
+  comboCount: number;
+  lastDodgeTime: number;
 }
 
 export interface Particle {
@@ -94,13 +107,14 @@ export interface Particle {
   color: string;
   size: number;
   life: number;
-  type: 'spark' | 'explosion' | 'muzzle' | 'death' | 'ultra';
+  type: 'spark' | 'explosion' | 'muzzle' | 'death' | 'ultra' | 'blood' | 'magic' | 'dash';
 }
 
 export interface SpeechBubble {
   id: string;
   text: string;
   timestamp: number;
+  type: 'normal' | 'urgent' | 'excited' | 'help';
 }
 
 export interface GameState {
@@ -117,9 +131,14 @@ export interface GameState {
   speechBubble: SpeechBubble | null;
   isUltraMode: boolean;
   ultraModeTimer: number;
+  isBossFight: boolean;
   isFrozen: boolean;
+  isSlowMotion: boolean;
   combo: number;
   comboTimer: number;
+  lastGiftTime: number;
+  screenShake: number;
+  killStreak: number;
 }
 
 export interface Gifter {
@@ -142,49 +161,76 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   universe: { id: 'universe', name: 'Universe', tier: 'large', diamonds: 5000, emoji: '✨' },
 };
 
+// Gift actions with TikTok-friendly descriptions
 export const GIFT_ACTIONS: Record<GiftTier, GiftActionConfig[]> = {
   small: [
-    { action: 'move_forward', name: 'Move Forward', description: 'Walk forward', effect: 'help', value: 80 },
-    { action: 'jump', name: 'Jump!', description: 'Jump over obstacles', effect: 'help', value: 1 },
-    { action: 'shoot', name: 'Fire!', description: 'Shoot the cyber gun', effect: 'help', value: 20 },
+    { action: 'dash_forward', name: '⚡ DASH!', description: 'Quick dash forward', effect: 'help', value: 120 },
+    { action: 'jump', name: '🦘 JUMP!', description: 'Jump over danger', effect: 'help', value: 1 },
+    { action: 'shoot', name: '🔫 FIRE!', description: 'Pew pew pew!', effect: 'help', value: 25 },
+    { action: 'triple_shot', name: '🔥 TRIPLE!', description: '3x bullets!', effect: 'help', value: 20 },
   ],
   medium: [
-    { action: 'double_jump', name: 'Double Jump', description: 'Jump extra high!', effect: 'help', value: 2 },
-    { action: 'mega_shot', name: 'Mega Blast', description: 'Powerful shot!', effect: 'help', value: 50 },
-    { action: 'heal', name: 'Heal Up', description: '+30 HP', effect: 'help', value: 30 },
-    { action: 'spawn_enemy', name: 'Spawn Robot!', description: 'Add an enemy!', effect: 'sabotage', value: 1 },
+    { action: 'double_jump', name: '🚀 SUPER JUMP!', description: 'Go higher bro!', effect: 'help', value: 2 },
+    { action: 'mega_shot', name: '💥 MEGA BLAST!', description: 'Huge damage!', effect: 'help', value: 80 },
+    { action: 'heal', name: '💚 HEAL BRO!', description: '+40 HP for the hero', effect: 'help', value: 40 },
+    { action: 'speed_boost', name: '⚡ SPEED UP!', description: 'Faster movement!', effect: 'help', value: 5 },
+    { action: 'spawn_enemy', name: '👾 SPAWN ENEMY!', description: 'Chaos mode!', effect: 'sabotage', value: 1 },
   ],
   large: [
-    { action: 'ultra_mode', name: 'ULTRA MODE! 🔥', description: '6s of auto-play madness!', effect: 'help', value: 6 },
-    { action: 'nuke', name: 'Nuke \'em All', description: 'Clear all enemies!', effect: 'help', value: 0 },
-    { action: 'shield', name: 'God Shield', description: 'Invincible shield!', effect: 'help', value: 100 },
+    { action: 'ultra_mode', name: '🔥 ULTRA MODE! 🔥', description: '6 sec of INSANE auto-play!', effect: 'help', value: 6 },
+    { action: 'nuke', name: '💣 NUKE EM ALL!', description: 'Clear the screen!', effect: 'help', value: 0 },
+    { action: 'shield', name: '🛡️ GOD SHIELD!', description: 'Invincible mode!', effect: 'help', value: 100 },
+    { action: 'time_slow', name: '⏰ SLOW-MO!', description: 'Matrix style!', effect: 'help', value: 5 },
   ],
 };
 
+// Bro-style hero quips
 export const HERO_QUIPS = [
-  "Is that all you got, tin cans?!",
-  "My nose detects danger... and victory!",
-  "Time to make scrap metal!",
-  "Princess, here I come!",
-  "Beep boop THIS, robot!",
-  "I've blown up bigger toasters!",
-  "Who needs a hero when you've got THIS nose?!",
-  "That's gonna leave a dent!",
-  "Robot parts... everywhere!",
-  "I'm just warming up!",
-  "My grandma hits harder than you!",
-  "Hasta la vista, metal-head!",
-  "Keep 'em coming!",
-  "Gift me strength, chat!",
-  "This nose knows how to fight!",
+  "LET'S GOOO! 🔥",
+  "THAT'S WHAT I'M TALKIN' ABOUT, BRO!",
+  "YOU'RE INSANE, CHAT! 💪",
+  "CERTIFIED W MOMENT!",
+  "MY NOSE TINGLES... DANGER AHEAD!",
+  "NO CAP, THESE ROBOTS ARE TRASH!",
+  "SHEEEESH! 🔥🔥🔥",
+  "BRO THAT WAS FIRE!",
+  "CHAT'S GOATED FR FR!",
+  "PRINCESS, WAIT FOR ME!",
+  "I'M BUILT DIFFERENT!",
+  "EZ CLAP, NEXT!",
+  "ABSOLUTE CINEMA! 🎬",
+  "CHAT DIFF, GG!",
+  "THEY CAN'T HANDLE THE NOSE!",
+];
+
+// Help requests when no gifts for 8 seconds
+export const HELP_REQUESTS = [
+  "YO CHAT! HELP A BRO OUT! 🙏",
+  "I'M KINDA STUCK HERE, BROS! 😅",
+  "ANYONE THERE?! NEED BACKUP!",
+  "BRO I'M LOWKEY DYING HERE! 💀",
+  "CHAT?! WHERE'S MY SUPPORT?!",
+  "PLEASE BRO, JUST ONE GIFT! 🎁",
+  "I CAN'T DO THIS ALONE, FAM!",
+  "SEND HELP! 🆘",
+  "ROBOTS ARE TOO OP WITHOUT Y'ALL!",
+  "CHAT CARRIED ME BEFORE, DO IT AGAIN! 😭",
 ];
 
 export const ENEMY_DEATH_SOUNDS = [
   "BZZT-CRASH!",
-  "KRRZZT!",
-  "CLUNK-BOOM!",
-  "SPARKS!",
-  "SYSTEM... FAIL...",
-  "ERROR 404!",
+  "SYSTEM... CRITICAL...",
   "MALFUNCTION!",
+  "ERROR 404: LIFE NOT FOUND",
+  "SHUTTING... DOWN...",
+  "*SPARKS INTENSELY*",
+  "DOES NOT COMPUTE!",
+];
+
+export const BOSS_TAUNTS = [
+  "FOOLISH HUMAN... YOUR NOSE CANNOT SAVE YOU!",
+  "I AM THE FINAL BOSS... PREPARE TO BE DELETED!",
+  "YOUR GIFTS MEAN NOTHING TO ME!",
+  "INITIATING... DESTRUCTION PROTOCOL!",
+  "YOU DARE CHALLENGE OMEGA-X9000?!",
 ];
