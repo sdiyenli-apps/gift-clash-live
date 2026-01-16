@@ -166,6 +166,8 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       deathTimer: 0,
       attackCooldown: 0,
       animationPhase: Math.random() * Math.PI * 2,
+      isSpawning: true,
+      spawnTimer: 0.8, // 0.8 second spawn animation
     });
   }
   
@@ -320,14 +322,27 @@ export const useGameState = () => {
     return newChickens;
   };
 
-  // Create dangerous enemies for spawn_enemies gift
-  const createDangerousEnemies = (playerX: number, count: number): Enemy[] => {
+  // Create dangerous enemies for spawn_enemies gift - with spacing to prevent overlap
+  const createDangerousEnemies = (playerX: number, count: number, existingEnemies: Enemy[]): Enemy[] => {
     const newEnemies: Enemy[] = [];
+    const SPAWN_SPACING = 100; // Minimum space between enemies
+    
     for (let i = 0; i < count; i++) {
       const type = Math.random() > 0.5 ? 'tank' : 'mech';
+      const baseX = playerX + 250 + i * SPAWN_SPACING;
+      
+      // Find a non-overlapping position
+      let spawnX = baseX;
+      const allEnemies = [...existingEnemies, ...newEnemies];
+      for (const enemy of allEnemies) {
+        if (Math.abs(enemy.x - spawnX) < SPAWN_SPACING) {
+          spawnX = enemy.x + SPAWN_SPACING;
+        }
+      }
+      
       newEnemies.push({
         id: `spawn-enemy-${Date.now()}-${i}`,
-        x: playerX + 200 + Math.random() * 300,
+        x: spawnX,
         y: GROUND_Y,
         width: type === 'tank' ? 70 : 60,
         height: type === 'tank' ? 65 : 65,
@@ -340,6 +355,8 @@ export const useGameState = () => {
         deathTimer: 0,
         attackCooldown: 0,
         animationPhase: Math.random() * Math.PI * 2,
+        isSpawning: true,
+        spawnTimer: 0.8,
       });
     }
     return newEnemies;
@@ -433,7 +450,7 @@ export const useGameState = () => {
 
         case 'spawn_enemies' as GiftAction:
           // New gift that spawns dangerous enemies
-          newState.enemies = [...prev.enemies, ...createDangerousEnemies(prev.player.x, 3)];
+          newState.enemies = [...prev.enemies, ...createDangerousEnemies(prev.player.x, 3, prev.enemies)];
           newState.screenShake = 0.4;
           showSpeechBubble("⚠️ DANGER! ENEMIES SPAWNED! ⚠️", 'urgent');
           break;
@@ -711,7 +728,7 @@ export const useGameState = () => {
         
         newState.projectiles.forEach(proj => {
           newState.enemies.forEach(enemy => {
-            if (hitProjectiles.has(proj.id) || enemy.isDying) return;
+            if (hitProjectiles.has(proj.id) || enemy.isDying || enemy.isSpawning) return;
             
             if (
               proj.x < enemy.x + enemy.width &&
@@ -763,14 +780,24 @@ export const useGameState = () => {
         
         newState.projectiles = newState.projectiles.filter(p => !hitProjectiles.has(p.id));
         
-        // Update dying enemies
+        // Update dying and spawning enemies
         newState.enemies = newState.enemies
-          .map(e => e.isDying ? { ...e, deathTimer: e.deathTimer - delta } : e)
+          .map(e => {
+            if (e.isDying) return { ...e, deathTimer: e.deathTimer - delta };
+            if (e.isSpawning && e.spawnTimer !== undefined) {
+              const newTimer = e.spawnTimer - delta;
+              if (newTimer <= 0) {
+                return { ...e, isSpawning: false, spawnTimer: 0 };
+              }
+              return { ...e, spawnTimer: newTimer };
+            }
+            return e;
+          })
           .filter(e => !e.isDying || e.deathTimer > 0);
         
-        // Kill enemies automatically if near hero
+        // Kill enemies automatically if near hero (not spawning)
         newState.enemies = newState.enemies.map(enemy => {
-          if (enemy.isDying || enemy.type === 'boss') return enemy;
+          if (enemy.isDying || enemy.type === 'boss' || enemy.isSpawning) return enemy;
           
           const distToHero = Math.abs(enemy.x - prev.player.x);
           if (distToHero < KILL_RADIUS) {
@@ -783,10 +810,10 @@ export const useGameState = () => {
           return enemy;
         });
         
-        // Move enemies - boss keeps distance and shoots
+        // Move enemies - boss keeps distance and shoots (skip spawning enemies)
         const minSpacing = 60;
         newState.enemies = newState.enemies.map((enemy, idx) => {
-          if (enemy.isDying) return enemy;
+          if (enemy.isDying || enemy.isSpawning) return enemy;
           
           const dx = prev.player.x - enemy.x;
           const direction = dx > 0 ? 1 : -1;
