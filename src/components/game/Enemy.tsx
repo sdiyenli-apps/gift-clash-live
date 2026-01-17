@@ -280,7 +280,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         <motion.div
           className="relative w-full h-full"
           style={{
-            filter: `drop-shadow(0 0 ${isBoss ? 20 : 10}px ${color})`,
+            filter: `drop-shadow(0 0 ${isBoss ? (bossPhase === 3 ? 40 : 25) : 10}px ${bossPhase === 3 ? '#ff0000' : color})`,
           }}
         >
           {sprite ? (
@@ -290,6 +290,12 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               className="w-full h-full object-contain"
               style={{
                 transform: 'scaleX(-1)',
+                // Make boss phase 3 image super bright and visible
+                filter: isBoss && bossPhase === 3 
+                  ? 'brightness(1.4) saturate(1.5) contrast(1.2)' 
+                  : isBoss && bossPhase === 2 
+                    ? 'brightness(1.2) saturate(1.2)' 
+                    : 'none',
               }}
             />
           ) : (
@@ -468,23 +474,40 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               </motion.div>
             )}
             
-            {/* Menacing aura - intensifies with phase */}
+            {/* Menacing aura - intensifies with phase - PHASE 3 IS HUGE */}
             <motion.div
-              className="absolute -inset-12 rounded-full"
+              className="absolute rounded-full"
               style={{
+                inset: bossPhase === 3 ? -30 : -12,
                 background: bossPhase === 3 
-                  ? 'radial-gradient(circle, rgba(255,0,0,0.6), rgba(100,0,0,0.4), transparent)'
+                  ? 'radial-gradient(circle, rgba(255,100,0,0.7), rgba(255,0,0,0.5), rgba(100,0,0,0.3), transparent)'
                   : bossPhase === 2
                   ? 'radial-gradient(circle, rgba(255,50,0,0.5), rgba(75,0,0,0.3), transparent)'
                   : 'radial-gradient(circle, rgba(255,0,0,0.4), rgba(50,0,0,0.2), transparent)',
-                filter: `blur(${10 + bossPhase * 5}px)`,
+                filter: `blur(${bossPhase === 3 ? 20 : 10 + bossPhase * 5}px)`,
               }}
               animate={{ 
-                scale: [1, 1.2 + bossPhase * 0.1, 1], 
-                opacity: [0.4, 0.7 + bossPhase * 0.1, 0.4] 
+                scale: bossPhase === 3 ? [1, 1.4, 1] : [1, 1.2 + bossPhase * 0.1, 1], 
+                opacity: bossPhase === 3 ? [0.6, 1, 0.6] : [0.4, 0.7 + bossPhase * 0.1, 0.4] 
               }}
-              transition={{ duration: 1.5 / bossPhase, repeat: Infinity }}
+              transition={{ duration: bossPhase === 3 ? 0.4 : 1.5 / bossPhase, repeat: Infinity }}
             />
+            
+            {/* PHASE 3 - Additional bright glow layer behind boss */}
+            {bossPhase === 3 && (
+              <motion.div
+                className="absolute -inset-20 rounded-full -z-10"
+                style={{
+                  background: 'radial-gradient(circle, rgba(255,200,0,0.5), rgba(255,100,0,0.3), rgba(255,0,0,0.2), transparent)',
+                  filter: 'blur(30px)',
+                }}
+                animate={{ 
+                  scale: [1, 1.5, 1],
+                  opacity: [0.5, 0.9, 0.5],
+                }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+              />
+            )}
             
             {/* Phase 2+ evil eyes */}
             {bossPhase >= 2 && (
