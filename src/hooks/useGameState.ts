@@ -389,7 +389,36 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     }
   }
   
-  // BOSS SCALING - gets scarier and bigger each wave!
+  // Add JET ROBOT enemies that DROP FROM TOP - wave 2+
+  if (wave >= 2) {
+    const jetRobotCount = Math.min(Math.floor(wave / 2) + 2, 12);
+    for (let i = 0; i < jetRobotCount; i++) {
+      const jetX = 500 + Math.random() * (levelLength - 1200);
+      const jetHealth = 60 * (1 + wave * 0.12);
+      enemies.push({
+        id: `jetrobot-${i}-${Math.random()}`,
+        x: jetX,
+        y: GROUND_Y + 100 + Math.random() * 80, // Will drop to flying height
+        width: 55,
+        height: 50,
+        health: jetHealth,
+        maxHealth: jetHealth,
+        speed: 80 + wave * 3,
+        damage: 14 + wave,
+        type: 'jetrobot',
+        isDying: false,
+        deathTimer: 0,
+        attackCooldown: 0,
+        animationPhase: Math.random() * Math.PI * 2,
+        isSpawning: false,
+        isDropping: true, // Drops from top of screen
+        dropTimer: 1.0, // 1 second drop animation
+        isFlying: true,
+        flyHeight: 100 + Math.random() * 80,
+      });
+    }
+  }
+
   // Princess is ONLY at wave 1000 - final destination!
   const isFinalBoss = wave === 1000;
   const isMegaBoss = wave % 100 === 0; // Every 100 waves = mega boss
@@ -727,18 +756,18 @@ export const useGameState = () => {
           break;
 
         case 'emp_grenade' as GiftAction:
-          // Hero THROWS an EMP grenade - arc trajectory
+          // Hero THROWS an EMP grenade - launches from TOP of hero
           const grenade: EMPGrenade = {
             id: `emp-${Date.now()}`,
-            x: prev.player.x + PLAYER_WIDTH,
-            y: prev.player.y + PLAYER_HEIGHT / 2,
-            velocityX: 350,
-            velocityY: 200, // Arc upward
+            x: prev.player.x + PLAYER_WIDTH / 2,
+            y: prev.player.y + PLAYER_HEIGHT + 30, // From TOP of hero (above head)
+            velocityX: 300,
+            velocityY: 350, // Higher arc since starting from top
             timer: 1.2, // Explodes after 1.2 seconds
           };
           newState.empGrenades = [...prev.empGrenades, grenade];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT / 2, 8, 'spark', '#ffff00')];
+          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH / 2, prev.player.y + PLAYER_HEIGHT + 30, 12, 'spark', '#00ffff')];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 300);
           newState.score += 100;
           showSpeechBubble("⚡ EMP OUT! YEET! ⚡", 'excited');
@@ -1774,6 +1803,14 @@ export const useGameState = () => {
                 return { ...e, isSpawning: false, spawnTimer: 0 };
               }
               return { ...e, spawnTimer: newTimer };
+            }
+            // Handle jet robots dropping from top of screen
+            if (e.isDropping && e.dropTimer !== undefined) {
+              const newDropTimer = e.dropTimer - delta;
+              if (newDropTimer <= 0) {
+                return { ...e, isDropping: false, dropTimer: 0 };
+              }
+              return { ...e, dropTimer: newDropTimer };
             }
             return e;
           })

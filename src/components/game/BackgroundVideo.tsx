@@ -147,7 +147,7 @@ export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight, l
 
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {/* Current zone background image with parallax */}
+      {/* Current zone background image - STATIC, no parallax */}
       <motion.div
         className="absolute inset-0"
         style={{
@@ -155,14 +155,11 @@ export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight, l
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundRepeat: 'no-repeat',
-          x: parallaxX,
-          width: '120%',
-          left: '-10%',
           filter: isBossFight ? 'brightness(0.6) saturate(1.4)' : 'brightness(0.85)',
         }}
       />
       
-      {/* Next zone crossfade for smooth transition */}
+      {/* Next zone crossfade for smooth transition - STATIC fade */}
       {transitionProgress > 0 && zoneIndex < 7 && (
         <motion.div
           className="absolute inset-0"
@@ -171,9 +168,6 @@ export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight, l
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundRepeat: 'no-repeat',
-            x: parallaxX,
-            width: '120%',
-            left: '-10%',
             opacity: transitionProgress,
             filter: isBossFight ? 'brightness(0.6) saturate(1.4)' : 'brightness(0.85)',
           }}
