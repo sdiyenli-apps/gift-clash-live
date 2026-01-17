@@ -14,27 +14,34 @@ interface BackgroundVideoProps {
   cameraX: number;
   isUltraMode: boolean;
   isBossFight: boolean;
+  levelLength: number;
 }
 
-// Zones progress from neon city to dark evil fortress
-const ZONES = [
-  { name: 'NEON CITY', start: 0, image: zone1City, color: '#00ffff', tint: 'rgba(0,255,255,0.1)' },
-  { name: 'TOXIC FACTORY', start: 2000, image: zone2Factory, color: '#44ff44', tint: 'rgba(0,255,0,0.15)' },
-  { name: 'DATA CORE', start: 4000, image: zone3Datacore, color: '#ff44ff', tint: 'rgba(255,0,255,0.15)' },
-  { name: 'INFERNO ROOFTOP', start: 6000, image: zone4Rooftop, color: '#ff4444', tint: 'rgba(255,0,0,0.2)' },
-  { name: 'DEMON FORTRESS', start: 8000, image: zone5Boss, color: '#ff0000', tint: 'rgba(100,0,0,0.3)' },
+// Zone definitions with relative positions (0-1 range)
+const ZONE_DEFS = [
+  { name: 'NEON CITY', relativeStart: 0, image: zone1City, color: '#00ffff', tint: 'rgba(0,255,255,0.1)' },
+  { name: 'TOXIC FACTORY', relativeStart: 0.2, image: zone2Factory, color: '#44ff44', tint: 'rgba(0,255,0,0.15)' },
+  { name: 'DATA CORE', relativeStart: 0.4, image: zone3Datacore, color: '#ff44ff', tint: 'rgba(255,0,255,0.15)' },
+  { name: 'INFERNO ROOFTOP', relativeStart: 0.6, image: zone4Rooftop, color: '#ff4444', tint: 'rgba(255,0,0,0.2)' },
+  { name: 'DEMON FORTRESS', relativeStart: 0.8, image: zone5Boss, color: '#ff0000', tint: 'rgba(100,0,0,0.3)' },
 ];
 
-const getZone = (distance: number) => {
-  for (let i = ZONES.length - 1; i >= 0; i--) {
-    if (distance >= ZONES[i].start) return { zone: ZONES[i], index: i };
+const getZone = (distance: number, levelLength: number) => {
+  // Calculate zones based on level length - spread evenly
+  const zoneLength = levelLength / 5;
+  
+  for (let i = ZONE_DEFS.length - 1; i >= 0; i--) {
+    const zoneStart = ZONE_DEFS[i].relativeStart * levelLength;
+    if (distance >= zoneStart) {
+      return { zone: { ...ZONE_DEFS[i], start: zoneStart }, index: i, zoneLength };
+    }
   }
-  return { zone: ZONES[0], index: 0 };
+  return { zone: { ...ZONE_DEFS[0], start: 0 }, index: 0, zoneLength };
 };
 
-export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight }: BackgroundVideoProps) => {
-  const { zone: currentZone, index: zoneIndex } = getZone(distance);
-  const zoneProgress = (distance - currentZone.start) / 2000;
+export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight, levelLength }: BackgroundVideoProps) => {
+  const { zone: currentZone, index: zoneIndex, zoneLength } = getZone(distance, levelLength);
+  const zoneProgress = (distance - currentZone.start) / zoneLength;
   
   // Parallax offset - background scrolls left as hero moves right
   const parallaxX = -(cameraX * 0.15);
@@ -50,7 +57,8 @@ export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight }:
   }, []);
   
   // Calculate transition progress between zones
-  const nextZone = ZONES[Math.min(zoneIndex + 1, ZONES.length - 1)];
+  const nextZoneIdx = Math.min(zoneIndex + 1, ZONE_DEFS.length - 1);
+  const nextZone = { ...ZONE_DEFS[nextZoneIdx], start: ZONE_DEFS[nextZoneIdx].relativeStart * levelLength };
   const transitionProgress = Math.min(1, Math.max(0, (zoneProgress - 0.6) / 0.4));
   
   // Animated overlay elements
@@ -123,7 +131,7 @@ export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight }:
       />
       
       {/* Next zone crossfade for smooth transition */}
-      {transitionProgress > 0 && zoneIndex < ZONES.length - 1 && (
+      {transitionProgress > 0 && zoneIndex < ZONE_DEFS.length - 1 && (
         <motion.div
           className="absolute inset-0"
           style={{
