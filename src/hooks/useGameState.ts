@@ -389,22 +389,22 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     }
   }
   
-  // Add JET ROBOT enemies that DROP FROM TOP - wave 2+
-  if (wave >= 2) {
-    const jetRobotCount = Math.min(Math.floor(wave / 2) + 2, 12);
-    for (let i = 0; i < jetRobotCount; i++) {
-      const jetX = 500 + Math.random() * (levelLength - 1200);
-      const jetHealth = 60 * (1 + wave * 0.12);
+  // Add JET ROBOT enemies that DROP FROM TOP - same spawn rate as other enemies
+  // Jet robots spawn throughout the level like regular enemies
+  const jetRobotChance = 0.15; // 15% chance per spawn point
+  for (let x = 450; x < levelLength - 800; x += enemyDensity + Math.random() * 100) {
+    if (Math.random() < jetRobotChance) {
+      const jetHealth = 80 * (1 + wave * 0.1);
       enemies.push({
-        id: `jetrobot-${i}-${Math.random()}`,
-        x: jetX,
-        y: GROUND_Y + 100 + Math.random() * 80, // Will drop to flying height
+        id: `jetrobot-${x}-${Math.random()}`,
+        x,
+        y: GROUND_Y + 120 + Math.random() * 60, // Target flying height
         width: 55,
         height: 50,
         health: jetHealth,
         maxHealth: jetHealth,
-        speed: 80 + wave * 3,
-        damage: 14 + wave,
+        speed: 70 + wave * 2,
+        damage: 12 + wave,
         type: 'jetrobot',
         isDying: false,
         deathTimer: 0,
@@ -412,9 +412,10 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         animationPhase: Math.random() * Math.PI * 2,
         isSpawning: false,
         isDropping: true, // Drops from top of screen
-        dropTimer: 1.0, // 1 second drop animation
+        dropTimer: 1.2, // Drop animation time
         isFlying: true,
-        flyHeight: 100 + Math.random() * 80,
+        flyHeight: 120 + Math.random() * 60,
+        empOnly: true, // Can ONLY be killed by EMP
       });
     }
   }
@@ -1270,9 +1271,9 @@ export const useGameState = () => {
         // Check for EMP grenade explosions
         prev.empGrenades.forEach(grenade => {
           if (grenade.timer <= delta) {
-            // EXPLODE! Kill ALL FLYING ENEMIES on screen (drones AND bombers)
+            // EXPLODE! Kill ALL FLYING ENEMIES and JET ROBOTS on screen
             const flyingEnemiesKilled = newState.enemies.filter(e => 
-              (e.type === 'drone' || e.type === 'bomber' || e.type === 'flyer' || e.isFlying) && 
+              (e.type === 'drone' || e.type === 'bomber' || e.type === 'flyer' || e.type === 'jetrobot' || e.isFlying || e.empOnly) && 
               !e.isDying && !e.isSpawning &&
               e.x > prev.cameraX - 100 && e.x < prev.cameraX + 700
             );
@@ -1285,7 +1286,7 @@ export const useGameState = () => {
                   isDying: true,
                   deathTimer: 0.5,
                 };
-                const scoreMap: Record<string, number> = { drone: 75, bomber: 120, flyer: 80 };
+                const scoreMap: Record<string, number> = { drone: 75, bomber: 120, flyer: 80, jetrobot: 150 };
                 newState.score += scoreMap[enemy.type] || 75;
                 newState.particles = [...newState.particles, ...createParticles(
                   enemy.x + enemy.width/2, enemy.y + enemy.height/2, 
@@ -1306,13 +1307,16 @@ export const useGameState = () => {
             
             if (flyingEnemiesKilled.length > 0) {
               const types = flyingEnemiesKilled.map(e => e.type);
+              const hasJetRobot = types.includes('jetrobot');
               const hasBomber = types.includes('bomber');
               const hasDrone = types.includes('drone');
-              const msg = hasBomber && hasDrone 
-                ? `⚡ EMP! ${flyingEnemiesKilled.length} FLYERS DOWN! ⚡`
-                : hasBomber 
-                  ? `⚡ BOMBERS FRIED! ${flyingEnemiesKilled.length} DOWN! ⚡`
-                  : `⚡ BOOM! ${flyingEnemiesKilled.length} DRONES FRIED! ⚡`;
+              const msg = hasJetRobot 
+                ? `⚡ JET ROBOTS FRIED! ${flyingEnemiesKilled.length} DOWN! ⚡`
+                : hasBomber && hasDrone 
+                  ? `⚡ EMP! ${flyingEnemiesKilled.length} FLYERS DOWN! ⚡`
+                  : hasBomber 
+                    ? `⚡ BOMBERS FRIED! ${flyingEnemiesKilled.length} DOWN! ⚡`
+                    : `⚡ BOOM! ${flyingEnemiesKilled.length} DRONES FRIED! ⚡`;
               showSpeechBubble(msg, 'excited');
             } else {
               showSpeechBubble("⚡ EMP BLAST! SKY CLEAR! ⚡", 'funny');
@@ -1704,10 +1708,11 @@ export const useGameState = () => {
           newState.enemies.forEach(enemy => {
             if (hitProjectiles.has(proj.id) || enemy.isDying || enemy.isSpawning) return;
             
-            // LASER ONLY HITS GROUND ENEMIES - Flying enemies (drones, bombers, flyers) require EMP!
-            const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer';
-            if (isFlying && enemy.type !== 'boss') {
-              // Skip flying enemies - they need EMP to be killed!
+            // LASER ONLY HITS GROUND ENEMIES - Flying enemies (drones, bombers, flyers, jetrobots) require EMP!
+            const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer' || enemy.type === 'jetrobot';
+            const isEmpOnly = enemy.empOnly || enemy.type === 'jetrobot';
+            if ((isFlying || isEmpOnly) && enemy.type !== 'boss') {
+              // Skip flying and EMP-only enemies - they need EMP to be killed!
               return;
             }
             

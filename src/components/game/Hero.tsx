@@ -19,21 +19,25 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
   // Hero sized for visibility on mobile
   const heroWidth = 70;
   const heroHeight = 85;
+  
+  // Hero flies during magic dash - elevated position
+  const flyingHeight = player.isMagicDashing ? 280 : 160; // Fly high during magic rush
 
   return (
     <motion.div
       className="absolute z-30"
       style={{
         left: screenX,
-        bottom: 160, // Raised to match new ground level
         width: heroWidth,
         height: heroHeight,
       }}
       animate={{
+        bottom: flyingHeight, // Animate flying position
         scale: isEmpowered ? [1, 1.04, 1] : isSlashing ? [1, 1.1, 1] : 1,
         rotate: isSlashing ? [0, 8, 0] : player.isShooting ? [-1, 1, 0] : 0,
       }}
       transition={{
+        bottom: { duration: 0.5, ease: 'easeOut' }, // Smooth fly up/down
         duration: isSlashing ? 0.15 : isUltraMode ? 0.12 : 0.08,
         repeat: isEmpowered ? Infinity : 0,
       }}
