@@ -36,14 +36,31 @@ interface BossAttack {
 }
 
 // Boss taunts and laughs
-const BOSS_LAUGHS = [
-  "HAHAHAHA! PATHETIC!",
+// Boss taunts - directed at hero AND players
+const BOSS_TAUNTS_TO_HERO = [
+  "HAHAHAHA! PATHETIC SQUIRREL!",
   "YOU CANNOT DEFEAT ME!",
   "IS THAT ALL YOU'VE GOT?!",
-  "TREMBLE BEFORE ME!",
-  "YOUR GIFTS ARE USELESS!",
-  "I WILL CONSUME YOU!",
-  "FOOLISH MORTAL!",
+  "TREMBLE BEFORE MY POWER!",
+  "I WILL CRUSH YOU!",
+  "YOU'RE NOTHING BUT A RODENT!",
+  "FOOLISH HERO! GIVE UP!",
+  "YOUR PRINCESS WILL NEVER BE SAVED!",
+  "PREPARE FOR DELETION!",
+  "I'VE CRUSHED THOUSANDS LIKE YOU!",
+];
+
+const BOSS_TAUNTS_TO_PLAYERS = [
+  "CHAT CAN'T SAVE YOU NOW! 😈",
+  "YOUR GIFTS ARE WORTHLESS! 💀",
+  "VIEWERS, WATCH YOUR HERO FALL!",
+  "NO AMOUNT OF ROSES WILL HELP! 🌹❌",
+  "CHAT IS TOO WEAK! HAHAHA!",
+  "SEND ALL THE GIFTS YOU WANT!",
+  "YOUR DONATIONS MEAN NOTHING!",
+  "PATHETIC VIEWERS! YOU'LL ALL WATCH HIM LOSE!",
+  "HAHAHA! CHAT IS POWERLESS!",
+  "EVEN GALAXY WON'T SAVE YOU! 🌌💀",
 ];
 
 interface Fireball {
@@ -349,22 +366,25 @@ export const useGameState = () => {
   const lastUpdateRef = useRef<number>(Date.now());
   const helpRequestTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Max particles limit for performance
+  const MAX_PARTICLES = 30;
+
   const createParticles = useCallback((x: number, y: number, count: number, type: Particle['type'], color?: string): Particle[] => {
     const particles: Particle[] = [];
     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
     
     // Optimized: fewer particles for performance
-    const maxParticles = Math.min(count, 8);
+    const maxParticles = Math.min(count, 6);
     for (let i = 0; i < maxParticles; i++) {
       particles.push({
-        id: `p-${Date.now()}-${i}`,
+        id: `p-${Date.now()}-${i}-${Math.random()}`,
         x,
         y,
         velocityX: (Math.random() - 0.5) * 300,
         velocityY: (Math.random() - 0.8) * 300,
         color: color || colors[Math.floor(Math.random() * colors.length)],
         size: 3 + Math.random() * 5,
-        life: 0.2 + Math.random() * 0.3,
+        life: 0.15 + Math.random() * 0.2, // Shorter lifespan
         type,
       });
     }
@@ -720,12 +740,15 @@ export const useGameState = () => {
         const distanceToBoss = bossEnemy ? bossEnemy.x - prev.player.x : Infinity;
         newState.isBossFight = bossEnemy !== undefined && distanceToBoss <= BOSS_PROXIMITY_TRIGGER;
         
-        // Boss taunt and laugh
+        // Boss taunt and laugh - taunts both hero AND players
         if (bossEnemy && newState.isBossFight) {
           newState.bossTauntTimer -= delta;
           if (newState.bossTauntTimer <= 0) {
-            newState.bossTaunt = BOSS_LAUGHS[Math.floor(Math.random() * BOSS_LAUGHS.length)];
-            newState.bossTauntTimer = 4 + Math.random() * 3; // Taunt every 4-7 seconds
+            // Alternate between taunting hero and taunting players/chat
+            const tauntToHero = Math.random() > 0.4;
+            const tauntList = tauntToHero ? BOSS_TAUNTS_TO_HERO : BOSS_TAUNTS_TO_PLAYERS;
+            newState.bossTaunt = tauntList[Math.floor(Math.random() * tauntList.length)];
+            newState.bossTauntTimer = 2.5 + Math.random() * 2; // Taunt every 2.5-4.5 seconds (more frequent)
           }
           
           // BOSS SPAWNS MINIONS BASED ON PHASE!
@@ -815,8 +838,13 @@ export const useGameState = () => {
             }
             
             // Determine which attacks are available based on wave tier
-            const availableAttacks: BossAttackType[] = ['fireball', 'shield']; // Shield always available
+            // Shield only available if not used yet
+            const availableAttacks: BossAttackType[] = ['fireball'];
             
+            // Only add shield if not yet used
+            if (!bossEnemy.bossShieldUsed) {
+              availableAttacks.push('shield');
+            }
             if (wave >= 10) availableAttacks.push('laser_sweep');
             if (wave >= 25) availableAttacks.push('missile_barrage');
             if (wave >= 50) availableAttacks.push('ground_pound');
@@ -961,15 +989,16 @@ export const useGameState = () => {
                   break;
                   
                 case 'shield':
-                  // Boss activates shield - blocks all damage for 2 seconds
-                  if (!bossEnemy.bossShieldTimer || bossEnemy.bossShieldTimer <= 0) {
+                  // Boss activates shield ONCE - blocks all damage for 1 second
+                  if (!bossEnemy.bossShieldUsed && (!bossEnemy.bossShieldTimer || bossEnemy.bossShieldTimer <= 0)) {
                     newState.enemies[bossIdx] = {
                       ...newState.enemies[bossIdx],
-                      bossShieldTimer: 2, // 2 seconds of invulnerability
+                      bossShieldTimer: 1, // 1 second of invulnerability
+                      bossShieldUsed: true, // Mark as used - can only use once
                     };
                     newState.screenShake = 0.4;
-                    newState.bossTaunt = "SHIELD ACTIVATED!";
-                    showSpeechBubble("🛡️ BOSS SHIELD! WAIT IT OUT! 🛡️", 'urgent');
+                    newState.bossTaunt = "MY SHIELD IS IMPENETRABLE!";
+                    showSpeechBubble("🛡️ BOSS SHIELD! 1 SEC! 🛡️", 'urgent');
                     newState.particles = [...newState.particles, ...createParticles(
                       bossEnemy.x + bossEnemy.width / 2, bossEnemy.y + bossEnemy.height / 2, 
                       25, 'spark', '#00ffff'
@@ -1594,16 +1623,29 @@ export const useGameState = () => {
             };
           }
           
-          // Boss behavior - keep distance and shoot
+          // Boss behavior - STAY at attack distance (don't run away)
           if (enemy.type === 'boss') {
-            const keepDistance = enemy.x < prev.player.x + BOSS_KEEP_DISTANCE;
-            if (keepDistance) {
+            const distanceToBoss = enemy.x - prev.player.x;
+            const tooClose = distanceToBoss < BOSS_KEEP_DISTANCE - 50;
+            const tooFar = distanceToBoss > BOSS_KEEP_DISTANCE + 50;
+            
+            // Boss only moves to maintain attack distance
+            if (tooClose) {
+              // Move away slightly to maintain distance
               return { 
                 ...enemy, 
-                x: enemy.x + 60 * delta, // Move away from player
+                x: enemy.x + 30 * delta,
+                animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
+              };
+            } else if (tooFar) {
+              // Move closer to stay in attack range
+              return { 
+                ...enemy, 
+                x: enemy.x - 20 * delta,
                 animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
               };
             }
+            // At ideal distance - stay put and animate
             return { ...enemy, animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2) };
           }
           
@@ -1855,9 +1897,11 @@ export const useGameState = () => {
           }
         });
         
-        // Update particles - optimized limit
-        newState.particles = prev.particles
-          .slice(0, 40) // Reduced from 80
+        // Update particles - aggressive cleanup for performance
+        // Reset old particles to make room for new ones
+        const activeParticles = prev.particles.filter(p => p.life > delta * 2);
+        newState.particles = activeParticles
+          .slice(-MAX_PARTICLES) // Keep only the most recent particles up to limit
           .map(p => ({
             ...p,
             x: p.x + p.velocityX * delta,
