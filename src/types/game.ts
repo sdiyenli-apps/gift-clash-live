@@ -56,7 +56,7 @@ export interface Enemy {
   maxHealth: number;
   speed: number;
   damage: number;
-  type: 'robot' | 'drone' | 'mech' | 'boss' | 'ninja' | 'tank' | 'flyer' | 'giant' | 'bomber';
+  type: 'robot' | 'drone' | 'mech' | 'boss' | 'ninja' | 'tank' | 'flyer' | 'giant' | 'bomber' | 'jetrobot';
   isDying: boolean;
   deathTimer: number;
   attackCooldown: number;
@@ -72,6 +72,8 @@ export interface Enemy {
   bossShieldUsed?: boolean; // Boss can only use shield once
   isGiant?: boolean; // Giant enemy variant - larger and tougher
   bombCooldown?: number; // Bomber bomb drop cooldown
+  isDropping?: boolean; // True when enemy is dropping from top of screen
+  dropTimer?: number; // Timer for drop animation
 }
 
 // Bomb dropped by bomber enemies

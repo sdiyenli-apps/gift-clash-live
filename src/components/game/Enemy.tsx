@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import enemyRobot from '@/assets/enemy-robot.png';
 import enemyDrone from '@/assets/enemy-drone.png';
 import enemyMech from '@/assets/enemy-mech.png';
+import enemyJetRobot from '@/assets/enemy-jet-robot.png';
 import bossPhase1 from '@/assets/boss-phase1.png';
 import bossPhase2 from '@/assets/boss-phase2.png';
 import bossPhase3 from '@/assets/boss-phase3.png';
@@ -30,6 +31,7 @@ const ENEMY_SPRITES: Record<string, string> = {
   flyer: enemyDrone,
   giant: enemyMech, // Giant uses mech sprite but scaled
   bomber: enemyDrone, // Bomber uses drone sprite with different color
+  jetrobot: enemyJetRobot, // New jet robot enemy
 };
 
 const ENEMY_COLORS: Record<string, string> = {
@@ -43,6 +45,7 @@ const ENEMY_COLORS: Record<string, string> = {
   chicken: '#ffaa00',
   giant: '#ff00ff', // Giant has magenta glow
   bomber: '#ff6600', // Bomber has orange glow
+  jetrobot: '#00ff88', // Jet robot has green glow
 };
 
 export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
@@ -79,20 +82,27 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const isFlying = enemy.isFlying || enemy.type === 'drone';
   const flyOffset = isFlying ? (enemy.flyHeight || 50) : 0;
   
-  // Portal spawn animation
+  // Portal spawn animation OR drop-from-top animation for jet robots
   const isSpawning = enemy.isSpawning && (enemy.spawnTimer ?? 0) > 0;
   const spawnProgress = isSpawning ? 1 - ((enemy.spawnTimer ?? 0) / 0.8) : 1;
+  const isDropping = enemy.isDropping && (enemy.dropTimer ?? 0) > 0;
+  const dropProgress = isDropping ? 1 - ((enemy.dropTimer ?? 0) / 1.0) : 1;
+  
+  // Calculate drop position - starts from top of screen
+  const dropStartY = 400; // Start way above screen
+  const dropEndY = 160 + flyOffset; // End at normal position
+  const currentDropY = isDropping ? dropStartY - (dropStartY - dropEndY) * dropProgress : (160 + flyOffset);
   
   return (
     <motion.div
       className="absolute z-25"
       style={{
         left: screenX,
-        bottom: 160 + flyOffset, // Raised to match new ground height
+        bottom: isDropping ? currentDropY : (160 + flyOffset), // Raised to match new ground height
         width: displayWidth,
         height: displayHeight,
       }}
-      initial={isSpawning ? { scale: 0, opacity: 0 } : {}}
+      initial={isSpawning ? { scale: 0, opacity: 0 } : isDropping ? { y: -300 } : {}}
       animate={enemy.isDying ? {
         scale: [1, 1.3, 0],
         rotate: [0, -30, 30, 0],
@@ -100,11 +110,14 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
       } : isSpawning ? {
         scale: spawnProgress,
         opacity: spawnProgress,
+      } : isDropping ? {
+        y: 0,
+        opacity: dropProgress,
       } : {
         scale: 1,
         opacity: 1,
       }}
-      transition={{ duration: enemy.isDying ? 0.4 : 0.1 }}
+      transition={{ duration: enemy.isDying ? 0.4 : isDropping ? 0.5 : 0.1 }}
     >
       {/* Portal spawn effect */}
       {isSpawning && (
@@ -138,6 +151,60 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
           />
         </>
       )}
+      
+      {/* Drop from top effect for jet robots */}
+      {isDropping && enemy.type === 'jetrobot' && (
+        <>
+          {/* Jet trail from above */}
+          <motion.div
+            className="absolute left-1/2 -translate-x-1/2"
+            style={{
+              top: -100,
+              width: 20,
+              height: 120,
+              background: 'linear-gradient(180deg, transparent, #00ff88, #00ffff)',
+              filter: 'blur(8px)',
+            }}
+            animate={{ opacity: [0.8, 0.4, 0.8], height: [120, 80, 120] }}
+            transition={{ duration: 0.15, repeat: Infinity }}
+          />
+          {/* Warning indicator */}
+          <motion.div
+            className="absolute -top-16 left-1/2 -translate-x-1/2 text-lg font-black"
+            style={{ color: '#00ff88', textShadow: '0 0 10px #00ff88' }}
+            animate={{ opacity: [1, 0.5, 1], scale: [1, 1.2, 1] }}
+            transition={{ duration: 0.2, repeat: Infinity }}
+          >
+            ⚠️ INCOMING ⚠️
+          </motion.div>
+          {/* Thruster flames */}
+          <motion.div
+            className="absolute left-1/4 -top-8"
+            style={{
+              width: 10,
+              height: 30,
+              background: 'linear-gradient(180deg, #fff, #00ff88, transparent)',
+              filter: 'blur(2px)',
+              borderRadius: '50%',
+            }}
+            animate={{ height: [30, 45, 30], opacity: [1, 0.7, 1] }}
+            transition={{ duration: 0.1, repeat: Infinity }}
+          />
+          <motion.div
+            className="absolute right-1/4 -top-8"
+            style={{
+              width: 10,
+              height: 30,
+              background: 'linear-gradient(180deg, #fff, #00ff88, transparent)',
+              filter: 'blur(2px)',
+              borderRadius: '50%',
+            }}
+            animate={{ height: [30, 45, 30], opacity: [1, 0.7, 1] }}
+            transition={{ duration: 0.1, repeat: Infinity, delay: 0.05 }}
+          />
+        </>
+      )}
+      
       {/* Death effects */}
       {enemy.isDying && (
         <>
@@ -447,36 +514,83 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               </>
             )}
             
-            {/* Phase 3 rage flames */}
+            {/* Phase 3 rage flames - MUCH MORE VISIBLE */}
             {bossPhase === 3 && (
               <>
+                {/* Intense outer flame ring */}
                 <motion.div
-                  className="absolute -inset-6 rounded-full"
+                  className="absolute -inset-16 rounded-full"
                   style={{
-                    background: 'conic-gradient(from 0deg, #ff0000, #ff4400, #ff0000, #ffff00, #ff0000)',
-                    filter: 'blur(8px)',
-                    opacity: 0.6,
+                    background: 'conic-gradient(from 0deg, #ff0000, #ff4400, #ffff00, #ff4400, #ff0000)',
+                    filter: 'blur(12px)',
+                    opacity: 0.8,
                   }}
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
+                  animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
                 />
-                {[0, 1, 2, 3].map(i => (
+                {/* Inner pulsing core */}
+                <motion.div
+                  className="absolute -inset-10 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(255,255,0,0.8), rgba(255,100,0,0.6), rgba(255,0,0,0.4), transparent)',
+                    filter: 'blur(8px)',
+                  }}
+                  animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+                  transition={{ duration: 0.4, repeat: Infinity }}
+                />
+                {/* Multiple rage flames around the boss */}
+                {[0, 1, 2, 3, 4, 5].map(i => (
                   <motion.div
                     key={`flame-${i}`}
-                    className="absolute w-6 h-12"
+                    className="absolute"
                     style={{
-                      left: `${15 + i * 25}%`,
-                      top: '-20%',
-                      background: 'linear-gradient(0deg, #ff4400, #ffff00, transparent)',
+                      left: `${10 + i * 15}%`,
+                      top: '-30%',
+                      width: 16 + i * 4,
+                      height: 40 + i * 8,
+                      background: 'linear-gradient(0deg, #ff4400, #ffff00, #fff, transparent)',
                       borderRadius: '50%',
-                      filter: 'blur(3px)',
+                      filter: 'blur(4px)',
                     }}
                     animate={{ 
-                      height: [12, 24, 12], 
-                      opacity: [0.6, 1, 0.6],
-                      y: [0, -10, 0],
+                      height: [40 + i * 8, 60 + i * 12, 40 + i * 8], 
+                      opacity: [0.7, 1, 0.7],
+                      y: [0, -15, 0],
                     }}
-                    transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.1 }}
+                    transition={{ duration: 0.2 + i * 0.05, repeat: Infinity, delay: i * 0.08 }}
+                  />
+                ))}
+                {/* Rage text indicator */}
+                <motion.div
+                  className="absolute -top-12 left-1/2 -translate-x-1/2 text-2xl font-black whitespace-nowrap"
+                  style={{ 
+                    color: '#ff0000', 
+                    textShadow: '0 0 20px #ff0000, 0 0 40px #ff4400, 0 0 60px #ffff00',
+                  }}
+                  animate={{ scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }}
+                  transition={{ duration: 0.3, repeat: Infinity }}
+                >
+                  ☠️ RAGE MODE ☠️
+                </motion.div>
+                {/* Electric arcs */}
+                {[0, 1, 2].map(i => (
+                  <motion.div
+                    key={`arc-${i}`}
+                    className="absolute"
+                    style={{
+                      left: `${20 + i * 30}%`,
+                      top: '10%',
+                      width: 3,
+                      height: 30,
+                      background: 'linear-gradient(180deg, #fff, #ffff00, transparent)',
+                      filter: 'blur(1px)',
+                      transformOrigin: 'top',
+                    }}
+                    animate={{ 
+                      rotate: [-20 + i * 20, 20 - i * 10, -20 + i * 20],
+                      opacity: [0.5, 1, 0.5],
+                    }}
+                    transition={{ duration: 0.15, repeat: Infinity, delay: i * 0.05 }}
                   />
                 ))}
               </>
