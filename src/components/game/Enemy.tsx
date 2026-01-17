@@ -20,6 +20,7 @@ const ENEMY_SPRITES: Record<string, string> = {
   tank: enemyMech,
   flyer: enemyDrone,
   giant: enemyMech, // Giant uses mech sprite but scaled
+  bomber: enemyDrone, // Bomber uses drone sprite with different color
 };
 
 const ENEMY_COLORS: Record<string, string> = {
@@ -32,6 +33,7 @@ const ENEMY_COLORS: Record<string, string> = {
   flyer: '#ff66ff',
   chicken: '#ffaa00',
   giant: '#ff00ff', // Giant has magenta glow
+  bomber: '#ff6600', // Bomber has orange glow
 };
 
 export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {

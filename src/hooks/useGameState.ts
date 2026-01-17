@@ -3,7 +3,7 @@ import {
   GameState, Player, Enemy, Projectile, Particle, GiftEvent, GiftAction, 
   Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS,
   FlyingRobot, NeonLight, Explosion, Chicken, GiftBlock, TIKTOK_GIFTS,
-  ENEMY_TAUNTS, GIFT_REQUESTS, getBossName
+  ENEMY_TAUNTS, GIFT_REQUESTS, getBossName, Bomb
 } from '@/types/game';
 
 const GRAVITY = 0;
@@ -138,6 +138,8 @@ interface ExtendedGameState extends GameState {
   lastBossAttack: BossAttackType | null;
   // EMP Grenade
   empGrenades: EMPGrenade[];
+  // Bombs dropped by bomber enemies
+  bombs: Bomb[];
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -169,6 +171,7 @@ const INITIAL_STATE: ExtendedGameState = {
   neonLights: [],
   explosions: [],
   giftBlocks: [],
+  bombs: [],
   fireballs: [],
   bossFireballTimer: BOSS_FIREBALL_INTERVAL,
   bossMegaAttackUsed: false,
@@ -188,9 +191,10 @@ const INITIAL_STATE: ExtendedGameState = {
   empGrenades: [],
 };
 
-// 6 enemy types: robot, drone, mech, ninja, tank, giant
-const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant'] as const;
+// 7 enemy types: robot, drone, mech, ninja, tank, giant, bomber
+const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant', 'bomber'] as const;
 const GIANT_CHANCE = 0.08; // 8% chance for giant enemies
+const BOMBER_CHANCE = 0.12; // 12% chance for bomber enemies (flying, drop bombs)
 
 const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[], levelLength: number } => {
   const enemies: Enemy[] = [];
@@ -257,7 +261,38 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       // GIANT enemies - large and tough
       enemyType = 'giant';
       width = 90; height = 100; health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
-    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + GIANT_CHANCE + 0.08) {
+    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + GIANT_CHANCE + BOMBER_CHANCE) {
+      // BOMBER - flying enemy that drops bombs!
+      enemyType = 'bomber';
+      width = 55; height = 50; 
+      health = 50 * (1 + waveBonus * 0.6); 
+      speed = 60 + wave * 2; 
+      damage = 15 + wave;
+      
+      const bomberEnemy = {
+        id: `bomber-${x}-${Math.random()}`,
+        x,
+        y: GROUND_Y + 120 + Math.random() * 40, // High flying
+        width,
+        height,
+        health,
+        maxHealth: health,
+        speed,
+        damage,
+        type: enemyType as 'bomber',
+        isDying: false,
+        deathTimer: 0,
+        attackCooldown: 0,
+        animationPhase: Math.random() * Math.PI * 2,
+        isSpawning: true,
+        spawnTimer: 0.8,
+        isFlying: true,
+        flyHeight: 120 + Math.random() * 40,
+        bombCooldown: 2 + Math.random() * 2,
+      };
+      enemies.push(bomberEnemy);
+      continue;
+    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + GIANT_CHANCE + BOMBER_CHANCE + 0.05) {
       enemyType = 'flyer';
       width = 50; height = 46; health = 40 * (1 + waveBonus * 0.5); speed = 75 + wave * 3; damage = 9 + wave;
     } else {
@@ -309,6 +344,35 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         spawnTimer: 0.8,
         isFlying: true,
         flyHeight: 80 + Math.random() * 60,
+      });
+    }
+  }
+  
+  // Add bomber squadrons at higher waves
+  if (wave >= 5) {
+    const bomberCount = Math.min(Math.floor(wave / 4), 6);
+    for (let i = 0; i < bomberCount; i++) {
+      const bomberX = 700 + Math.random() * (levelLength - 1600);
+      enemies.push({
+        id: `bomber-squadron-${i}-${Math.random()}`,
+        x: bomberX,
+        y: GROUND_Y + 130 + Math.random() * 50,
+        width: 55,
+        height: 50,
+        health: 55 * (1 + wave * 0.08),
+        maxHealth: 55 * (1 + wave * 0.08),
+        speed: 65 + wave * 2,
+        damage: 18 + wave,
+        type: 'bomber',
+        isDying: false,
+        deathTimer: 0,
+        attackCooldown: 0,
+        animationPhase: Math.random() * Math.PI * 2,
+        isSpawning: true,
+        spawnTimer: 0.8,
+        isFlying: true,
+        flyHeight: 130 + Math.random() * 50,
+        bombCooldown: 1.5 + Math.random() * 2,
       });
     }
   }
@@ -1187,6 +1251,65 @@ export const useGameState = () => {
           }
         });
         
+        // Update bombs dropped by bombers - falling and collision
+        newState.bombs = (prev.bombs || [])
+          .map(b => ({
+            ...b,
+            y: b.y - 200 * delta, // Fall down (y decreases = falls toward ground)
+            timer: b.timer - delta,
+          }))
+          .filter(b => b.y > 0 && b.timer > 0);
+        
+        // Bomb-player collision - ARMOR BLOCKS BOMBS!
+        (prev.bombs || []).forEach(bomb => {
+          const bombScreenX = bomb.x - prev.cameraX;
+          const heroScreenX = 60; // Hero's fixed screen position
+          
+          // Check if bomb hit ground near player
+          if (bomb.y <= 70 && 
+              Math.abs(bombScreenX - heroScreenX) < 60 &&
+              bomb.timer > 0
+          ) {
+            if (newState.player.shield > 0) {
+              // ARMOR BLOCKS THE BOMB!
+              newState.player.shield = Math.max(0, newState.player.shield - bomb.damage * 0.7);
+              newState.shieldBlockFlash = 1;
+              newState.screenShake = 0.4;
+              newState.particles = [
+                ...newState.particles, 
+                ...createParticles(bomb.x, 80, 20, 'spark', '#00ffff'),
+                ...createParticles(bomb.x, 80, 15, 'explosion', '#ffff00'),
+              ];
+              showSpeechBubble("🛡️ BOMB BLOCKED! 🛡️", 'excited');
+            } else {
+              // No armor - take damage!
+              newState.player.health -= bomb.damage;
+              newState.player.animationState = 'hurt';
+              newState.damageFlash = 1.2;
+              newState.screenShake = 0.6;
+              newState.particles = [
+                ...newState.particles, 
+                ...createParticles(bomb.x, 80, 25, 'explosion', '#ff4400'),
+              ];
+              if (navigator.vibrate) {
+                navigator.vibrate(200);
+              }
+              showSpeechBubble("💣 OUCH! BOMB HIT! 💣", 'urgent');
+            }
+            // Remove the bomb
+            newState.bombs = newState.bombs.filter(b => b.id !== bomb.id);
+          }
+          
+          // Bomb hits ground (explodes harmlessly if not near player)
+          if (bomb.y <= 50) {
+            newState.particles = [
+              ...newState.particles, 
+              ...createParticles(bomb.x, 60, 15, 'explosion', '#ff8800'),
+            ];
+            newState.bombs = newState.bombs.filter(b => b.id !== bomb.id);
+          }
+        });
+        
         // Magic flash decay
         if (prev.magicFlash > 0) {
           newState.magicFlash = prev.magicFlash - delta * 2;
@@ -1762,6 +1885,60 @@ export const useGameState = () => {
               x: enemy.x + horizontalMove,
               animationPhase: newAnimPhase,
               attackCooldown: Math.max(0, enemy.attackCooldown - delta),
+            };
+          }
+          
+          // BOMBER - Flying enemy that drops bombs!
+          if (enemy.type === 'bomber') {
+            const verticalSpeed = 1.5; // Slower vertical movement than drones
+            const maxHeight = 200;
+            const minHeight = 100;
+            
+            // Calculate Y position - bombers fly higher
+            const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
+            const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
+            
+            // Horizontal movement - bombers fly across the screen
+            const horizontalMove = direction * enemy.speed * delta * 0.3;
+            
+            // Drop bombs when above player area
+            const bombCooldown = (enemy.bombCooldown || 0) - delta;
+            const isAbovePlayer = Math.abs(enemy.x - prev.player.x) < 200 && isOnScreen;
+            
+            if (isAbovePlayer && bombCooldown <= 0) {
+              // Drop a bomb!
+              const newBomb: Bomb = {
+                id: `bomb-${Date.now()}-${Math.random()}`,
+                x: enemy.x + enemy.width / 2,
+                y: targetY,
+                velocityY: -150, // Falls down
+                damage: enemy.damage,
+                timer: 5, // Bomb lives for 5 seconds max
+              };
+              newState.bombs = [...(newState.bombs || []), newBomb];
+              
+              // Bomb drop particles
+              newState.particles = [
+                ...newState.particles,
+                ...createParticles(enemy.x + enemy.width / 2, targetY - 10, 8, 'spark', '#ff8800'),
+              ];
+              
+              return {
+                ...enemy,
+                y: targetY,
+                x: enemy.x + horizontalMove,
+                animationPhase: newAnimPhase,
+                bombCooldown: 2.5 + Math.random() * 1.5, // Reset bomb cooldown
+              };
+            }
+            
+            // Continue flying
+            return {
+              ...enemy,
+              y: targetY,
+              x: enemy.x + horizontalMove,
+              animationPhase: newAnimPhase,
+              bombCooldown: Math.max(0, bombCooldown),
             };
           }
 
