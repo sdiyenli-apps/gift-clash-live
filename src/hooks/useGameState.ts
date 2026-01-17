@@ -24,7 +24,7 @@ const BOSS_KEEP_DISTANCE = 450; // Boss keeps FAR away from player - ranged comb
 const HERO_FIXED_SCREEN_X = 60; // Hero stays on LEFT side of screen
 
 // Boss attack types
-type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack';
+type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield';
 
 interface BossAttack {
   id: string;
@@ -528,13 +528,14 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero fires FORWARD from hero's screen position (screen X = 60, so world X = cameraX + 60 + heroWidth)
+          // Hero fires FORWARD from hero's hitbox - LOWER position for visibility
           const heroScreenX = 60; // Hero's fixed screen position
-          const heroWorldX = prev.cameraX + heroScreenX + 48; // 48 = hero width, shoot from right edge
+          const heroWorldX = prev.cameraX + heroScreenX + 24; // Start from hero center/right edge
+          const laserY = prev.player.y + PLAYER_HEIGHT * 0.3; // LOWER laser - from bottom third of hero
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
-            x: heroWorldX, // Start from hero's actual screen position in world coords
-            y: prev.player.y + PLAYER_HEIGHT * 0.7, // Lower than center to align with ground targets
+            x: heroWorldX, // Start from hero's hitbox
+            y: laserY, // Lower Y position
             velocityX: 650, // SLOWER - more visible projectile speed
             velocityY: 0,
             damage: prev.player.isMagicDashing ? 120 : 50,
@@ -542,8 +543,8 @@ export const useGameState = () => {
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          // Muzzle flash particles at hero position
-          newState.particles = [...prev.particles, ...createParticles(heroWorldX, prev.player.y + PLAYER_HEIGHT / 2, 15, 'muzzle', '#00ffff')];
+          // Muzzle flash particles at laser origin
+          newState.particles = [...prev.particles, ...createParticles(heroWorldX, laserY, 15, 'muzzle', '#00ffff')];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
@@ -713,10 +714,11 @@ export const useGameState = () => {
 
         let newState = { ...prev };
         
-        // Check for boss fight - INITIATE FROM MUCH FURTHER AWAY
+        // Check for boss fight - INITIATE WHEN HERO GETS CLOSE TO BOSS
         const bossEnemy = prev.enemies.find(e => e.type === 'boss' && !e.isDying);
-        const BOSS_ACTIVATION_DISTANCE = 1500; // Boss activates from further away
-        newState.isBossFight = bossEnemy !== undefined && prev.player.x > prev.levelLength - BOSS_ACTIVATION_DISTANCE;
+        const BOSS_PROXIMITY_TRIGGER = 600; // Boss fight starts when hero is within 600px of boss
+        const distanceToBoss = bossEnemy ? bossEnemy.x - prev.player.x : Infinity;
+        newState.isBossFight = bossEnemy !== undefined && distanceToBoss <= BOSS_PROXIMITY_TRIGGER;
         
         // Boss taunt and laugh
         if (bossEnemy && newState.isBossFight) {
@@ -804,8 +806,16 @@ export const useGameState = () => {
           newState.bossAttackCooldown -= delta;
           
           if (newState.bossAttackCooldown <= 0 && bossIdx !== -1) {
+            // Update boss shield timer
+            if (bossEnemy.bossShieldTimer && bossEnemy.bossShieldTimer > 0) {
+              newState.enemies[bossIdx] = {
+                ...newState.enemies[bossIdx],
+                bossShieldTimer: bossEnemy.bossShieldTimer - delta,
+              };
+            }
+            
             // Determine which attacks are available based on wave tier
-            const availableAttacks: BossAttackType[] = ['fireball'];
+            const availableAttacks: BossAttackType[] = ['fireball', 'shield']; // Shield always available
             
             if (wave >= 10) availableAttacks.push('laser_sweep');
             if (wave >= 25) availableAttacks.push('missile_barrage');
@@ -947,6 +957,23 @@ export const useGameState = () => {
                     }, 500);
                     newState.bossTaunt = "ULTIMATE DESTRUCTION!!!";
                     showSpeechBubble("☠️ SCREEN ATTACK! GET SHIELD! ☠️", 'urgent');
+                  }
+                  break;
+                  
+                case 'shield':
+                  // Boss activates shield - blocks all damage for 2 seconds
+                  if (!bossEnemy.bossShieldTimer || bossEnemy.bossShieldTimer <= 0) {
+                    newState.enemies[bossIdx] = {
+                      ...newState.enemies[bossIdx],
+                      bossShieldTimer: 2, // 2 seconds of invulnerability
+                    };
+                    newState.screenShake = 0.4;
+                    newState.bossTaunt = "SHIELD ACTIVATED!";
+                    showSpeechBubble("🛡️ BOSS SHIELD! WAIT IT OUT! 🛡️", 'urgent');
+                    newState.particles = [...newState.particles, ...createParticles(
+                      bossEnemy.x + bossEnemy.width / 2, bossEnemy.y + bossEnemy.height / 2, 
+                      25, 'spark', '#00ffff'
+                    )];
                   }
                   break;
               }
@@ -1455,6 +1482,16 @@ export const useGameState = () => {
               
               const enemyIdx = newState.enemies.findIndex(e => e.id === enemy.id);
               if (enemyIdx !== -1) {
+                // BOSS SHIELD - if boss has active shield, block damage
+                if (enemy.type === 'boss' && enemy.bossShieldTimer && enemy.bossShieldTimer > 0) {
+                  // Shield blocks the attack - only show spark effect
+                  newState.particles = [...newState.particles, ...createParticles(
+                    proj.x, proj.y, 12, 'spark', '#00ffff'
+                  )];
+                  newState.screenShake = 0.15;
+                  return; // Shield absorbed hit
+                }
+                
                 newState.enemies[enemyIdx] = {
                   ...newState.enemies[enemyIdx],
                   health: newState.enemies[enemyIdx].health - proj.damage,
