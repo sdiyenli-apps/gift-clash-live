@@ -22,14 +22,15 @@ export const MiniMap = ({ player, enemies, levelLength, princessX, cameraX }: Mi
   
   return (
     <div 
-      className="absolute bottom-2 left-1/2 -translate-x-1/2 z-40"
+      className="relative"
       style={{
-        width: mapWidth + 4,
-        height: mapHeight + 4,
-        background: 'rgba(0,0,0,0.85)',
-        border: '1px solid rgba(0,255,255,0.4)',
-        borderRadius: 6,
-        padding: 2,
+        width: mapWidth + 8,
+        height: mapHeight + 8,
+        background: 'rgba(0,0,0,0.9)',
+        border: '2px solid rgba(0,255,255,0.6)',
+        borderRadius: 8,
+        padding: 3,
+        boxShadow: '0 0 10px rgba(0,255,255,0.3), inset 0 0 5px rgba(0,0,0,0.5)',
       }}
     >
       {/* Map background */}
