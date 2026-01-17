@@ -101,7 +101,7 @@ export const FloorAssets = ({ cameraX, levelLength }: FloorAssetsProps) => {
             className="absolute"
             style={{
               left: screenX,
-              bottom: 50,
+              bottom: 160, // Raised to match new ground height
             }}
           >
             {asset.type === 'dustbin' && (

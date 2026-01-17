@@ -373,11 +373,11 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
         {/* Floor Assets - dustbins, rats, debris */}
         <FloorAssets cameraX={cameraX} levelLength={levelLength} />
         
-        {/* Floor - CONCRETE TEXTURE with cyberpunk styling */}
+        {/* Floor - RAISED to just below HP bar - Concrete with cyberpunk styling */}
         <div 
           className="absolute bottom-0 left-0 right-0 z-5"
           style={{
-            height: 50,
+            height: 160, // Raised ground height
           }}
         >
           {/* Concrete base texture */}
@@ -387,18 +387,18 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
               background: `
                 linear-gradient(180deg, 
                   rgba(60,55,50,0.95) 0%, 
-                  rgba(45,42,38,1) 30%,
-                  rgba(35,32,28,1) 70%, 
+                  rgba(45,42,38,1) 20%,
+                  rgba(35,32,28,1) 60%, 
                   rgba(25,22,18,1) 100%
                 )
               `,
-              boxShadow: 'inset 0 8px 25px rgba(0,0,0,0.7)',
+              boxShadow: 'inset 0 15px 40px rgba(0,0,0,0.8)',
             }}
           />
           
           {/* Concrete texture overlay - cracks and grain */}
           <div 
-            className="absolute inset-0 opacity-40"
+            className="absolute inset-0 opacity-35"
             style={{
               backgroundImage: `
                 url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E")
@@ -416,21 +416,21 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
                 linear-gradient(45deg, transparent 48%, rgba(0,0,0,0.3) 49%, rgba(0,0,0,0.3) 51%, transparent 52%),
                 linear-gradient(-30deg, transparent 48%, rgba(0,0,0,0.2) 49%, rgba(0,0,0,0.2) 51%, transparent 52%)
               `,
-              backgroundSize: '80px 40px, 120px 60px',
-              transform: `translateX(${-cameraX % 120}px)`,
+              backgroundSize: '100px 50px, 150px 80px',
+              transform: `translateX(${-cameraX % 150}px)`,
             }}
           />
           
           {/* Neon edge lines on concrete */}
           <div 
-            className="absolute inset-0 opacity-30"
+            className="absolute inset-0 opacity-25"
             style={{
               backgroundImage: `
                 linear-gradient(90deg, rgba(0,255,255,0.15) 1px, transparent 1px),
-                linear-gradient(0deg, rgba(255,0,255,0.1) 1px, transparent 1px)
+                linear-gradient(0deg, rgba(255,0,255,0.08) 1px, transparent 1px)
               `,
-              backgroundSize: '100px 25px',
-              transform: `translateX(${-cameraX % 100}px)`,
+              backgroundSize: '120px 40px',
+              transform: `translateX(${-cameraX % 120}px)`,
             }}
           />
           
@@ -438,9 +438,9 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           <div 
             className="absolute top-0 left-0 right-0"
             style={{
-              height: 3,
-              background: 'linear-gradient(90deg, rgba(0,255,255,0.4), rgba(255,0,255,0.6), rgba(0,255,255,0.4))',
-              boxShadow: '0 0 12px rgba(0,255,255,0.5), 0 2px 15px rgba(255,0,255,0.3)',
+              height: 4,
+              background: 'linear-gradient(90deg, rgba(0,255,255,0.5), rgba(255,0,255,0.7), rgba(0,255,255,0.5))',
+              boxShadow: '0 0 15px rgba(0,255,255,0.6), 0 3px 20px rgba(255,0,255,0.4)',
             }}
           />
           
@@ -448,91 +448,27 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           <div 
             className="absolute opacity-20"
             style={{
-              width: 60,
-              height: 8,
+              width: 80,
+              height: 12,
               background: 'linear-gradient(90deg, transparent, rgba(0,255,255,0.4), transparent)',
               left: `${(200 - cameraX % 400)}px`,
-              top: 15,
+              top: 25,
               borderRadius: '50%',
-              filter: 'blur(2px)',
+              filter: 'blur(3px)',
             }}
           />
           <div 
             className="absolute opacity-15"
             style={{
-              width: 40,
-              height: 6,
+              width: 50,
+              height: 8,
               background: 'linear-gradient(90deg, transparent, rgba(255,0,255,0.3), transparent)',
               left: `${(350 - cameraX % 500)}px`,
-              top: 25,
+              top: 50,
               borderRadius: '50%',
               filter: 'blur(2px)',
             }}
           />
-          
-          {/* Gift blocks flying INSIDE the floor section */}
-          {giftBlocks.map(block => {
-            const blockScreenX = block.x - cameraX;
-            // Only render if on screen
-            if (blockScreenX < -100 || blockScreenX > 900) return null;
-            
-            return (
-              <motion.div
-                key={block.id}
-                className="absolute z-30 flex flex-col items-center pointer-events-none"
-                style={{
-                  left: blockScreenX,
-                  top: block.y, // INSIDE the floor (top of floor section)
-                }}
-                initial={{ scale: 0, opacity: 0, x: -50 }}
-                animate={{ 
-                  scale: 1, 
-                  opacity: 1,
-                  x: 0,
-                }}
-                transition={{
-                  scale: { duration: 0.2 },
-                  opacity: { duration: 0.15 },
-                }}
-              >
-                {/* Glowing gift box container */}
-                <motion.div 
-                  className="w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold relative"
-                  style={{
-                    background: 'linear-gradient(135deg, rgba(255,0,255,0.9), rgba(0,255,255,0.9))',
-                    boxShadow: '0 0 15px rgba(255,0,255,0.8), 0 0 30px rgba(0,255,255,0.6)',
-                    border: '2px solid rgba(255,255,255,0.8)',
-                  }}
-                  animate={{
-                    rotate: [-3, 3, -3],
-                    y: [-2, 2, -2],
-                  }}
-                  transition={{ duration: 0.4, repeat: Infinity }}
-                >
-                  {block.emoji}
-                </motion.div>
-                {/* Username label */}
-                <div 
-                  className="absolute -bottom-4 text-[8px] font-bold whitespace-nowrap px-1.5 py-0.5 rounded"
-                  style={{
-                    background: 'rgba(0,0,0,0.8)',
-                    color: '#00ffff',
-                    textShadow: '0 0 5px #00ffff',
-                  }}
-                >
-                  {block.username.slice(0, 8)}
-                </div>
-                {/* Trail effect */}
-                <motion.div
-                  className="absolute -left-6 top-1/2 -translate-y-1/2 w-8 h-4 rounded-full"
-                  style={{
-                    background: 'linear-gradient(90deg, transparent, rgba(255,0,255,0.5))',
-                    filter: 'blur(3px)',
-                  }}
-                />
-              </motion.div>
-            );
-          })}
         </div>
         
         {/* Princess only visible at wave 1000 */}

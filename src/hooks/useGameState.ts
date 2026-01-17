@@ -7,7 +7,7 @@ import {
 } from '@/types/game';
 
 const GRAVITY = 0;
-const GROUND_Y = 100;
+const GROUND_Y = 160; // Raised ground level to match new floor height
 const PLAYER_WIDTH = 24; // Smaller for mobile
 const PLAYER_HEIGHT = 42; // Smaller for mobile
 const BASE_LEVEL_LENGTH = 12000; // Longer levels
@@ -754,23 +754,7 @@ export const useGameState = () => {
       }].sort((a, b) => b.totalDiamonds - a.totalDiamonds);
     });
     
-    // Create a gift block that flies INSIDE the floor section
-    const newGiftBlock: GiftBlock = {
-      id: `gift-block-${Date.now()}-${Math.random()}`,
-      x: gameState.cameraX - 50, // Start from left off-screen
-      y: 20 + Math.random() * 40, // INSIDE the floor area (bottom section)
-      emoji: event.gift.emoji,
-      username: event.username,
-      giftName: event.gift.name,
-      velocityX: 250 + Math.random() * 150, // Fly forward across screen
-      life: 8, // Lives to fly across
-    };
-    
-    setGameState(prev => ({
-      ...prev,
-      giftBlocks: [...prev.giftBlocks, newGiftBlock].slice(-20), // Keep max 20 blocks
-    }));
-    
+    // Process the gift action (no gift blocks flying)
     processGiftAction(event.gift.action, event.username);
     
     setTimeout(() => {
@@ -1279,9 +1263,9 @@ export const useGameState = () => {
           const bombScreenX = bomb.x - prev.cameraX;
           const heroScreenX = 60; // Hero's fixed screen position
           
-          // Check if bomb hit ground near player
-          if (bomb.y <= 70 && 
-              Math.abs(bombScreenX - heroScreenX) < 60 &&
+          // Check if bomb hit ground near player (raised ground at 160)
+          if (bomb.y <= 180 && 
+              Math.abs(bombScreenX - heroScreenX) < 80 &&
               bomb.timer > 0
           ) {
             if (newState.player.shield > 0) {
@@ -1291,8 +1275,8 @@ export const useGameState = () => {
               newState.screenShake = 0.4;
               newState.particles = [
                 ...newState.particles, 
-                ...createParticles(bomb.x, 80, 20, 'spark', '#00ffff'),
-                ...createParticles(bomb.x, 80, 15, 'explosion', '#ffff00'),
+                ...createParticles(bomb.x, 180, 20, 'spark', '#00ffff'),
+                ...createParticles(bomb.x, 180, 15, 'explosion', '#ffff00'),
               ];
               showSpeechBubble("🛡️ BOMB BLOCKED! 🛡️", 'excited');
             } else {
@@ -1303,7 +1287,7 @@ export const useGameState = () => {
               newState.screenShake = 0.6;
               newState.particles = [
                 ...newState.particles, 
-                ...createParticles(bomb.x, 80, 25, 'explosion', '#ff4400'),
+                ...createParticles(bomb.x, 180, 25, 'explosion', '#ff4400'),
               ];
               if (navigator.vibrate) {
                 navigator.vibrate(200);
@@ -1315,10 +1299,10 @@ export const useGameState = () => {
           }
           
           // Bomb hits ground (explodes harmlessly if not near player)
-          if (bomb.y <= 50) {
+          if (bomb.y <= 160) {
             newState.particles = [
               ...newState.particles, 
-              ...createParticles(bomb.x, 60, 15, 'explosion', '#ff8800'),
+              ...createParticles(bomb.x, 165, 15, 'explosion', '#ff8800'),
             ];
             newState.bombs = newState.bombs.filter(b => b.id !== bomb.id);
           }
