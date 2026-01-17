@@ -13,6 +13,7 @@ import { MiniMap } from './MiniMap';
 import { CyberpunkBuildings } from './CyberpunkBuildings';
 import { FloorAssets } from './FloorAssets';
 import { FlyingGiftBoxes } from './FlyingGiftBoxes';
+import { Portal } from './Portal';
 
 interface NeonLaser {
   id: string;
@@ -45,6 +46,9 @@ interface ExtendedGameState extends GameState {
   neonLasers?: NeonLaser[];
   empGrenades?: EMPGrenade[];
   bombs?: Bomb[];
+  portalOpen?: boolean;
+  portalX?: number;
+  heroEnteringPortal?: boolean;
 }
 
 interface ArenaProps {
@@ -61,7 +65,8 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
     fireballs = [], redFlash = 0, armorTimer = 0, enemyLasers = [],
     magicFlash = 0, bossTaunt = null, currentWave,
     damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
-    empGrenades = [], bombs = []
+    empGrenades = [], bombs = [],
+    portalOpen = false, portalX = 0, heroEnteringPortal = false
   } = gameState;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -470,6 +475,14 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
             }}
           />
         </div>
+        
+        {/* Portal - appears after boss is defeated */}
+        <Portal
+          x={portalX}
+          cameraX={cameraX}
+          isOpen={portalOpen}
+          isEntering={heroEnteringPortal}
+        />
         
         {/* Princess only visible at wave 1000 */}
         <Princess
