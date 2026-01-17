@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
-import heroSprite from '@/assets/hero-new.png';
+import heroSprite from '@/assets/hero-cutout.png';
 
 interface HeroProps {
   player: Player;

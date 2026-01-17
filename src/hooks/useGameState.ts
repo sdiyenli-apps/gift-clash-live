@@ -1913,35 +1913,53 @@ export const useGameState = () => {
           })
           .filter(e => !e.isDying || e.deathTimer > 0);
         
-        // AUTO SWORD SLASH - Hero uses sword when enemies get too close
-        const AUTO_SLASH_RANGE = 70;
-        const slashCooldown = (newState.player.autoSlashCooldown || 0) - delta;
-        newState.player = { ...newState.player, autoSlashCooldown: Math.max(0, slashCooldown) };
+        // ENEMIES HIT ONCE THEN JUMP BACK - No auto-kill, enemies attack then retreat
+        const ENEMY_ATTACK_RANGE = 70;
+        const attackCooldownDecrement = delta;
         
         newState.enemies = newState.enemies.map(enemy => {
           if (enemy.isDying || enemy.type === 'boss' || enemy.isSpawning) return enemy;
           
           const distToHero = Math.abs(enemy.x - prev.player.x);
-          if (distToHero < AUTO_SLASH_RANGE && slashCooldown <= 0) {
-            // Hero auto-slashes nearby enemy
-            newState.player = { 
-              ...newState.player, 
-              isAutoSlashing: true, 
-              animationState: 'sword_slash',
-              autoSlashCooldown: 0.4, // 0.4s cooldown between slashes
-            };
+          const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'flyer' || enemy.type === 'bomber' || enemy.type === 'jetrobot';
+          
+          // Enemy is close enough to attack and not on cooldown
+          if (distToHero < ENEMY_ATTACK_RANGE && (enemy.attackCooldown || 0) <= 0 && !enemy.isRetreating) {
+            // Enemy hits the player!
+            const damage = enemy.damage * 0.5;
+            if (newState.player.shield > 0) {
+              newState.player.shield = Math.max(0, newState.player.shield - damage);
+              newState.shieldBlockFlash = 0.5;
+              newState.particles = [...newState.particles, ...createParticles(prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT/2, 10, 'spark', '#00ffff')];
+            } else {
+              newState.player.health -= damage;
+              newState.damageFlash = 0.4;
+              newState.screenShake = 0.15;
+            }
+            
+            // Attack particles
             newState.particles = [...newState.particles, ...createParticles(
-              enemy.x + enemy.width/2, enemy.y + enemy.height/2, 20, 'death', '#ffff00'
+              enemy.x + enemy.width/2, enemy.y + enemy.height/2, 8, 'spark', '#ff4400'
             )];
-            newState.score += enemy.type === 'giant' ? 100 : 30;
-            // Reset slash animation after delay
-            setTimeout(() => setGameState(s => ({ 
-              ...s, 
-              player: { ...s.player, isAutoSlashing: false, animationState: 'idle' } 
-            })), 200);
-            return { ...enemy, isDying: true, deathTimer: 0.4 };
+            
+            // Set enemy to retreat to original position
+            const retreatX = enemy.originalX ?? (enemy.x + 150 + Math.random() * 100);
+            const retreatY = enemy.originalY ?? enemy.y;
+            
+            return { 
+              ...enemy, 
+              isRetreating: true,
+              originalX: retreatX,
+              originalY: retreatY,
+              attackCooldown: 1.5 + Math.random() * 0.5, // Cooldown before attacking again
+            };
           }
-          return enemy;
+          
+          // Decrease attack cooldown
+          return { 
+            ...enemy, 
+            attackCooldown: Math.max(0, (enemy.attackCooldown || 0) - attackCooldownDecrement),
+          };
         });
         
         // Move enemies - boss keeps distance and shoots (skip spawning enemies)
@@ -2338,21 +2356,13 @@ export const useGameState = () => {
             return { ...enemy, x: teleportX, y: GROUND_Y, animationPhase: newAnimPhase, attackCooldown: 0.8 };
           }
 
-          // MELEE/SLASH ATTACK - when close to hero
-          if (canMeleeAttack && enemy.attackCooldown <= 0 && Math.random() > 0.5) {
+          // MELEE/SLASH ATTACK - when close to hero, hit then retreat!
+          if (canMeleeAttack && enemy.attackCooldown <= 0 && !enemy.isRetreating && Math.random() > 0.5) {
             // Slash attack - no projectile, direct damage with visual
             newState.particles = [
               ...newState.particles, 
               ...createParticles(enemy.x - 20, currentY + enemy.height / 2, 12, 'spark', '#ff4400'),
             ];
-            
-            // Mark enemy as attacking for visual slash effect
-            const updatedEnemy = { 
-              ...enemy, 
-              attackCooldown: 0.6 + Math.random() * 0.3, 
-              animationPhase: newAnimPhase,
-              isSlashing: true, // New flag for slash animation
-            };
             
             // Slash hits player if very close
             if (distToHero < 70) {
@@ -2367,7 +2377,47 @@ export const useGameState = () => {
               }
             }
             
-            return updatedEnemy;
+            // After hitting, retreat to original position!
+            const retreatX = enemy.originalX ?? (enemy.x + 120 + Math.random() * 80);
+            return { 
+              ...enemy, 
+              attackCooldown: 1.5 + Math.random() * 0.5,
+              animationPhase: newAnimPhase,
+              isSlashing: true,
+              isRetreating: true,
+              originalX: retreatX,
+              originalY: GROUND_Y,
+            };
+          }
+          
+          // GROUND ENEMY RETREAT - zoom back to original position after attack
+          if (enemy.isRetreating && !isFlying) {
+            const origX = enemy.originalX ?? enemy.x + 150;
+            const dxToOrigin = origX - enemy.x;
+            
+            if (Math.abs(dxToOrigin) < 20) {
+              // Reached original position, stop retreating
+              return { 
+                ...enemy, 
+                x: origX, 
+                y: GROUND_Y,
+                isRetreating: false,
+                animationPhase: newAnimPhase,
+                isSlashing: false,
+              };
+            }
+            
+            // Move toward original position quickly (jump back)
+            const retreatSpeed = 280;
+            const moveX = Math.sign(dxToOrigin) * retreatSpeed * delta;
+            
+            return {
+              ...enemy,
+              x: enemy.x + moveX,
+              y: GROUND_Y + Math.sin(newAnimPhase * 10) * 15, // Slight hop while retreating
+              animationPhase: newAnimPhase,
+              isSlashing: false,
+            };
           }
 
           // ROCKET/RANGED ATTACK - when further from hero
