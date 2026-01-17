@@ -205,6 +205,47 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         </>
       )}
       
+      {/* EMP ONLY indicator for jet robots - always visible when not dropping */}
+      {enemy.type === 'jetrobot' && !isDropping && !enemy.isDying && (
+        <>
+          {/* EMP ONLY text */}
+          <motion.div
+            className="absolute -top-10 left-1/2 -translate-x-1/2 whitespace-nowrap font-black text-xs px-2 py-0.5 rounded"
+            style={{ 
+              background: 'linear-gradient(135deg, #ff0066, #ff00ff)',
+              color: '#fff',
+              textShadow: '0 0 5px #000',
+              boxShadow: '0 0 10px #ff00ff, 0 0 20px rgba(255,0,255,0.5)',
+              border: '1px solid #fff',
+            }}
+            animate={{ 
+              y: [0, -3, 0],
+              boxShadow: [
+                '0 0 10px #ff00ff, 0 0 20px rgba(255,0,255,0.5)',
+                '0 0 15px #00ffff, 0 0 25px rgba(0,255,255,0.5)',
+                '0 0 10px #ff00ff, 0 0 20px rgba(255,0,255,0.5)',
+              ]
+            }}
+            transition={{ duration: 0.8, repeat: Infinity }}
+          >
+            ⚡ EMP ONLY ⚡
+          </motion.div>
+          
+          {/* Shield icon indicator */}
+          <motion.div
+            className="absolute -top-4 left-1/2 -translate-x-1/2"
+            style={{
+              width: 16,
+              height: 16,
+              background: 'radial-gradient(circle, rgba(255,0,255,0.6), transparent)',
+              borderRadius: '50%',
+            }}
+            animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0.9, 0.6] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          />
+        </>
+      )}
+      
       {/* Death effects */}
       {enemy.isDying && (
         <>
