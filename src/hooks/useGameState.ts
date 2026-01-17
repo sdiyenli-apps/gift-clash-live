@@ -352,10 +352,11 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     const droneSwarmCount = Math.min(Math.floor(wave / 2), 8);
     for (let i = 0; i < droneSwarmCount; i++) {
       const swarmX = 600 + Math.random() * (levelLength - 1400);
+      const swarmY = GROUND_Y + 80 + Math.random() * 60;
       enemies.push({
         id: `drone-swarm-${i}-${Math.random()}`,
         x: swarmX,
-        y: GROUND_Y + 80 + Math.random() * 60,
+        y: swarmY,
         width: 42,
         height: 42,
         health: 35 * (1 + wave * 0.1),
@@ -371,6 +372,9 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         spawnTimer: 0.8,
         isFlying: true,
         flyHeight: 80 + Math.random() * 60,
+        originalX: swarmX, // Store original position for retreat
+        originalY: swarmY,
+        droneVariant: Math.floor(Math.random() * 5), // Random drone variant 0-4
       });
     }
   }
@@ -380,10 +384,11 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     const bomberCount = Math.min(Math.floor(wave / 4), 6);
     for (let i = 0; i < bomberCount; i++) {
       const bomberX = 700 + Math.random() * (levelLength - 1600);
+      const bomberY = GROUND_Y + 230 + Math.random() * 60;
       enemies.push({
         id: `bomber-squadron-${i}-${Math.random()}`,
         x: bomberX,
-        y: GROUND_Y + 230 + Math.random() * 60, // MUCH higher
+        y: bomberY, // MUCH higher
         width: 55,
         height: 50,
         health: 55 * (1 + wave * 0.08),
@@ -400,6 +405,9 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         isFlying: true,
         flyHeight: 230 + Math.random() * 60, // MUCH higher than drones
         bombCooldown: 1.5 + Math.random() * 2,
+        originalX: bomberX, // Store original position for retreat
+        originalY: bomberY,
+        droneVariant: Math.floor(Math.random() * 5), // Random drone variant 0-4
       });
     }
   }
@@ -410,10 +418,11 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   for (let x = 450; x < levelLength - 800; x += enemyDensity + Math.random() * 100) {
     if (Math.random() < jetRobotChance) {
       const jetHealth = 80 * (1 + wave * 0.1);
+      const jetY = GROUND_Y + 120 + Math.random() * 60;
       enemies.push({
         id: `jetrobot-${x}-${Math.random()}`,
         x,
-        y: GROUND_Y + 120 + Math.random() * 60, // Target flying height
+        y: jetY, // Target flying height
         width: 55,
         height: 50,
         health: jetHealth,
@@ -431,6 +440,8 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         isFlying: true,
         flyHeight: 120 + Math.random() * 60,
         empOnly: true, // Can ONLY be killed by EMP
+        originalX: x, // Store original position for retreat
+        originalY: jetY,
       });
     }
   }
@@ -2047,6 +2058,51 @@ export const useGameState = () => {
             const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
             const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
             
+            // RETREAT BEHAVIOR - zoom back to original position when close to hero
+            const RETREAT_DISTANCE = 120; // Distance at which flying enemies retreat
+            const RETREAT_SPEED = 350; // How fast they zoom back
+            
+            if (enemy.isRetreating) {
+              // Zoom back to original position
+              const origX = enemy.originalX ?? enemy.x + 200;
+              const origY = enemy.originalY ?? targetY;
+              const dxToOrigin = origX - enemy.x;
+              const dyToOrigin = origY - enemy.y;
+              const distToOrigin = Math.sqrt(dxToOrigin * dxToOrigin + dyToOrigin * dyToOrigin);
+              
+              if (distToOrigin < 30) {
+                // Reached original position, stop retreating
+                return { 
+                  ...enemy, 
+                  x: origX, 
+                  y: origY, 
+                  isRetreating: false,
+                  animationPhase: newAnimPhase,
+                  attackCooldown: 1.5, // Cooldown before approaching again
+                };
+              }
+              
+              // Move toward original position quickly
+              const moveX = (dxToOrigin / distToOrigin) * RETREAT_SPEED * delta;
+              const moveY = (dyToOrigin / distToOrigin) * RETREAT_SPEED * delta;
+              
+              return {
+                ...enemy,
+                x: enemy.x + moveX,
+                y: enemy.y + moveY,
+                animationPhase: newAnimPhase,
+              };
+            }
+            
+            // Check if too close to hero - trigger retreat!
+            if (distToHero < RETREAT_DISTANCE && distToHero > 0) {
+              return {
+                ...enemy,
+                isRetreating: true,
+                animationPhase: newAnimPhase,
+              };
+            }
+            
             // Smooth horizontal approach toward player
             const horizontalMove = direction * enemy.speed * delta * 0.25;
             
@@ -2090,6 +2146,48 @@ export const useGameState = () => {
             // Calculate Y position - bombers fly higher
             const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
             const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
+            
+            // RETREAT BEHAVIOR - zoom back to original position when close to hero
+            const RETREAT_DISTANCE = 150; // Bombers retreat at further distance
+            const RETREAT_SPEED = 300;
+            
+            if (enemy.isRetreating) {
+              const origX = enemy.originalX ?? enemy.x + 250;
+              const origY = enemy.originalY ?? targetY;
+              const dxToOrigin = origX - enemy.x;
+              const dyToOrigin = origY - enemy.y;
+              const distToOrigin = Math.sqrt(dxToOrigin * dxToOrigin + dyToOrigin * dyToOrigin);
+              
+              if (distToOrigin < 30) {
+                return { 
+                  ...enemy, 
+                  x: origX, 
+                  y: origY, 
+                  isRetreating: false,
+                  animationPhase: newAnimPhase,
+                  attackCooldown: 2.0,
+                };
+              }
+              
+              const moveX = (dxToOrigin / distToOrigin) * RETREAT_SPEED * delta;
+              const moveY = (dyToOrigin / distToOrigin) * RETREAT_SPEED * delta;
+              
+              return {
+                ...enemy,
+                x: enemy.x + moveX,
+                y: enemy.y + moveY,
+                animationPhase: newAnimPhase,
+              };
+            }
+            
+            // Check if too close to hero - trigger retreat!
+            if (distToHero < RETREAT_DISTANCE && distToHero > 0) {
+              return {
+                ...enemy,
+                isRetreating: true,
+                animationPhase: newAnimPhase,
+              };
+            }
             
             // Horizontal movement - bombers fly across the screen
             const horizontalMove = direction * enemy.speed * delta * 0.3;
@@ -2144,6 +2242,48 @@ export const useGameState = () => {
             
             const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
             const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
+            
+            // RETREAT BEHAVIOR - zoom back to original position when close to hero
+            const RETREAT_DISTANCE = 100;
+            const RETREAT_SPEED = 400; // Jet robots are fastest!
+            
+            if (enemy.isRetreating) {
+              const origX = enemy.originalX ?? enemy.x + 200;
+              const origY = enemy.originalY ?? targetY;
+              const dxToOrigin = origX - enemy.x;
+              const dyToOrigin = origY - enemy.y;
+              const distToOrigin = Math.sqrt(dxToOrigin * dxToOrigin + dyToOrigin * dyToOrigin);
+              
+              if (distToOrigin < 30) {
+                return { 
+                  ...enemy, 
+                  x: origX, 
+                  y: origY, 
+                  isRetreating: false,
+                  animationPhase: newAnimPhase,
+                  attackCooldown: 1.5,
+                };
+              }
+              
+              const moveX = (dxToOrigin / distToOrigin) * RETREAT_SPEED * delta;
+              const moveY = (dyToOrigin / distToOrigin) * RETREAT_SPEED * delta;
+              
+              return {
+                ...enemy,
+                x: enemy.x + moveX,
+                y: enemy.y + moveY,
+                animationPhase: newAnimPhase,
+              };
+            }
+            
+            // Check if too close to hero - trigger retreat!
+            if (distToHero < RETREAT_DISTANCE && distToHero > 0) {
+              return {
+                ...enemy,
+                isRetreating: true,
+                animationPhase: newAnimPhase,
+              };
+            }
             
             // Horizontal movement - approaches player slowly
             const horizontalMove = direction * enemy.speed * delta * 0.2;
