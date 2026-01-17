@@ -2076,33 +2076,36 @@ export const useGameState = () => {
             const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
             const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
             
-            // RETREAT BEHAVIOR - zoom back to original position when close to hero
-            const RETREAT_DISTANCE = 120; // Distance at which flying enemies retreat
-            const RETREAT_SPEED = 350; // How fast they zoom back
+            // RETREAT BEHAVIOR - zoom back HALFWAY, then attack again!
+            const RETREAT_DISTANCE = 100; // Distance at which flying enemies retreat
+            const RETREAT_SPEED = 400; // How fast they zoom back
             
             if (enemy.isRetreating) {
-              // Zoom back to original position
+              // Calculate halfway point between current position and original
               const origX = enemy.originalX ?? enemy.x + 200;
               const origY = enemy.originalY ?? targetY;
-              const dxToOrigin = origX - enemy.x;
-              const dyToOrigin = origY - enemy.y;
-              const distToOrigin = Math.sqrt(dxToOrigin * dxToOrigin + dyToOrigin * dyToOrigin);
+              const halfwayX = prev.player.x + (origX - prev.player.x) * 0.5; // Halfway back
+              const halfwayY = (enemy.y + origY) / 2;
               
-              if (distToOrigin < 30) {
-                // Reached original position, stop retreating
+              const dxToHalfway = halfwayX - enemy.x;
+              const dyToHalfway = halfwayY - enemy.y;
+              const distToHalfway = Math.sqrt(dxToHalfway * dxToHalfway + dyToHalfway * dyToHalfway);
+              
+              if (distToHalfway < 40) {
+                // Reached halfway position, stop retreating and prepare to attack again
                 return { 
                   ...enemy, 
-                  x: origX, 
-                  y: origY, 
+                  x: halfwayX, 
+                  y: halfwayY, 
                   isRetreating: false,
                   animationPhase: newAnimPhase,
-                  attackCooldown: 1.5, // Cooldown before approaching again
+                  attackCooldown: 0.8, // Short cooldown before attacking again
                 };
               }
               
-              // Move toward original position quickly
-              const moveX = (dxToOrigin / distToOrigin) * RETREAT_SPEED * delta;
-              const moveY = (dyToOrigin / distToOrigin) * RETREAT_SPEED * delta;
+              // Move toward halfway position quickly
+              const moveX = (dxToHalfway / distToHalfway) * RETREAT_SPEED * delta;
+              const moveY = (dyToHalfway / distToHalfway) * RETREAT_SPEED * delta;
               
               return {
                 ...enemy,
@@ -2112,20 +2115,9 @@ export const useGameState = () => {
               };
             }
             
-            // Check if too close to hero - trigger retreat!
-            if (distToHero < RETREAT_DISTANCE && distToHero > 0) {
-              return {
-                ...enemy,
-                isRetreating: true,
-                animationPhase: newAnimPhase,
-              };
-            }
-            
-            // Smooth horizontal approach toward player
-            const horizontalMove = direction * enemy.speed * delta * 0.25;
-            
-            // Drone shoots lasers when in range
-            if (enemy.type === 'drone' && (canMeleeAttack || canRangedAttack) && enemy.attackCooldown <= 0 && Math.random() > 0.7) {
+            // Check if close to hero and ready to attack - ATTACK FIRST then retreat!
+            if (distToHero < RETREAT_DISTANCE && distToHero > 0 && enemy.attackCooldown <= 0) {
+              // Fire attack before retreating!
               const enemyLaser: Projectile = {
                 id: `elaser-${Date.now()}-${Math.random()}`,
                 x: enemy.x - 8,
@@ -2136,14 +2128,27 @@ export const useGameState = () => {
                 type: 'normal',
               };
               newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
-              return { 
-                ...enemy, 
-                y: targetY, 
-                x: enemy.x + horizontalMove,
-                attackCooldown: 0.8 + Math.random() * 0.4, 
-                animationPhase: newAnimPhase 
+              
+              // Attack particles
+              newState.particles = [
+                ...newState.particles,
+                ...createParticles(enemy.x - 8, targetY + enemy.height / 2, 8, 'muzzle', '#00ffff'),
+              ];
+              
+              // Now retreat!
+              return {
+                ...enemy,
+                y: targetY,
+                isRetreating: true,
+                animationPhase: newAnimPhase,
+                attackCooldown: 1.0, // Cooldown for next attack
+                originalX: enemy.originalX ?? enemy.x + 150, // Store original position if not set
+                originalY: enemy.originalY ?? targetY,
               };
             }
+            
+            // Smooth horizontal approach toward player
+            const horizontalMove = direction * enemy.speed * delta * 0.25;
             
             // Continue vertical flying movement
             return {
@@ -2165,30 +2170,34 @@ export const useGameState = () => {
             const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
             const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
             
-            // RETREAT BEHAVIOR - zoom back to original position when close to hero
-            const RETREAT_DISTANCE = 150; // Bombers retreat at further distance
-            const RETREAT_SPEED = 300;
+            // RETREAT BEHAVIOR - zoom back HALFWAY then attack again!
+            const RETREAT_DISTANCE = 130;
+            const RETREAT_SPEED = 350;
             
             if (enemy.isRetreating) {
               const origX = enemy.originalX ?? enemy.x + 250;
               const origY = enemy.originalY ?? targetY;
-              const dxToOrigin = origX - enemy.x;
-              const dyToOrigin = origY - enemy.y;
-              const distToOrigin = Math.sqrt(dxToOrigin * dxToOrigin + dyToOrigin * dyToOrigin);
+              const halfwayX = prev.player.x + (origX - prev.player.x) * 0.5;
+              const halfwayY = (enemy.y + origY) / 2;
               
-              if (distToOrigin < 30) {
+              const dxToHalfway = halfwayX - enemy.x;
+              const dyToHalfway = halfwayY - enemy.y;
+              const distToHalfway = Math.sqrt(dxToHalfway * dxToHalfway + dyToHalfway * dyToHalfway);
+              
+              if (distToHalfway < 40) {
                 return { 
                   ...enemy, 
-                  x: origX, 
-                  y: origY, 
+                  x: halfwayX, 
+                  y: halfwayY, 
                   isRetreating: false,
                   animationPhase: newAnimPhase,
-                  attackCooldown: 2.0,
+                  attackCooldown: 0.6,
+                  bombCooldown: 0.8,
                 };
               }
               
-              const moveX = (dxToOrigin / distToOrigin) * RETREAT_SPEED * delta;
-              const moveY = (dyToOrigin / distToOrigin) * RETREAT_SPEED * delta;
+              const moveX = (dxToHalfway / distToHalfway) * RETREAT_SPEED * delta;
+              const moveY = (dyToHalfway / distToHalfway) * RETREAT_SPEED * delta;
               
               return {
                 ...enemy,
@@ -2198,46 +2207,39 @@ export const useGameState = () => {
               };
             }
             
-            // Check if too close to hero - trigger retreat!
-            if (distToHero < RETREAT_DISTANCE && distToHero > 0) {
-              return {
-                ...enemy,
-                isRetreating: true,
-                animationPhase: newAnimPhase,
-              };
-            }
-            
             // Horizontal movement - bombers fly across the screen
             const horizontalMove = direction * enemy.speed * delta * 0.3;
             
-            // Drop bombs when above player area
+            // Attack first when close, then retreat!
             const bombCooldown = (enemy.bombCooldown || 0) - delta;
-            const isAbovePlayer = Math.abs(enemy.x - prev.player.x) < 200 && isOnScreen;
+            const isCloseToHero = distToHero < RETREAT_DISTANCE && distToHero > 0;
             
-            if (isAbovePlayer && bombCooldown <= 0) {
-              // Drop a bomb!
+            if (isCloseToHero && bombCooldown <= 0 && isOnScreen) {
+              // Drop a bomb then retreat!
               const newBomb: Bomb = {
                 id: `bomb-${Date.now()}-${Math.random()}`,
                 x: enemy.x + enemy.width / 2,
                 y: targetY,
-                velocityY: -150, // Falls down
+                velocityY: -150,
                 damage: enemy.damage,
-                timer: 5, // Bomb lives for 5 seconds max
+                timer: 5,
               };
               newState.bombs = [...(newState.bombs || []), newBomb];
               
-              // Bomb drop particles
               newState.particles = [
                 ...newState.particles,
                 ...createParticles(enemy.x + enemy.width / 2, targetY - 10, 8, 'spark', '#ff8800'),
               ];
               
+              // Now retreat halfway!
               return {
                 ...enemy,
                 y: targetY,
-                x: enemy.x + horizontalMove,
+                isRetreating: true,
                 animationPhase: newAnimPhase,
-                bombCooldown: 2.5 + Math.random() * 1.5, // Reset bomb cooldown
+                bombCooldown: 2.0,
+                originalX: enemy.originalX ?? enemy.x + 180,
+                originalY: enemy.originalY ?? targetY,
               };
             }
             
@@ -2253,7 +2255,6 @@ export const useGameState = () => {
 
           // JETROBOT - Flying enemy that shoots NEON BEAMS (damage over time)
           if (enemy.type === 'jetrobot' && !enemy.isDropping) {
-            // Vertical movement - similar to drones but hovers at different heights
             const verticalSpeed = 1.8;
             const maxHeight = 200;
             const minHeight = 80;
@@ -2261,30 +2262,33 @@ export const useGameState = () => {
             const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
             const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
             
-            // RETREAT BEHAVIOR - zoom back to original position when close to hero
+            // RETREAT BEHAVIOR - zoom back HALFWAY then attack again!
             const RETREAT_DISTANCE = 100;
-            const RETREAT_SPEED = 400; // Jet robots are fastest!
+            const RETREAT_SPEED = 450;
             
             if (enemy.isRetreating) {
               const origX = enemy.originalX ?? enemy.x + 200;
               const origY = enemy.originalY ?? targetY;
-              const dxToOrigin = origX - enemy.x;
-              const dyToOrigin = origY - enemy.y;
-              const distToOrigin = Math.sqrt(dxToOrigin * dxToOrigin + dyToOrigin * dyToOrigin);
+              const halfwayX = prev.player.x + (origX - prev.player.x) * 0.5;
+              const halfwayY = (enemy.y + origY) / 2;
               
-              if (distToOrigin < 30) {
+              const dxToHalfway = halfwayX - enemy.x;
+              const dyToHalfway = halfwayY - enemy.y;
+              const distToHalfway = Math.sqrt(dxToHalfway * dxToHalfway + dyToHalfway * dyToHalfway);
+              
+              if (distToHalfway < 40) {
                 return { 
                   ...enemy, 
-                  x: origX, 
-                  y: origY, 
+                  x: halfwayX, 
+                  y: halfwayY, 
                   isRetreating: false,
                   animationPhase: newAnimPhase,
-                  attackCooldown: 1.5,
+                  attackCooldown: 0.6,
                 };
               }
               
-              const moveX = (dxToOrigin / distToOrigin) * RETREAT_SPEED * delta;
-              const moveY = (dyToOrigin / distToOrigin) * RETREAT_SPEED * delta;
+              const moveX = (dxToHalfway / distToHalfway) * RETREAT_SPEED * delta;
+              const moveY = (dyToHalfway / distToHalfway) * RETREAT_SPEED * delta;
               
               return {
                 ...enemy,
@@ -2294,47 +2298,40 @@ export const useGameState = () => {
               };
             }
             
-            // Check if too close to hero - trigger retreat!
-            if (distToHero < RETREAT_DISTANCE && distToHero > 0) {
-              return {
-                ...enemy,
-                isRetreating: true,
-                animationPhase: newAnimPhase,
-              };
-            }
-            
             // Horizontal movement - approaches player slowly
             const horizontalMove = direction * enemy.speed * delta * 0.2;
             
-            // NEON BEAM ATTACK - fires a beam that deals damage over time
+            // Attack with neon beam when close, then retreat!
             const beamCooldown = (enemy.attackCooldown || 0) - delta;
-            const isInRange = Math.abs(enemy.x - prev.player.x) < 350 && isOnScreen;
+            const isCloseToHero = distToHero < RETREAT_DISTANCE && distToHero > 0;
             
-            if (isInRange && beamCooldown <= 0 && Math.random() > 0.6) {
-              // Fire neon beam at player!
+            if (isCloseToHero && beamCooldown <= 0 && isOnScreen) {
+              // Fire neon beam then retreat!
               const newBeam: NeonBeam = {
                 id: `neonbeam-${Date.now()}-${Math.random()}`,
                 x: enemy.x,
                 y: targetY + enemy.height / 2,
                 targetX: prev.player.x + PLAYER_WIDTH / 2,
                 targetY: prev.player.y + PLAYER_HEIGHT / 2,
-                life: 1.5, // Beam lasts 1.5 seconds
-                damageTimer: 0, // Damage ticks immediately
+                life: 1.5,
+                damageTimer: 0,
               };
               newState.neonBeams = [...newState.neonBeams, newBeam];
               
-              // Beam particles at source
               newState.particles = [
                 ...newState.particles,
                 ...createParticles(enemy.x, targetY + enemy.height / 2, 12, 'spark', '#00ffff'),
               ];
               
+              // Now retreat halfway!
               return {
                 ...enemy,
                 y: targetY,
-                x: enemy.x + horizontalMove,
+                isRetreating: true,
                 animationPhase: newAnimPhase,
-                attackCooldown: 2.0 + Math.random(), // 2-3 second cooldown
+                attackCooldown: 1.5,
+                originalX: enemy.originalX ?? enemy.x + 150,
+                originalY: enemy.originalY ?? targetY,
               };
             }
             
