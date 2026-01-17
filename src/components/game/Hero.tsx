@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
-import heroSprite from '@/assets/hero-sprite.png';
+import heroVideo from '@/assets/hero-video-sprite.mp4';
 
 interface HeroProps {
   player: Player;
@@ -168,12 +168,16 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
               : { duration: 0.1 }
           }
         >
-          <motion.img
-            src={heroSprite}
-            alt="Hero"
+          <motion.video
+            src={heroVideo}
+            autoPlay
+            loop
+            muted
+            playsInline
             className="w-full h-full object-contain rounded-lg"
             style={{
               imageRendering: 'crisp-edges',
+              transform: 'scaleX(-1)', // Flip to face right
             }}
             // Walking animation simulation through scaling
             animate={
@@ -330,13 +334,17 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
                 animate={{ opacity: 0, x: -15 - i * 8 }}
                 transition={{ duration: 0.15, delay: i * 0.02 }}
               >
-                <img 
-                  src={heroSprite}
-                  alt="Hero trail"
+                <video 
+                  src={heroVideo}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
                   className="w-full h-full object-contain"
                   style={{ 
                     filter: `blur(${i * 2}px) hue-rotate(${i * 40}deg)`,
                     opacity: 0.3 - i * 0.08,
+                    transform: 'scaleX(-1)', // Keep trail facing right too
                   }}
                 />
               </motion.div>

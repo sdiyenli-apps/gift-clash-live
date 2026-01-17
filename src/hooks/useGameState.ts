@@ -2263,7 +2263,7 @@ export const useGameState = () => {
             const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
             
             // RETREAT BEHAVIOR - zoom back HALFWAY then attack again!
-            const RETREAT_DISTANCE = 100;
+            const RETREAT_DISTANCE = 300; // Jet robots attack from much further distance
             const RETREAT_SPEED = 450;
             
             if (enemy.isRetreating) {

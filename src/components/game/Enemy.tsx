@@ -339,13 +339,13 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
             filter: `drop-shadow(0 0 ${isBoss ? (bossPhase === 3 ? 40 : 25) : 10}px ${bossPhase === 3 ? '#ff0000' : color})`,
           }}
         >
-          {sprite ? (
+        {sprite ? (
             <img 
               src={sprite} 
               alt={enemy.type}
               className="w-full h-full object-contain"
               style={{
-                transform: 'scaleX(-1)',
+                // Face LEFT toward the hero (no flip needed - default faces left)
                 // Make boss phase 3 image super bright and visible
                 filter: isBoss && bossPhase === 3 
                   ? 'brightness(1.4) saturate(1.5) contrast(1.2)' 
