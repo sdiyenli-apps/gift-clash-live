@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { GameState, Projectile, GiftBlock, getBossName, GiftEvent } from '@/types/game';
+import { GameState, Projectile, GiftBlock, getBossName, GiftEvent, Bomb } from '@/types/game';
 import { BackgroundVideo } from './BackgroundVideo';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
@@ -44,6 +44,7 @@ interface ExtendedGameState extends GameState {
   shieldBlockFlash?: number;
   neonLasers?: NeonLaser[];
   empGrenades?: EMPGrenade[];
+  bombs?: Bomb[];
 }
 
 interface ArenaProps {
@@ -60,7 +61,7 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
     fireballs = [], redFlash = 0, armorTimer = 0, enemyLasers = [],
     magicFlash = 0, bossTaunt = null, currentWave,
     damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
-    empGrenades = []
+    empGrenades = [], bombs = []
   } = gameState;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -289,6 +290,76 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
                   transition={{ duration: 0.1, repeat: Infinity }}
                 />
               )}
+            </motion.div>
+          );
+        })}
+        
+        {/* BOMBS - Dropped by bomber enemies */}
+        {bombs.map(bomb => {
+          const screenX = bomb.x - cameraX;
+          if (screenX < -50 || screenX > 800) return null;
+          
+          return (
+            <motion.div
+              key={bomb.id}
+              className="absolute pointer-events-none z-35"
+              style={{
+                left: screenX,
+                bottom: bomb.y,
+                width: 20,
+                height: 24,
+              }}
+            >
+              {/* Bomb body */}
+              <motion.div
+                className="w-full h-full relative"
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.3, repeat: Infinity }}
+              >
+                {/* Bomb casing */}
+                <div
+                  className="w-full h-full rounded-b-full rounded-t-lg"
+                  style={{
+                    background: 'linear-gradient(135deg, #333 0%, #111 50%, #222 100%)',
+                    border: '2px solid #ff6600',
+                    boxShadow: '0 0 12px #ff6600, inset 0 2px 4px rgba(255,255,255,0.2)',
+                  }}
+                />
+                {/* Fuse */}
+                <div
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 w-1 h-3"
+                  style={{
+                    background: '#666',
+                    borderRadius: '2px',
+                  }}
+                />
+                {/* Spark on fuse */}
+                <motion.div
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, #fff, #ff8800, #ff4400)',
+                    boxShadow: '0 0 8px #ff8800, 0 0 15px #ff4400',
+                  }}
+                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.7, 1] }}
+                  transition={{ duration: 0.15, repeat: Infinity }}
+                />
+                {/* Warning icon */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center text-xs font-bold"
+                  style={{ color: '#ff6600', textShadow: '0 0 4px #ff6600' }}
+                >
+                  💣
+                </div>
+              </motion.div>
+              
+              {/* Trail effect */}
+              <motion.div
+                className="absolute -top-4 left-1/2 -translate-x-1/2 w-3 h-8"
+                style={{
+                  background: 'linear-gradient(180deg, transparent, rgba(255,100,0,0.5), rgba(255,200,0,0.3))',
+                  filter: 'blur(2px)',
+                }}
+              />
             </motion.div>
           );
         })}
