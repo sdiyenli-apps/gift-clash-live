@@ -12,7 +12,7 @@ import { BossHealthBar } from './BossHealthBar';
 import { MiniMap } from './MiniMap';
 import { CyberpunkBuildings } from './CyberpunkBuildings';
 import { FloorAssets } from './FloorAssets';
-import { FlyingGiftBoxes } from './FlyingGiftBoxes';
+
 import { Portal } from './Portal';
 
 interface NeonLaser {
@@ -171,8 +171,6 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
         {/* Cyberpunk buildings in background */}
         <CyberpunkBuildings cameraX={cameraX} />
         
-        {/* Flying gift boxes in the sky */}
-        <FlyingGiftBoxes notifications={notifications} cameraX={cameraX} />
         
         {/* Video-like background */}
         <BackgroundVideo 
@@ -180,6 +178,7 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           cameraX={cameraX}
           isUltraMode={isUltraMode}
           isBossFight={isBossFight}
+          levelLength={levelLength}
         />
         
         {/* Player projectiles */}
