@@ -37,6 +37,10 @@ const SOUND_CONFIGS: Record<string, SoundConfig> = {
   missileWarning: { frequency: 800, duration: 0.6, type: 'square', volume: 0.3, attack: 0.05, decay: 0.5 },
   groundPound: { frequency: 50, duration: 0.5, type: 'sawtooth', volume: 0.4, attack: 0.01, decay: 0.45 },
   screenAttack: { frequency: 30, duration: 0.8, type: 'sawtooth', volume: 0.45, attack: 0.1, decay: 0.7 },
+  // JET ROBOT SOUNDS
+  jetDrop: { frequency: 400, duration: 0.8, type: 'sawtooth', volume: 0.3, attack: 0.05, decay: 0.7 },
+  jetEngine: { frequency: 150, duration: 0.6, type: 'sawtooth', volume: 0.25, attack: 0.1, decay: 0.5 },
+  jetSwoosh: { frequency: 1500, duration: 0.4, type: 'sine', volume: 0.2, attack: 0.01, decay: 0.35 },
 };
 
 export const useSoundEffects = () => {
@@ -99,6 +103,20 @@ export const useSoundEffects = () => {
       // Deep rumbling that builds
       oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 3, now + config.duration * 0.3);
       oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.5, now + config.duration);
+    } else if (soundName === 'jetDrop') {
+      // Descending whoosh - high to low frequency sweep
+      oscillator.frequency.setValueAtTime(config.frequency * 4, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.5, now + config.duration);
+    } else if (soundName === 'jetEngine') {
+      // Roaring engine - oscillating frequency
+      oscillator.frequency.setValueAtTime(config.frequency, now);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 2, now + config.duration * 0.2);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 1.5, now + config.duration * 0.5);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 0.8, now + config.duration);
+    } else if (soundName === 'jetSwoosh') {
+      // High-pitched swooshing descent
+      oscillator.frequency.setValueAtTime(config.frequency * 2, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.3, now + config.duration);
     }
     
     oscillator.start(now);

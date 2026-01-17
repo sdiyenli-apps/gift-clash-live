@@ -106,6 +106,23 @@ const Index = () => {
     }
   }, [gameState.shieldBlockFlash, playSound]);
 
+  // Play jet robot drop sounds when jet robots are dropping
+  const droppingJetRobots = gameState.enemies.filter(e => e.type === 'jetrobot' && e.isDropping && e.dropTimer && e.dropTimer > 0.8);
+  useEffect(() => {
+    if (droppingJetRobots.length > 0) {
+      playSound('jetDrop');
+      playSound('jetSwoosh');
+    }
+  }, [droppingJetRobots.length, playSound]);
+
+  // Play engine roar when jet robots finish dropping
+  const landedJetRobots = gameState.enemies.filter(e => e.type === 'jetrobot' && e.isDropping && e.dropTimer && e.dropTimer < 0.3 && e.dropTimer > 0.1);
+  useEffect(() => {
+    if (landedJetRobots.length > 0) {
+      playSound('jetEngine');
+    }
+  }, [landedJetRobots.length, playSound]);
+
   const handleTriggerGift = useCallback((giftId: string) => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');
