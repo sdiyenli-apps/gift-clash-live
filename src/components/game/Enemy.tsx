@@ -4,18 +4,27 @@ import { useState, useEffect } from 'react';
 import enemyRobot from '@/assets/enemy-robot.png';
 import enemyDrone from '@/assets/enemy-drone.png';
 import enemyMech from '@/assets/enemy-mech.png';
-import enemyBossScary from '@/assets/enemy-boss-scary.png';
+import bossPhase1 from '@/assets/boss-phase1.png';
+import bossPhase2 from '@/assets/boss-phase2.png';
+import bossPhase3 from '@/assets/boss-phase3.png';
 
 interface EnemyProps {
   enemy: EnemyType;
   cameraX: number;
 }
 
+// Get boss sprite based on phase
+const getBossSprite = (phase: number) => {
+  if (phase >= 3) return bossPhase3;
+  if (phase >= 2) return bossPhase2;
+  return bossPhase1;
+};
+
 const ENEMY_SPRITES: Record<string, string> = {
   robot: enemyRobot,
   drone: enemyDrone,
   mech: enemyMech,
-  boss: enemyBossScary,
+  boss: bossPhase1, // Default, will be overridden
   ninja: enemyRobot,
   tank: enemyMech,
   flyer: enemyDrone,
@@ -50,17 +59,19 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   
   const color = ENEMY_COLORS[enemy.type] || '#ff4444';
   const healthPercent = (enemy.health / enemy.maxHealth) * 100;
-  const sprite = ENEMY_SPRITES[enemy.type];
+  
+  // Get sprite - for boss, use phase-specific sprite
+  const isBoss = enemy.type === 'boss';
+  const bossPhase = enemy.bossPhase || 1;
+  const sprite = isBoss ? getBossSprite(bossPhase) : ENEMY_SPRITES[enemy.type];
   
   // Scale enemies - scaled for mobile
-  const isBoss = enemy.type === 'boss';
   const isGiant = enemy.type === 'giant' || enemy.isGiant;
-  const bossPhase = enemy.bossPhase || 1;
   
   // Boss grows bigger with each phase, giants are 1.5x larger
-  const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.2) : 1;
+  const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.25) : 1; // More dramatic scaling
   const giantScale = isGiant ? 1.5 : 1;
-  const scaleFactor = (isBoss ? 0.8 : 1.0) * bossPhaseScale * giantScale;
+  const scaleFactor = (isBoss ? 1.0 : 1.0) * bossPhaseScale * giantScale; // Boss no longer reduced
   const displayWidth = enemy.width * scaleFactor;
   const displayHeight = enemy.height * scaleFactor;
   

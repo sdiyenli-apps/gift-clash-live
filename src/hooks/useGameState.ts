@@ -280,7 +280,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       const bomberEnemy = {
         id: `bomber-${x}-${Math.random()}`,
         x,
-        y: GROUND_Y + 120 + Math.random() * 40, // High flying
+        y: GROUND_Y + 220 + Math.random() * 60, // MUCH higher flying - above all other enemies
         width,
         height,
         health,
@@ -295,7 +295,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         isSpawning: true,
         spawnTimer: 0.8,
         isFlying: true,
-        flyHeight: 120 + Math.random() * 40,
+        flyHeight: 220 + Math.random() * 60, // MUCH higher than drones
         bombCooldown: 2 + Math.random() * 2,
       };
       enemies.push(bomberEnemy);
@@ -364,7 +364,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       enemies.push({
         id: `bomber-squadron-${i}-${Math.random()}`,
         x: bomberX,
-        y: GROUND_Y + 130 + Math.random() * 50,
+        y: GROUND_Y + 230 + Math.random() * 60, // MUCH higher
         width: 55,
         height: 50,
         health: 55 * (1 + wave * 0.08),
@@ -379,7 +379,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         isSpawning: true,
         spawnTimer: 0.8,
         isFlying: true,
-        flyHeight: 130 + Math.random() * 50,
+        flyHeight: 230 + Math.random() * 60, // MUCH higher than drones
         bombCooldown: 1.5 + Math.random() * 2,
       });
     }
@@ -391,10 +391,10 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const isMegaBoss = wave % 100 === 0; // Every 100 waves = mega boss
   const isMiniBoss = wave % 10 === 0; // Every 10 waves = mini boss
   
-  // Boss size scales with wave - final boss covers half screen!
-  const baseBossSize = 100;
-  const sizeMultiplier = isFinalBoss ? 4 : (1 + wave * 0.003); // Final boss is 4x size
-  const bossSize = Math.min(baseBossSize * sizeMultiplier, isFinalBoss ? 400 : 200);
+  // Boss size scales with wave - MUCH LARGER boss!
+  const baseBossSize = 180; // Larger base size
+  const sizeMultiplier = isFinalBoss ? 4 : (1 + wave * 0.005); // Final boss is 4x size
+  const bossSize = Math.min(baseBossSize * sizeMultiplier, isFinalBoss ? 500 : 320);
   
   // Boss health scales dramatically
   const bossBaseHealth = isFinalBoss 
@@ -404,7 +404,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   enemies.push({
     id: 'boss-monster',
     x: levelLength - 500,
-    y: GROUND_Y - (bossSize * 0.3), // Bigger bosses need more ground clearance
+    y: GROUND_Y - (bossSize * 0.4), // Bigger bosses need more ground clearance
     width: bossSize,
     height: bossSize,
     health: bossBaseHealth,
