@@ -49,6 +49,7 @@ interface ExtendedGameState extends GameState {
   portalOpen?: boolean;
   portalX?: number;
   heroEnteringPortal?: boolean;
+  bossTransformFlash?: number;
 }
 
 interface ArenaProps {
@@ -66,7 +67,8 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
     magicFlash = 0, bossTaunt = null, currentWave,
     damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
     empGrenades = [], bombs = [],
-    portalOpen = false, portalX = 0, heroEnteringPortal = false
+    portalOpen = false, portalX = 0, heroEnteringPortal = false,
+    bossTransformFlash = 0
   } = gameState;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -88,14 +90,16 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
         background: '#0a0a15',
       }}
     >
-      {/* Mini-map */}
-      <MiniMap 
-        player={player}
-        enemies={enemies}
-        levelLength={levelLength}
-        princessX={levelLength - 100}
-        cameraX={cameraX}
-      />
+      {/* Mini-map - positioned at top for visibility */}
+      <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50">
+        <MiniMap 
+          player={player}
+          enemies={enemies}
+          levelLength={levelLength}
+          princessX={levelLength - 100}
+          cameraX={cameraX}
+        />
+      </div>
       
       {/* Boss HUD - shows taunts at top */}
       {bossEnemy && isBossFight && bossTaunt && (
@@ -156,6 +160,20 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           }}
           initial={{ opacity: 1 }}
           animate={{ opacity: shieldBlockFlash }}
+        />
+      )}
+      
+      {/* BOSS TRANSFORMATION FLASH - white/purple flash when boss transforms */}
+      {bossTransformFlash > 0 && (
+        <motion.div
+          className="absolute inset-0 z-60 pointer-events-none"
+          style={{ 
+            background: 'radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,0,255,0.6), rgba(255,0,0,0.4))',
+            boxShadow: 'inset 0 0 150px rgba(255,255,255,1)',
+          }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: [1, 0.5, 0.8, 0.3, 0] }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         />
       )}
       

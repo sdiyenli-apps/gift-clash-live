@@ -17,30 +17,53 @@ interface BackgroundVideoProps {
   levelLength: number;
 }
 
-// Zone definitions with relative positions (0-1 range)
-const ZONE_DEFS = [
-  { name: 'NEON CITY', relativeStart: 0, image: zone1City, color: '#00ffff', tint: 'rgba(0,255,255,0.1)' },
-  { name: 'TOXIC FACTORY', relativeStart: 0.2, image: zone2Factory, color: '#44ff44', tint: 'rgba(0,255,0,0.15)' },
-  { name: 'DATA CORE', relativeStart: 0.4, image: zone3Datacore, color: '#ff44ff', tint: 'rgba(255,0,255,0.15)' },
-  { name: 'INFERNO ROOFTOP', relativeStart: 0.6, image: zone4Rooftop, color: '#ff4444', tint: 'rgba(255,0,0,0.2)' },
-  { name: 'DEMON FORTRESS', relativeStart: 0.8, image: zone5Boss, color: '#ff0000', tint: 'rgba(100,0,0,0.3)' },
+// Cyber city zone images - repeating throughout the level
+const CYBER_CITY_IMAGES = [
+  zone1City,
+  zone2Factory,
+  zone3Datacore,
+  zone4Rooftop,
+  zone5Boss,
+];
+
+// Zone definitions - cyber city theme throughout, duplicating images
+const ZONE_COLORS = [
+  { name: 'NEON DISTRICT', color: '#00ffff', tint: 'rgba(0,255,255,0.1)' },
+  { name: 'CYBER SLUMS', color: '#ff00ff', tint: 'rgba(255,0,255,0.12)' },
+  { name: 'TECH QUARTER', color: '#44ff44', tint: 'rgba(0,255,0,0.1)' },
+  { name: 'HACKER ZONE', color: '#ffff00', tint: 'rgba(255,255,0,0.1)' },
+  { name: 'CHROME TOWERS', color: '#00ffff', tint: 'rgba(0,255,255,0.12)' },
+  { name: 'DATA NEXUS', color: '#ff44ff', tint: 'rgba(255,0,255,0.15)' },
+  { name: 'NEON HEIGHTS', color: '#ff4444', tint: 'rgba(255,0,0,0.12)' },
+  { name: 'CYBER CORE', color: '#ff0000', tint: 'rgba(100,0,0,0.2)' },
 ];
 
 const getZone = (distance: number, levelLength: number) => {
-  // Calculate zones based on level length - spread evenly
-  const zoneLength = levelLength / 5;
+  // Divide level into 8 zones that cycle through cyber city images
+  const numZones = 8;
+  const zoneLength = levelLength / numZones;
+  const zoneIndex = Math.min(Math.floor(distance / zoneLength), numZones - 1);
   
-  for (let i = ZONE_DEFS.length - 1; i >= 0; i--) {
-    const zoneStart = ZONE_DEFS[i].relativeStart * levelLength;
-    if (distance >= zoneStart) {
-      return { zone: { ...ZONE_DEFS[i], start: zoneStart }, index: i, zoneLength };
-    }
-  }
-  return { zone: { ...ZONE_DEFS[0], start: 0 }, index: 0, zoneLength };
+  // Cycle through the 5 images repeatedly
+  const imageIndex = zoneIndex % CYBER_CITY_IMAGES.length;
+  const colorData = ZONE_COLORS[zoneIndex] || ZONE_COLORS[0];
+  
+  return {
+    zone: {
+      name: colorData.name,
+      image: CYBER_CITY_IMAGES[imageIndex],
+      color: colorData.color,
+      tint: colorData.tint,
+      start: zoneIndex * zoneLength,
+    },
+    index: zoneIndex,
+    zoneLength,
+    imageIndex,
+  };
 };
 
 export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight, levelLength }: BackgroundVideoProps) => {
-  const { zone: currentZone, index: zoneIndex, zoneLength } = getZone(distance, levelLength);
+  const { zone: currentZone, index: zoneIndex, zoneLength, imageIndex } = getZone(distance, levelLength);
   const zoneProgress = (distance - currentZone.start) / zoneLength;
   
   // Parallax offset - background scrolls left as hero moves right
@@ -56,9 +79,18 @@ export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight, l
     return () => clearInterval(interval);
   }, []);
   
-  // Calculate transition progress between zones
-  const nextZoneIdx = Math.min(zoneIndex + 1, ZONE_DEFS.length - 1);
-  const nextZone = { ...ZONE_DEFS[nextZoneIdx], start: ZONE_DEFS[nextZoneIdx].relativeStart * levelLength };
+  // Calculate transition progress between zones - smooth crossfade
+  const numZones = 8;
+  const nextZoneIdx = Math.min(zoneIndex + 1, numZones - 1);
+  const nextImageIndex = nextZoneIdx % CYBER_CITY_IMAGES.length;
+  const nextColorData = ZONE_COLORS[nextZoneIdx] || ZONE_COLORS[0];
+  const nextZone = {
+    name: nextColorData.name,
+    image: CYBER_CITY_IMAGES[nextImageIndex],
+    color: nextColorData.color,
+    tint: nextColorData.tint,
+    start: nextZoneIdx * zoneLength,
+  };
   const transitionProgress = Math.min(1, Math.max(0, (zoneProgress - 0.6) / 0.4));
   
   // Animated overlay elements
@@ -131,7 +163,7 @@ export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight, l
       />
       
       {/* Next zone crossfade for smooth transition */}
-      {transitionProgress > 0 && zoneIndex < ZONE_DEFS.length - 1 && (
+      {transitionProgress > 0 && zoneIndex < 7 && (
         <motion.div
           className="absolute inset-0"
           style={{

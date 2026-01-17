@@ -144,6 +144,8 @@ interface ExtendedGameState extends GameState {
   portalOpen: boolean;
   portalX: number;
   heroEnteringPortal: boolean;
+  // Boss transformation flash effect
+  bossTransformFlash: number;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -197,6 +199,8 @@ const INITIAL_STATE: ExtendedGameState = {
   portalOpen: false,
   portalX: 0,
   heroEnteringPortal: false,
+  // Boss transformation flash
+  bossTransformFlash: 0,
 };
 
 // 7 enemy types: robot, drone, mech, ninja, tank, giant, bomber
@@ -1088,22 +1092,35 @@ export const useGameState = () => {
           if (bossIdx !== -1) {
             const currentPhase = newState.enemies[bossIdx].bossPhase || 1;
             
-            // Phase 2: 50% health
+            // Phase 2: 50% health - TRANSFORMATION WITH EFFECTS
             if (bossHealthPercent <= 0.5 && currentPhase < 2) {
               newState.enemies[bossIdx] = {
                 ...newState.enemies[bossIdx],
                 bossPhase: 2,
-                width: newState.enemies[bossIdx].width * 1.2,
-                height: newState.enemies[bossIdx].height * 1.2,
+                width: newState.enemies[bossIdx].width * 1.15,
+                height: newState.enemies[bossIdx].height * 1.15,
                 damage: newState.enemies[bossIdx].damage * 1.3,
+                speed: newState.enemies[bossIdx].speed * 1.3,
               };
-              newState.screenShake = 1.5;
-              newState.redFlash = 1.5;
+              // DRAMATIC TRANSFORMATION EFFECTS
+              newState.screenShake = 3; // Intense shake
+              newState.redFlash = 2.5; // Bright flash
+              newState.magicFlash = 1.5; // Additional flash
+              newState.bossTransformFlash = 2; // White flash for transformation
               newState.bossTaunt = "PHASE 2! I GROW STRONGER!";
+              // Explosion particles at boss
+              const bossX = newState.enemies[bossIdx].x;
+              const bossY = newState.enemies[bossIdx].y;
+              newState.particles = [
+                ...newState.particles,
+                ...createParticles(bossX, bossY + 50, 40, 'explosion', '#ff0000'),
+                ...createParticles(bossX, bossY + 50, 30, 'spark', '#ffff00'),
+                ...createParticles(bossX, bossY + 50, 20, 'magic', '#ff00ff'),
+              ];
               showSpeechBubble("💀 BOSS EVOLVED! PHASE 2! 💀", 'urgent');
             }
             
-            // Phase 3: 25% health
+            // Phase 3: 25% health - MAXIMUM TRANSFORMATION EFFECTS
             if (bossHealthPercent <= 0.25 && currentPhase < 3) {
               newState.enemies[bossIdx] = {
                 ...newState.enemies[bossIdx],
@@ -1113,9 +1130,22 @@ export const useGameState = () => {
                 damage: newState.enemies[bossIdx].damage * 1.5,
                 speed: newState.enemies[bossIdx].speed * 1.5,
               };
-              newState.screenShake = 2;
-              newState.redFlash = 2;
+              // MAXIMUM DRAMATIC EFFECTS FOR FINAL PHASE
+              newState.screenShake = 4; // Maximum shake
+              newState.redFlash = 3; // Intense red flash
+              newState.magicFlash = 2; // Purple flash
+              newState.bossTransformFlash = 3; // Intense white flash
               newState.bossTaunt = "FINAL PHASE! PREPARE TO DIE!!!";
+              // MASSIVE explosion particles at boss
+              const bossX = newState.enemies[bossIdx].x;
+              const bossY = newState.enemies[bossIdx].y;
+              newState.particles = [
+                ...newState.particles,
+                ...createParticles(bossX, bossY + 50, 60, 'explosion', '#ff0000'),
+                ...createParticles(bossX, bossY + 50, 50, 'spark', '#ff4400'),
+                ...createParticles(bossX, bossY + 50, 40, 'magic', '#ff00ff'),
+                ...createParticles(bossX, bossY + 50, 30, 'spark', '#ffffff'),
+              ];
               showSpeechBubble("☠️ BOSS RAGE MODE! PHASE 3! ☠️", 'urgent');
             }
           }
@@ -1340,6 +1370,11 @@ export const useGameState = () => {
         // Shield block flash decay
         if (prev.shieldBlockFlash > 0) {
           newState.shieldBlockFlash = Math.max(0, prev.shieldBlockFlash - delta * 5);
+        }
+        
+        // Boss transformation flash decay
+        if (prev.bossTransformFlash > 0) {
+          newState.bossTransformFlash = Math.max(0, prev.bossTransformFlash - delta * 3);
         }
         
         // Magic Dash auto-actions - NUKE ALL ENEMIES ON SCREEN
