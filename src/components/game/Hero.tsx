@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
-import heroVideo from '@/assets/hero-video.mp4';
+import heroCaptain from '@/assets/hero-captain.jpg';
 
 interface HeroProps {
   player: Player;
@@ -14,23 +14,24 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
   const screenX = 60; // Fixed at left edge of screen
   const isEmpowered = isUltraMode || player.isMagicDashing;
   const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
+  const isWalking = player.animationState === 'run' || player.animationState === 'dash';
 
   // Hero sized for visibility on mobile
-  const heroWidth = 48;
-  const heroHeight = 60;
+  const heroWidth = 70;
+  const heroHeight = 85;
 
   return (
     <motion.div
       className="absolute z-30"
       style={{
         left: screenX,
-        bottom: 50,
+        bottom: 160, // Raised to match new ground level
         width: heroWidth,
         height: heroHeight,
       }}
       animate={{
         scale: isEmpowered ? [1, 1.04, 1] : isSlashing ? [1, 1.1, 1] : 1,
-        rotate: isSlashing ? [0, 15, 0] : player.isShooting ? [-1, 1, 0] : 0,
+        rotate: isSlashing ? [0, 8, 0] : player.isShooting ? [-1, 1, 0] : 0,
       }}
       transition={{
         duration: isSlashing ? 0.15 : isUltraMode ? 0.12 : 0.08,
@@ -58,7 +59,8 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           />
         </motion.div>
       )}
-      {/* Speech bubble - text wraps properly */}
+
+      {/* Speech bubble */}
       {speechBubble && (
         <motion.div
           initial={{ opacity: 0, y: 8, scale: 0.8 }}
@@ -96,85 +98,108 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         </motion.div>
       )}
       
-      {/* Magic Dash glow - simplified for performance */}
+      {/* Magic Dash glow */}
       {player.isMagicDashing && (
         <div 
-          className="absolute -inset-4 rounded-full"
+          className="absolute -inset-6 rounded-full"
           style={{
             background: 'radial-gradient(circle, rgba(255,0,255,0.4) 0%, rgba(0,255,255,0.2) 50%, transparent 70%)',
-            filter: 'blur(6px)',
+            filter: 'blur(8px)',
           }}
         />
       )}
       
-      {/* Shield bubble - simplified */}
+      {/* Shield bubble */}
       {player.shield > 0 && (
         <div
-          className="absolute -inset-2 rounded-full"
+          className="absolute -inset-3 rounded-full"
           style={{
             background: 'radial-gradient(circle, rgba(0,255,255,0.1) 0%, rgba(0,255,255,0.3) 100%)',
-            border: '1px solid #00ffff',
-            boxShadow: '0 0 8px #00ffff',
+            border: '2px solid #00ffff',
+            boxShadow: '0 0 12px #00ffff, 0 0 24px rgba(0,255,255,0.5)',
             opacity: Math.min(1, player.shield / 50),
           }}
         />
       )}
       
-      {/* Hero Character - mirrored to face right */}
+      {/* Hero Character - Captain Squirbert with walking animation */}
       <motion.div
         className="relative w-full h-full"
-        style={{ transform: 'scaleX(-1)' }}
       >
         {/* Shadow */}
         <motion.div 
-          className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 rounded-full opacity-35"
+          className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full opacity-40"
           style={{ 
             background: 'radial-gradient(ellipse, #000, transparent)',
-            width: 35,
-            height: 6,
+            width: 50,
+            height: 10,
           }}
+          animate={{
+            scaleX: isWalking ? [1, 0.9, 1] : 1,
+          }}
+          transition={{ duration: 0.25, repeat: Infinity }}
         />
         
-        {/* Video Hero - 8K QUALITY ENHANCED */}
+        {/* Captain Squirbert Image with Walking Animation */}
         <motion.div
           className="relative w-full h-full overflow-hidden rounded-lg"
           style={{
             filter: isUltraMode || player.isMagicDashing
-              ? 'drop-shadow(0 0 20px #ff00ff) drop-shadow(0 0 35px #00ffff) brightness(1.2) contrast(1.1)' 
-              : 'drop-shadow(0 0 15px #00ccff) drop-shadow(0 0 25px #0088ff) brightness(1.1) contrast(1.05)',
+              ? 'drop-shadow(0 0 20px #ff00ff) drop-shadow(0 0 35px #00ffff) brightness(1.2)' 
+              : 'drop-shadow(0 0 12px #00ccff) drop-shadow(0 0 20px #0088ff)',
           }}
-          animate={player.animationState === 'hurt' ? { x: [-2, 2, -2, 0] } : {}}
-          transition={{ duration: 0.1 }}
+          animate={
+            player.animationState === 'hurt' 
+              ? { x: [-3, 3, -3, 0] } 
+              : isWalking || isEmpowered
+                ? { 
+                    y: [0, -4, 0], // Bobbing up and down
+                    rotate: [-2, 2, -2], // Slight rotation for walking feel
+                  }
+                : {}
+          }
+          transition={
+            isWalking || isEmpowered
+              ? { duration: 0.25, repeat: Infinity, ease: 'easeInOut' }
+              : { duration: 0.1 }
+          }
         >
-          <video
-            src={heroVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
+          <motion.img
+            src={heroCaptain}
+            alt="Captain Squirbert"
             className="w-full h-full object-cover rounded-lg"
             style={{
-              transform: player.animationState === 'dash' ? 'rotate(-3deg) scale(1.08)' : 
-                        player.isShooting ? 'rotate(2deg) scale(1.02)' : 'none',
               imageRendering: 'crisp-edges',
             }}
+            // Walking leg animation simulation through scaling
+            animate={
+              isWalking || isEmpowered
+                ? {
+                    scaleY: [1, 0.98, 1],
+                    scaleX: [1, 1.02, 1],
+                  }
+                : {}
+            }
+            transition={{ duration: 0.2, repeat: Infinity }}
           />
           
-          {/* 8K glow overlay for extra visibility */}
+          {/* Power glow overlay */}
           <motion.div
             className="absolute inset-0 rounded-lg pointer-events-none"
             style={{
-              background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,200,255,0.15) 100%)',
+              background: isEmpowered
+                ? 'radial-gradient(ellipse at center, rgba(255,0,255,0.2) 0%, transparent 60%)'
+                : 'radial-gradient(ellipse at center, transparent 40%, rgba(0,200,255,0.1) 100%)',
               mixBlendMode: 'overlay',
             }}
             animate={{ opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 2, repeat: Infinity }}
+            transition={{ duration: 1.5, repeat: Infinity }}
           />
           
           {/* Damage flash */}
           {player.animationState === 'hurt' && (
             <motion.div
-              className="absolute inset-0 bg-red-500/50 rounded-md"
+              className="absolute inset-0 bg-red-500/50 rounded-lg"
               initial={{ opacity: 1 }}
               animate={{ opacity: 0 }}
               transition={{ duration: 0.1 }}
@@ -184,7 +209,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           {/* Magic dash overlay */}
           {player.isMagicDashing && (
             <motion.div
-              className="absolute inset-0 rounded-md pointer-events-none"
+              className="absolute inset-0 rounded-lg pointer-events-none"
               style={{
                 background: 'radial-gradient(circle, rgba(255,0,255,0.3), transparent)',
                 mixBlendMode: 'screen',
@@ -195,77 +220,54 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           )}
         </motion.div>
         
-        {/* Shooting muzzle flash - FROM HERO ARMOR/CHEST */}
+        {/* Shooting muzzle flash - FROM GUN POSITION */}
         {player.isShooting && (
           <>
-            {/* Armor glow when firing */}
+            {/* Muzzle flash at gun */}
             <motion.div
-              className="absolute"
-              style={{
-                left: heroWidth - 10,
-                top: '35%',
-                width: 16,
-                height: 16,
-                background: player.isMagicDashing 
-                  ? 'radial-gradient(circle, #fff, #ff00ff, transparent)'
-                  : 'radial-gradient(circle, #fff, #00ffff, transparent)',
-                borderRadius: '50%',
-                boxShadow: player.isMagicDashing
-                  ? '0 0 20px #ff00ff, 0 0 40px #00ffff'
-                  : '0 0 15px #00ffff, 0 0 30px #0088ff',
-              }}
               initial={{ opacity: 1, scale: 0.5 }}
               animate={{ opacity: 0, scale: 2 }}
-              transition={{ duration: 0.12 }}
-            />
-            
-            {/* Muzzle flash at armor position */}
-            <motion.div
-              initial={{ opacity: 1, scale: 0.3 }}
-              animate={{ opacity: 0, scale: 1.5 }}
-              transition={{ duration: 0.08 }}
+              transition={{ duration: 0.1 }}
               className="absolute"
               style={{ 
-                right: -8, 
+                right: -15, 
                 top: '35%',
-                transform: 'translateY(-50%)',
               }}
             >
               <div 
-                className="w-8 h-8 rounded-full"
+                className="w-10 h-10 rounded-full"
                 style={{
                   background: player.isMagicDashing 
                     ? 'radial-gradient(circle, #fff, #ff00ff, #00ffff, transparent)'
                     : 'radial-gradient(circle, #fff, #00ffff, #0066ff, transparent)',
                   boxShadow: player.isMagicDashing
-                    ? '0 0 20px #ff00ff, 0 0 35px #00ffff'
-                    : '0 0 15px #00ffff, 0 0 25px #0088ff',
+                    ? '0 0 25px #ff00ff, 0 0 45px #00ffff'
+                    : '0 0 20px #00ffff, 0 0 35px #0088ff',
                 }}
               />
             </motion.div>
             
-            {/* Energy rings from armor */}
+            {/* Energy rings */}
             {[0, 1].map(i => (
               <motion.div
                 key={`ring-${i}`}
                 className="absolute rounded-full border-2"
                 style={{
-                  right: -5,
+                  right: -10,
                   top: '35%',
-                  transform: 'translateY(-50%)',
-                  width: 10,
-                  height: 10,
+                  width: 12,
+                  height: 12,
                   borderColor: player.isMagicDashing ? '#ff00ff' : '#00ffff',
                 }}
-                initial={{ scale: 0.3, opacity: 1 }}
-                animate={{ scale: 2.5 + i, opacity: 0 }}
-                transition={{ duration: 0.15, delay: i * 0.04 }}
+                initial={{ scale: 0.5, opacity: 1 }}
+                animate={{ scale: 3 + i, opacity: 0 }}
+                transition={{ duration: 0.15, delay: i * 0.05 }}
               />
             ))}
           </>
         )}
         
-        {/* Laser beam - EMANATING FROM ARMOR - angled slightly down to hit ground enemies */}
+        {/* Laser beam - FROM GUN */}
         {player.isShooting && (
           <motion.div
             initial={{ scaleX: 0, opacity: 1 }}
@@ -274,24 +276,23 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
             className="absolute"
             style={{ 
               left: heroWidth - 5,
-              top: '35%', // From armor/chest position
-              transform: 'translateY(-50%) rotate(3deg)', // Slight downward angle
-              width: 280,
-              height: 8,
+              top: '35%',
+              transform: 'translateY(-50%) rotate(3deg)',
+              width: 300,
+              height: 10,
               background: player.isMagicDashing
                 ? 'linear-gradient(90deg, #fff 0%, #ff00ff 15%, #00ffff 50%, rgba(0,255,255,0.3) 85%, transparent 100%)'
                 : 'linear-gradient(90deg, #fff 0%, #00ffff 15%, #0088ff 50%, rgba(0,136,255,0.3) 85%, transparent 100%)',
               transformOrigin: 'left center',
-              filter: 'blur(0.5px)',
               boxShadow: player.isMagicDashing 
-                ? '0 0 20px #ff00ff, 0 0 35px #00ffff, 0 2px 10px rgba(255,0,255,0.5)' 
-                : '0 0 15px #00ffff, 0 0 25px #0088ff, 0 2px 8px rgba(0,255,255,0.5)',
+                ? '0 0 25px #ff00ff, 0 0 40px #00ffff' 
+                : '0 0 20px #00ffff, 0 0 30px #0088ff',
               borderRadius: '0 50% 50% 0',
             }}
           />
         )}
         
-        {/* Secondary laser glow - follows beam angle */}
+        {/* Secondary laser glow */}
         {player.isShooting && (
           <motion.div
             initial={{ scaleX: 0, opacity: 0.6 }}
@@ -302,13 +303,13 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
               left: heroWidth - 5,
               top: '35%',
               transform: 'translateY(-50%) rotate(3deg)',
-              width: 220,
-              height: 16,
+              width: 250,
+              height: 20,
               background: player.isMagicDashing
                 ? 'linear-gradient(90deg, rgba(255,0,255,0.6), rgba(0,255,255,0.3), transparent)'
                 : 'linear-gradient(90deg, rgba(0,255,255,0.6), rgba(0,136,255,0.3), transparent)',
               transformOrigin: 'left center',
-              filter: 'blur(5px)',
+              filter: 'blur(6px)',
               borderRadius: '0 50% 50% 0',
             }}
           />
@@ -320,20 +321,17 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
             {[...Array(3)].map((_, i) => (
               <motion.div
                 key={`dash-${i}`}
-                className="absolute inset-0 overflow-hidden rounded-md"
+                className="absolute inset-0 overflow-hidden rounded-lg"
                 initial={{ opacity: 0.4, x: 0 }}
-                animate={{ opacity: 0, x: -12 - i * 6 }}
-                transition={{ duration: 0.15, delay: i * 0.015 }}
+                animate={{ opacity: 0, x: -15 - i * 8 }}
+                transition={{ duration: 0.15, delay: i * 0.02 }}
               >
-                <video 
-                  src={heroVideo}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
+                <img 
+                  src={heroCaptain}
+                  alt=""
                   className="w-full h-full object-cover"
                   style={{ 
-                    filter: `blur(${i * 1.5}px) hue-rotate(${i * 30}deg)`,
+                    filter: `blur(${i * 2}px) hue-rotate(${i * 40}deg)`,
                     opacity: 0.3 - i * 0.08,
                   }}
                 />
@@ -344,26 +342,26 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
       </motion.div>
       
       {/* Speed lines */}
-      {(player.isDashing || player.isMagicDashing) && (
+      {(player.isDashing || player.isMagicDashing || isWalking) && (
         <div className="absolute inset-0 pointer-events-none overflow-visible">
-          {[...Array(3)].map((_, i) => (
+          {[...Array(4)].map((_, i) => (
             <motion.div
               key={`speed-${i}`}
               className="absolute h-px"
               style={{
                 background: 'linear-gradient(90deg, transparent, #fff, transparent)',
-                width: 25 + Math.random() * 15,
-                top: 8 + i * 15,
+                width: 20 + Math.random() * 20,
+                top: 15 + i * 18,
                 right: heroWidth,
               }}
               animate={{
-                x: [-15, -50],
-                opacity: [0.6, 0],
+                x: [-10, -50],
+                opacity: [0.5, 0],
               }}
               transition={{
-                duration: 0.1,
+                duration: 0.15,
                 repeat: Infinity,
-                delay: i * 0.02,
+                delay: i * 0.03,
               }}
             />
           ))}

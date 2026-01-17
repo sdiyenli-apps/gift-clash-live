@@ -77,7 +77,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
       className="absolute z-25"
       style={{
         left: screenX,
-        bottom: 50 + flyOffset,
+        bottom: 160 + flyOffset, // Raised to match new ground height
         width: displayWidth,
         height: displayHeight,
       }}
