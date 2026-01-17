@@ -56,7 +56,7 @@ export interface Enemy {
   maxHealth: number;
   speed: number;
   damage: number;
-  type: 'robot' | 'drone' | 'mech' | 'boss' | 'ninja' | 'tank' | 'flyer';
+  type: 'robot' | 'drone' | 'mech' | 'boss' | 'ninja' | 'tank' | 'flyer' | 'giant';
   isDying: boolean;
   deathTimer: number;
   attackCooldown: number;
@@ -70,6 +70,7 @@ export interface Enemy {
   isSlashing?: boolean; // True when enemy is doing melee slash attack
   bossShieldTimer?: number; // Boss shield duration remaining (1 second max)
   bossShieldUsed?: boolean; // Boss can only use shield once
+  isGiant?: boolean; // Giant enemy variant - larger and tougher
 }
 
 export interface FlyingRobot {
@@ -118,12 +119,14 @@ export interface Player {
   isIdle: boolean;
   facingRight: boolean;
   speedMultiplier: number;
-  animationState: 'idle' | 'run' | 'attack' | 'hurt' | 'dash';
+  animationState: 'idle' | 'run' | 'attack' | 'hurt' | 'dash' | 'sword_slash';
   animationFrame: number;
   comboCount: number;
   lastDodgeTime: number;
   isMagicDashing: boolean;
   magicDashTimer: number;
+  isAutoSlashing?: boolean; // True when hero is auto-slashing nearby enemy
+  autoSlashCooldown?: number; // Cooldown between auto-slashes
 }
 
 export interface Particle {

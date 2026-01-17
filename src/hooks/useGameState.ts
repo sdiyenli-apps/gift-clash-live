@@ -104,6 +104,8 @@ const INITIAL_PLAYER: Player = {
   lastDodgeTime: 0,
   isMagicDashing: false,
   magicDashTimer: 0,
+  isAutoSlashing: false,
+  autoSlashCooldown: 0,
 };
 
 // EMP Grenade projectile type
@@ -186,8 +188,9 @@ const INITIAL_STATE: ExtendedGameState = {
   empGrenades: [],
 };
 
-// More varied enemy types
-const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'flyer', 'brute', 'sniper', 'swarm'] as const;
+// 6 enemy types: robot, drone, mech, ninja, tank, giant
+const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant'] as const;
+const GIANT_CHANCE = 0.08; // 8% chance for giant enemies
 
 const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[], levelLength: number } => {
   const enemies: Enemy[] = [];
@@ -250,7 +253,11 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       };
       enemies.push(droneEnemy);
       continue;
-    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + 0.12) {
+    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + GIANT_CHANCE) {
+      // GIANT enemies - large and tough
+      enemyType = 'giant';
+      width = 90; height = 100; health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
+    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + GIANT_CHANCE + 0.08) {
       enemyType = 'flyer';
       width = 50; height = 46; health = 40 * (1 + waveBonus * 0.5); speed = 75 + wave * 3; damage = 9 + wave;
     } else {
@@ -1590,16 +1597,32 @@ export const useGameState = () => {
           })
           .filter(e => !e.isDying || e.deathTimer > 0);
         
-        // Kill enemies automatically if near hero (not spawning)
+        // AUTO SWORD SLASH - Hero uses sword when enemies get too close
+        const AUTO_SLASH_RANGE = 70;
+        const slashCooldown = (newState.player.autoSlashCooldown || 0) - delta;
+        newState.player = { ...newState.player, autoSlashCooldown: Math.max(0, slashCooldown) };
+        
         newState.enemies = newState.enemies.map(enemy => {
           if (enemy.isDying || enemy.type === 'boss' || enemy.isSpawning) return enemy;
           
           const distToHero = Math.abs(enemy.x - prev.player.x);
-          if (distToHero < KILL_RADIUS) {
+          if (distToHero < AUTO_SLASH_RANGE && slashCooldown <= 0) {
+            // Hero auto-slashes nearby enemy
+            newState.player = { 
+              ...newState.player, 
+              isAutoSlashing: true, 
+              animationState: 'sword_slash',
+              autoSlashCooldown: 0.4, // 0.4s cooldown between slashes
+            };
             newState.particles = [...newState.particles, ...createParticles(
-              enemy.x + enemy.width/2, enemy.y + enemy.height/2, 15, 'death', '#ff4400'
+              enemy.x + enemy.width/2, enemy.y + enemy.height/2, 20, 'death', '#ffff00'
             )];
-            newState.score += 30;
+            newState.score += enemy.type === 'giant' ? 100 : 30;
+            // Reset slash animation after delay
+            setTimeout(() => setGameState(s => ({ 
+              ...s, 
+              player: { ...s.player, isAutoSlashing: false, animationState: 'idle' } 
+            })), 200);
             return { ...enemy, isDying: true, deathTimer: 0.4 };
           }
           return enemy;

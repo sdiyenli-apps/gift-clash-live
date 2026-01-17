@@ -13,6 +13,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
   // Fixed screen position - hero stays on LEFT side
   const screenX = 60; // Fixed at left edge of screen
   const isEmpowered = isUltraMode || player.isMagicDashing;
+  const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
 
   // Hero sized for visibility on mobile
   const heroWidth = 48;
@@ -28,14 +29,35 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         height: heroHeight,
       }}
       animate={{
-        scale: isEmpowered ? [1, 1.04, 1] : 1,
-        rotate: player.isShooting ? [-1, 1, 0] : 0,
+        scale: isEmpowered ? [1, 1.04, 1] : isSlashing ? [1, 1.1, 1] : 1,
+        rotate: isSlashing ? [0, 15, 0] : player.isShooting ? [-1, 1, 0] : 0,
       }}
       transition={{
-        duration: isUltraMode ? 0.12 : 0.08,
+        duration: isSlashing ? 0.15 : isUltraMode ? 0.12 : 0.08,
         repeat: isEmpowered ? Infinity : 0,
       }}
     >
+      {/* SWORD SLASH EFFECT */}
+      {isSlashing && (
+        <motion.div
+          className="absolute pointer-events-none z-40"
+          style={{ right: -40, top: '30%' }}
+          initial={{ opacity: 0, rotate: -60, scale: 0.5 }}
+          animate={{ opacity: [0, 1, 1, 0], rotate: [60, -30], scale: [0.5, 1.3, 1.3, 0.8] }}
+          transition={{ duration: 0.2 }}
+        >
+          <div
+            style={{
+              width: 60,
+              height: 8,
+              background: 'linear-gradient(90deg, transparent, #00ffff, #fff, #ffff00)',
+              borderRadius: 4,
+              boxShadow: '0 0 20px #00ffff, 0 0 40px #ffff00',
+              filter: 'blur(1px)',
+            }}
+          />
+        </motion.div>
+      )}
       {/* Speech bubble - text wraps properly */}
       {speechBubble && (
         <motion.div

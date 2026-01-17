@@ -19,6 +19,7 @@ const ENEMY_SPRITES: Record<string, string> = {
   ninja: enemyRobot,
   tank: enemyMech,
   flyer: enemyDrone,
+  giant: enemyMech, // Giant uses mech sprite but scaled
 };
 
 const ENEMY_COLORS: Record<string, string> = {
@@ -30,6 +31,7 @@ const ENEMY_COLORS: Record<string, string> = {
   tank: '#44aa44',
   flyer: '#ff66ff',
   chicken: '#ffaa00',
+  giant: '#ff00ff', // Giant has magenta glow
 };
 
 export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
@@ -50,11 +52,13 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   
   // Scale enemies - scaled for mobile
   const isBoss = enemy.type === 'boss';
+  const isGiant = enemy.type === 'giant' || enemy.isGiant;
   const bossPhase = enemy.bossPhase || 1;
   
-  // Boss grows bigger with each phase
+  // Boss grows bigger with each phase, giants are 1.5x larger
   const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.2) : 1;
-  const scaleFactor = (isBoss ? 0.8 : 1.0) * bossPhaseScale;
+  const giantScale = isGiant ? 1.5 : 1;
+  const scaleFactor = (isBoss ? 0.8 : 1.0) * bossPhaseScale * giantScale;
   const displayWidth = enemy.width * scaleFactor;
   const displayHeight = enemy.height * scaleFactor;
   
