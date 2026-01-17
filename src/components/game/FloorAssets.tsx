@@ -5,24 +5,46 @@ interface FloorAssetsProps {
   levelLength: number;
 }
 
-// Generate deterministic assets based on position - including broken tanks
+// Generate deterministic assets based on position - including broken tanks and vehicles
 const generateAssets = (levelLength: number) => {
   const assets: Array<{
     id: string;
-    type: 'dustbin' | 'rat' | 'pipe' | 'crate' | 'barrel' | 'debris' | 'tank';
+    type: 'dustbin' | 'rat' | 'pipe' | 'crate' | 'barrel' | 'debris' | 'tank' | 'jeep' | 'truck';
     x: number;
     size: number;
     variant?: number;
   }> = [];
   
   // Add broken tanks at intervals
-  for (let x = 400; x < levelLength - 400; x += 800 + Math.random() * 600) {
+  for (let x = 400; x < levelLength - 400; x += 1000 + Math.random() * 800) {
     assets.push({
       id: `tank-${x}`,
       type: 'tank',
       x,
       size: 0.8 + Math.random() * 0.4,
       variant: Math.floor(Math.random() * 3),
+    });
+  }
+  
+  // Add destroyed jeeps
+  for (let x = 600; x < levelLength - 400; x += 1200 + Math.random() * 600) {
+    assets.push({
+      id: `jeep-${x}`,
+      type: 'jeep',
+      x,
+      size: 0.7 + Math.random() * 0.4,
+      variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // Add destroyed trucks
+  for (let x = 900; x < levelLength - 400; x += 1500 + Math.random() * 800) {
+    assets.push({
+      id: `truck-${x}`,
+      type: 'truck',
+      x,
+      size: 0.8 + Math.random() * 0.3,
+      variant: Math.floor(Math.random() * 2),
     });
   }
   
@@ -362,6 +384,192 @@ export const FloorAssets = ({ cameraX, levelLength }: FloorAssetsProps) => {
                     bottom: '30%',
                     background: 'radial-gradient(circle, #5a3a2a, transparent)',
                     opacity: 0.7,
+                  }}
+                />
+              </div>
+            )}
+            
+            {asset.type === 'jeep' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 55 * asset.size, 
+                  height: 30 * asset.size,
+                }}
+              >
+                {/* Jeep body - destroyed */}
+                <div 
+                  className="absolute bottom-0"
+                  style={{
+                    width: '100%',
+                    height: '55%',
+                    background: 'linear-gradient(180deg, #4a4a3a 0%, #3a3a2a 100%)',
+                    borderRadius: 3,
+                    transform: `rotate(${(asset.variant || 0) * 8 - 4}deg)`,
+                    boxShadow: 'inset 2px 2px 4px rgba(0,0,0,0.5)',
+                  }}
+                />
+                {/* Broken windshield frame */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '30%',
+                    height: '40%',
+                    left: '15%',
+                    bottom: '50%',
+                    background: 'linear-gradient(180deg, #555 0%, #333 100%)',
+                    transform: `rotate(${(asset.variant || 0) * 10 - 5}deg)`,
+                    borderRadius: 2,
+                  }}
+                />
+                {/* Wheels - one missing */}
+                <div 
+                  className="absolute rounded-full"
+                  style={{
+                    width: 12 * asset.size,
+                    height: 12 * asset.size,
+                    left: '10%',
+                    bottom: -2,
+                    background: 'radial-gradient(circle, #333, #111)',
+                    border: '2px solid #222',
+                  }}
+                />
+                <div 
+                  className="absolute rounded-full"
+                  style={{
+                    width: 12 * asset.size,
+                    height: 12 * asset.size,
+                    right: '15%',
+                    bottom: -2,
+                    background: 'radial-gradient(circle, #333, #111)',
+                    border: '2px solid #222',
+                    opacity: asset.variant === 0 ? 0.3 : 1,
+                  }}
+                />
+                {/* Fire/smoke */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: 12 * asset.size,
+                    height: 18 * asset.size,
+                    left: '40%',
+                    bottom: '60%',
+                    background: 'linear-gradient(180deg, rgba(80,60,40,0.5), transparent)',
+                    filter: 'blur(4px)',
+                    borderRadius: '50%',
+                  }}
+                />
+              </div>
+            )}
+            
+            {asset.type === 'truck' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 90 * asset.size, 
+                  height: 45 * asset.size,
+                }}
+              >
+                {/* Truck cargo area - destroyed */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '60%',
+                    height: '70%',
+                    right: 0,
+                    bottom: '15%',
+                    background: 'linear-gradient(180deg, #3a3a30 0%, #2a2a20 100%)',
+                    borderRadius: 2,
+                    transform: `rotate(${(asset.variant || 0) * 5 - 3}deg)`,
+                    boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.5)',
+                  }}
+                >
+                  {/* Torn canvas cover */}
+                  <div 
+                    className="absolute"
+                    style={{
+                      width: '80%',
+                      height: '30%',
+                      left: '10%',
+                      top: 0,
+                      background: 'linear-gradient(90deg, #4a4a3a, #5a5a4a, #4a4a3a)',
+                      borderRadius: '50% 50% 0 0',
+                      clipPath: 'polygon(0 100%, 20% 0, 50% 30%, 80% 0, 100% 100%)',
+                    }}
+                  />
+                </div>
+                {/* Truck cab */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '35%',
+                    height: '60%',
+                    left: 0,
+                    bottom: '15%',
+                    background: 'linear-gradient(180deg, #444 0%, #333 100%)',
+                    borderRadius: 3,
+                    transform: `rotate(${(asset.variant || 0) * 6 - 3}deg)`,
+                  }}
+                />
+                {/* Broken window */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '20%',
+                    height: '25%',
+                    left: '8%',
+                    bottom: '50%',
+                    background: 'rgba(100,150,200,0.3)',
+                    borderRadius: 1,
+                    boxShadow: 'inset 0 0 5px rgba(0,0,0,0.5)',
+                  }}
+                />
+                {/* Wheels */}
+                <div 
+                  className="absolute rounded-full"
+                  style={{
+                    width: 14 * asset.size,
+                    height: 14 * asset.size,
+                    left: '5%',
+                    bottom: 0,
+                    background: 'radial-gradient(circle, #333, #111)',
+                    border: '2px solid #222',
+                  }}
+                />
+                <div 
+                  className="absolute rounded-full"
+                  style={{
+                    width: 14 * asset.size,
+                    height: 14 * asset.size,
+                    right: '20%',
+                    bottom: 0,
+                    background: 'radial-gradient(circle, #333, #111)',
+                    border: '2px solid #222',
+                  }}
+                />
+                {/* Heavy smoke from engine */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: 20 * asset.size,
+                    height: 25 * asset.size,
+                    left: '15%',
+                    bottom: '70%',
+                    background: 'linear-gradient(180deg, rgba(40,40,40,0.7), transparent)',
+                    filter: 'blur(5px)',
+                    borderRadius: '50%',
+                  }}
+                />
+                {/* Damage marks */}
+                <div 
+                  className="absolute rounded-full"
+                  style={{
+                    width: 10 * asset.size,
+                    height: 10 * asset.size,
+                    right: '30%',
+                    bottom: '40%',
+                    background: 'radial-gradient(circle, #5a3a2a, transparent)',
+                    opacity: 0.6,
                   }}
                 />
               </div>
