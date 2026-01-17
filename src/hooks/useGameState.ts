@@ -619,23 +619,27 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero fires FORWARD from hero's hitbox - LOWER position for visibility
+          // Hero fires LASER FROM ARMOR - shoots from chest/armor area toward ground enemies
           const heroScreenX = 60; // Hero's fixed screen position
-          const heroWorldX = prev.cameraX + heroScreenX + 24; // Start from hero center/right edge
-          const laserY = prev.player.y + PLAYER_HEIGHT * 0.3; // LOWER laser - from bottom third of hero
+          const heroWorldX = prev.cameraX + heroScreenX + 28; // Start from hero's armor/chest
+          // Laser comes from ARMOR position (mid-chest area) - targets ground level
+          const laserY = prev.player.y + PLAYER_HEIGHT * 0.4; // From armor/chest area
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
-            x: heroWorldX, // Start from hero's hitbox
-            y: laserY, // Lower Y position
-            velocityX: 650, // SLOWER - more visible projectile speed
-            velocityY: 0,
-            damage: prev.player.isMagicDashing ? 120 : 50,
+            x: heroWorldX, // Start from armor
+            y: laserY, // Armor height
+            velocityX: 700, // Fast laser
+            velocityY: 15, // Slight downward angle to hit ground enemies
+            damage: prev.player.isMagicDashing ? 150 : 60,
             type: prev.player.isMagicDashing ? 'ultra' : 'mega',
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          // Muzzle flash particles at laser origin
-          newState.particles = [...prev.particles, ...createParticles(heroWorldX, laserY, 15, 'muzzle', '#00ffff')];
+          // Muzzle flash particles at armor origin - cyan glow
+          newState.particles = [...prev.particles, 
+            ...createParticles(heroWorldX, laserY, 18, 'muzzle', '#00ffff'),
+            ...createParticles(heroWorldX - 5, laserY, 8, 'spark', '#ffffff'),
+          ];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
@@ -1211,42 +1215,52 @@ export const useGameState = () => {
         // Check for EMP grenade explosions
         prev.empGrenades.forEach(grenade => {
           if (grenade.timer <= delta) {
-            // EXPLODE! Kill all drones on screen
-            const dronesKilled = newState.enemies.filter(e => 
-              e.type === 'drone' && !e.isDying && !e.isSpawning &&
-              e.x > prev.cameraX - 50 && e.x < prev.cameraX + 600
+            // EXPLODE! Kill ALL FLYING ENEMIES on screen (drones AND bombers)
+            const flyingEnemiesKilled = newState.enemies.filter(e => 
+              (e.type === 'drone' || e.type === 'bomber' || e.type === 'flyer' || e.isFlying) && 
+              !e.isDying && !e.isSpawning &&
+              e.x > prev.cameraX - 100 && e.x < prev.cameraX + 700
             );
             
-            dronesKilled.forEach(drone => {
-              const droneIdx = newState.enemies.findIndex(e => e.id === drone.id);
-              if (droneIdx !== -1) {
-                newState.enemies[droneIdx] = {
-                  ...newState.enemies[droneIdx],
+            flyingEnemiesKilled.forEach(enemy => {
+              const enemyIdx = newState.enemies.findIndex(e => e.id === enemy.id);
+              if (enemyIdx !== -1) {
+                newState.enemies[enemyIdx] = {
+                  ...newState.enemies[enemyIdx],
                   isDying: true,
                   deathTimer: 0.5,
                 };
-                newState.score += 75;
+                const scoreMap: Record<string, number> = { drone: 75, bomber: 120, flyer: 80 };
+                newState.score += scoreMap[enemy.type] || 75;
                 newState.particles = [...newState.particles, ...createParticles(
-                  drone.x + drone.width/2, drone.y + drone.height/2, 
-                  25, 'spark', '#00ffff'
+                  enemy.x + enemy.width/2, enemy.y + enemy.height/2, 
+                  30, 'spark', '#00ffff'
                 )];
               }
             });
             
-            // Big EMP explosion effect at grenade position
+            // Big EMP explosion effect at grenade position - MASSIVE visual
             newState.particles = [
               ...newState.particles,
-              ...createParticles(grenade.x, grenade.y, 40, 'spark', '#00ffff'),
-              ...createParticles(grenade.x, grenade.y, 30, 'explosion', '#ffff00'),
-              ...createParticles(grenade.x, grenade.y, 20, 'magic', '#00ff88'),
+              ...createParticles(grenade.x, grenade.y, 50, 'spark', '#00ffff'),
+              ...createParticles(grenade.x, grenade.y, 40, 'explosion', '#ffff00'),
+              ...createParticles(grenade.x, grenade.y, 25, 'magic', '#00ff88'),
             ];
-            newState.screenShake = 0.8;
-            newState.magicFlash = 0.6;
+            newState.screenShake = 1.0;
+            newState.magicFlash = 0.8;
             
-            if (dronesKilled.length > 0) {
-              showSpeechBubble(`⚡ BOOM! ${dronesKilled.length} DRONES FRIED! ⚡`, 'excited');
+            if (flyingEnemiesKilled.length > 0) {
+              const types = flyingEnemiesKilled.map(e => e.type);
+              const hasBomber = types.includes('bomber');
+              const hasDrone = types.includes('drone');
+              const msg = hasBomber && hasDrone 
+                ? `⚡ EMP! ${flyingEnemiesKilled.length} FLYERS DOWN! ⚡`
+                : hasBomber 
+                  ? `⚡ BOMBERS FRIED! ${flyingEnemiesKilled.length} DOWN! ⚡`
+                  : `⚡ BOOM! ${flyingEnemiesKilled.length} DRONES FRIED! ⚡`;
+              showSpeechBubble(msg, 'excited');
             } else {
-              showSpeechBubble("⚡ EMP BLAST! NO DRONES THO! ⚡", 'funny');
+              showSpeechBubble("⚡ EMP BLAST! SKY CLEAR! ⚡", 'funny');
             }
           }
         });
@@ -1630,7 +1644,14 @@ export const useGameState = () => {
           newState.enemies.forEach(enemy => {
             if (hitProjectiles.has(proj.id) || enemy.isDying || enemy.isSpawning) return;
             
-            // Generous collision box for projectiles hitting enemies
+            // LASER ONLY HITS GROUND ENEMIES - Flying enemies (drones, bombers, flyers) require EMP!
+            const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer';
+            if (isFlying && enemy.type !== 'boss') {
+              // Skip flying enemies - they need EMP to be killed!
+              return;
+            }
+            
+            // Generous collision box for projectiles hitting GROUND enemies
             if (
               proj.x < enemy.x + enemy.width + 10 &&
               proj.x + projWidth > enemy.x - 10 &&

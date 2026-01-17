@@ -246,19 +246,19 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   // SPAWN DANGEROUS ENEMIES (chaos gift)
   skull: { id: 'skull', name: 'Skull', tier: 'medium', diamonds: 50, emoji: '💀', action: 'spawn_enemies' },
   
-  // EMP GRENADE - Kills all drones!
+  // EMP GRENADE - Kills ALL flying enemies (drones, bombers, flyers)!
   lightning: { id: 'lightning', name: 'EMP Grenade', tier: 'medium', diamonds: 75, emoji: '⚡', action: 'emp_grenade' },
 };
 
 // Gift action descriptions for UI
 export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: string; effect: 'help' | 'chaos' }> = {
   move_forward: { name: '➡️ FORWARD', description: 'Move toward princess!', effect: 'help' },
-  shoot: { name: '🔫 SHOOT', description: 'Attack enemies!', effect: 'help' },
-  armor: { name: '🛡️ ARMOR', description: '+50 Shield!', effect: 'help' },
+  shoot: { name: '🔫 SHOOT', description: 'Laser hits ground enemies!', effect: 'help' },
+  armor: { name: '🛡️ ARMOR', description: '+60 Shield!', effect: 'help' },
   heal: { name: '💚 HEAL', description: '+40 HP!', effect: 'help' },
   magic_dash: { name: '✨ MAGIC DASH', description: '6s auto-attack!', effect: 'help' },
   spawn_enemies: { name: '💀 DANGER', description: 'Spawns enemies!', effect: 'chaos' },
-  emp_grenade: { name: '⚡ EMP', description: 'Kills all drones!', effect: 'help' },
+  emp_grenade: { name: '⚡ EMP', description: 'Kills ALL flying enemies!', effect: 'help' },
 };
 
 // Bro-style hero quips - MEGA EXPANDED with taunts and gift requests!

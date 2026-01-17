@@ -195,99 +195,120 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           )}
         </motion.div>
         
-        {/* Shooting muzzle flash - FROM HERO CENTER */}
+        {/* Shooting muzzle flash - FROM HERO ARMOR/CHEST */}
         {player.isShooting && (
           <>
-            {/* Muzzle flash at hero's body */}
+            {/* Armor glow when firing */}
+            <motion.div
+              className="absolute"
+              style={{
+                left: heroWidth - 10,
+                top: '35%',
+                width: 16,
+                height: 16,
+                background: player.isMagicDashing 
+                  ? 'radial-gradient(circle, #fff, #ff00ff, transparent)'
+                  : 'radial-gradient(circle, #fff, #00ffff, transparent)',
+                borderRadius: '50%',
+                boxShadow: player.isMagicDashing
+                  ? '0 0 20px #ff00ff, 0 0 40px #00ffff'
+                  : '0 0 15px #00ffff, 0 0 30px #0088ff',
+              }}
+              initial={{ opacity: 1, scale: 0.5 }}
+              animate={{ opacity: 0, scale: 2 }}
+              transition={{ duration: 0.12 }}
+            />
+            
+            {/* Muzzle flash at armor position */}
             <motion.div
               initial={{ opacity: 1, scale: 0.3 }}
               animate={{ opacity: 0, scale: 1.5 }}
               transition={{ duration: 0.08 }}
               className="absolute"
               style={{ 
-                right: -2, 
-                top: '50%',
+                right: -8, 
+                top: '35%',
                 transform: 'translateY(-50%)',
               }}
             >
               <div 
-                className="w-6 h-6 rounded-full"
+                className="w-8 h-8 rounded-full"
                 style={{
                   background: player.isMagicDashing 
                     ? 'radial-gradient(circle, #fff, #ff00ff, #00ffff, transparent)'
-                    : 'radial-gradient(circle, #fff, #ffff00, #ff8800, transparent)',
+                    : 'radial-gradient(circle, #fff, #00ffff, #0066ff, transparent)',
                   boxShadow: player.isMagicDashing
-                    ? '0 0 15px #ff00ff, 0 0 25px #00ffff'
-                    : '0 0 12px #ffff00, 0 0 20px #ff8800',
+                    ? '0 0 20px #ff00ff, 0 0 35px #00ffff'
+                    : '0 0 15px #00ffff, 0 0 25px #0088ff',
                 }}
               />
             </motion.div>
             
-            {/* Energy rings from body */}
+            {/* Energy rings from armor */}
             {[0, 1].map(i => (
               <motion.div
                 key={`ring-${i}`}
                 className="absolute rounded-full border-2"
                 style={{
-                  right: 0,
-                  top: '50%',
+                  right: -5,
+                  top: '35%',
                   transform: 'translateY(-50%)',
-                  width: 8,
-                  height: 8,
-                  borderColor: player.isMagicDashing ? '#ff00ff' : '#ffff00',
+                  width: 10,
+                  height: 10,
+                  borderColor: player.isMagicDashing ? '#ff00ff' : '#00ffff',
                 }}
                 initial={{ scale: 0.3, opacity: 1 }}
-                animate={{ scale: 2 + i, opacity: 0 }}
-                transition={{ duration: 0.12, delay: i * 0.03 }}
+                animate={{ scale: 2.5 + i, opacity: 0 }}
+                transition={{ duration: 0.15, delay: i * 0.04 }}
               />
             ))}
           </>
         )}
         
-        {/* Laser beam - EMANATING FROM HERO'S BODY */}
+        {/* Laser beam - EMANATING FROM ARMOR - angled slightly down to hit ground enemies */}
         {player.isShooting && (
           <motion.div
             initial={{ scaleX: 0, opacity: 1 }}
-            animate={{ scaleX: 1, opacity: 0.9 }}
-            transition={{ duration: 0.08 }}
+            animate={{ scaleX: 1, opacity: 0.95 }}
+            transition={{ duration: 0.1 }}
             className="absolute"
             style={{ 
               left: heroWidth - 5,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: 250,
-              height: 6,
+              top: '35%', // From armor/chest position
+              transform: 'translateY(-50%) rotate(3deg)', // Slight downward angle
+              width: 280,
+              height: 8,
               background: player.isMagicDashing
-                ? 'linear-gradient(90deg, #fff 0%, #ff00ff 20%, #00ffff 60%, transparent 100%)'
-                : 'linear-gradient(90deg, #fff 0%, #ffff00 20%, #ff6600 60%, transparent 100%)',
+                ? 'linear-gradient(90deg, #fff 0%, #ff00ff 15%, #00ffff 50%, rgba(0,255,255,0.3) 85%, transparent 100%)'
+                : 'linear-gradient(90deg, #fff 0%, #00ffff 15%, #0088ff 50%, rgba(0,136,255,0.3) 85%, transparent 100%)',
               transformOrigin: 'left center',
-              filter: 'blur(1px)',
+              filter: 'blur(0.5px)',
               boxShadow: player.isMagicDashing 
-                ? '0 0 15px #ff00ff, 0 0 25px #00ffff' 
-                : '0 0 12px #ffff00, 0 0 20px #ff6600',
+                ? '0 0 20px #ff00ff, 0 0 35px #00ffff, 0 2px 10px rgba(255,0,255,0.5)' 
+                : '0 0 15px #00ffff, 0 0 25px #0088ff, 0 2px 8px rgba(0,255,255,0.5)',
               borderRadius: '0 50% 50% 0',
             }}
           />
         )}
         
-        {/* Secondary laser glow */}
+        {/* Secondary laser glow - follows beam angle */}
         {player.isShooting && (
           <motion.div
-            initial={{ scaleX: 0, opacity: 0.5 }}
-            animate={{ scaleX: 1, opacity: 0.3 }}
-            transition={{ duration: 0.1 }}
+            initial={{ scaleX: 0, opacity: 0.6 }}
+            animate={{ scaleX: 1, opacity: 0.35 }}
+            transition={{ duration: 0.12 }}
             className="absolute"
             style={{ 
               left: heroWidth - 5,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              width: 200,
-              height: 12,
+              top: '35%',
+              transform: 'translateY(-50%) rotate(3deg)',
+              width: 220,
+              height: 16,
               background: player.isMagicDashing
-                ? 'linear-gradient(90deg, rgba(255,0,255,0.5), transparent)'
-                : 'linear-gradient(90deg, rgba(255,255,0,0.5), transparent)',
+                ? 'linear-gradient(90deg, rgba(255,0,255,0.6), rgba(0,255,255,0.3), transparent)'
+                : 'linear-gradient(90deg, rgba(0,255,255,0.6), rgba(0,136,255,0.3), transparent)',
               transformOrigin: 'left center',
-              filter: 'blur(4px)',
+              filter: 'blur(5px)',
               borderRadius: '0 50% 50% 0',
             }}
           />
