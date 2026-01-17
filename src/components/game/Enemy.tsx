@@ -3,11 +3,21 @@ import { Enemy as EnemyType, ENEMY_DEATH_SOUNDS } from '@/types/game';
 import { useState, useEffect } from 'react';
 import enemyRobot from '@/assets/enemy-robot.png';
 import enemyDrone from '@/assets/enemy-drone.png';
+import enemyDroneV1 from '@/assets/enemy-drone-v1.png';
+import enemyDroneV2 from '@/assets/enemy-drone-v2.png';
+import enemyDroneV3 from '@/assets/enemy-drone-v3.png';
+import enemyDroneV4 from '@/assets/enemy-drone-v4.png';
 import enemyMech from '@/assets/enemy-mech.png';
 import enemyJetRobot from '@/assets/enemy-jet-robot.png';
 import bossPhase1 from '@/assets/boss-phase1.png';
 import bossPhase2 from '@/assets/boss-phase2.png';
 import bossPhase3 from '@/assets/boss-phase3.png';
+
+// Get random drone variant sprite
+const getDroneSprite = (variant?: number) => {
+  const variants = [enemyDrone, enemyDroneV1, enemyDroneV2, enemyDroneV3, enemyDroneV4];
+  return variants[variant ?? 0] || enemyDrone;
+};
 
 interface EnemyProps {
   enemy: EnemyType;
@@ -23,12 +33,12 @@ const getBossSprite = (phase: number) => {
 
 const ENEMY_SPRITES: Record<string, string> = {
   robot: enemyRobot,
-  drone: enemyDrone,
+  drone: enemyDrone, // Will be overridden by getDroneSprite
   mech: enemyMech,
   boss: bossPhase1, // Default, will be overridden
   ninja: enemyRobot,
   tank: enemyMech,
-  flyer: enemyDrone,
+  flyer: enemyDrone, // Will be overridden by getDroneSprite
   giant: enemyMech, // Giant uses mech sprite but scaled
   bomber: enemyDrone, // Bomber uses drone sprite with different color
   jetrobot: enemyJetRobot, // New jet robot enemy
@@ -63,10 +73,15 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const color = ENEMY_COLORS[enemy.type] || '#ff4444';
   const healthPercent = (enemy.health / enemy.maxHealth) * 100;
   
-  // Get sprite - for boss, use phase-specific sprite
+  // Get sprite - for boss, use phase-specific sprite; for drones, use variant
   const isBoss = enemy.type === 'boss';
   const bossPhase = enemy.bossPhase || 1;
-  const sprite = isBoss ? getBossSprite(bossPhase) : ENEMY_SPRITES[enemy.type];
+  const isDrone = enemy.type === 'drone' || enemy.type === 'flyer' || enemy.type === 'bomber';
+  const sprite = isBoss 
+    ? getBossSprite(bossPhase) 
+    : isDrone 
+      ? getDroneSprite(enemy.droneVariant)
+      : ENEMY_SPRITES[enemy.type];
   
   // Scale enemies - scaled for mobile
   const isGiant = enemy.type === 'giant' || enemy.isGiant;

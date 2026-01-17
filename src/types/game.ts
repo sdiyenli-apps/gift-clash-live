@@ -75,6 +75,10 @@ export interface Enemy {
   isDropping?: boolean; // True when enemy is dropping from top of screen
   dropTimer?: number; // Timer for drop animation
   empOnly?: boolean; // Can only be killed by EMP (jet robots)
+  originalX?: number; // Original spawn X position for flying enemies
+  originalY?: number; // Original spawn Y position for flying enemies
+  isRetreating?: boolean; // True when flying enemy is zooming back to original position
+  droneVariant?: number; // Variant of drone sprite (1-4)
 }
 
 // Bomb dropped by bomber enemies
