@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
-import heroVideo from '@/assets/hero-video-sprite.mp4';
+import heroSprite from '@/assets/hero-sprite.png';
 
 interface HeroProps {
   player: Player;
@@ -11,17 +11,17 @@ interface HeroProps {
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
   // Fixed screen position - hero stays on LEFT side
-  const screenX = 60; // Fixed at left edge of screen
+  const screenX = 40; // Fixed at left edge of screen
   const isEmpowered = isUltraMode || player.isMagicDashing;
   const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
   const isWalking = player.animationState === 'run' || player.animationState === 'dash';
 
-  // Hero sized for visibility on mobile
-  const heroWidth = 70;
-  const heroHeight = 85;
+  // Hero sized LARGER for better visibility
+  const heroWidth = 140;
+  const heroHeight = 120;
   
   // Hero flies during magic dash - elevated position
-  const flyingHeight = player.isMagicDashing ? 280 : 160; // Fly high during magic rush
+  const flyingHeight = player.isMagicDashing ? 260 : 140; // Fly high during magic rush
 
   return (
     <motion.div
@@ -168,12 +168,9 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
               : { duration: 0.1 }
           }
         >
-          <motion.video
-            src={heroVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
+          <motion.img
+            src={heroSprite}
+            alt="Hero"
             className="w-full h-full object-contain rounded-lg"
             style={{
               imageRendering: 'crisp-edges',
@@ -333,12 +330,9 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
                 animate={{ opacity: 0, x: -15 - i * 8 }}
                 transition={{ duration: 0.15, delay: i * 0.02 }}
               >
-                <video 
-                  src={heroVideo}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
+                <img 
+                  src={heroSprite}
+                  alt="Hero trail"
                   className="w-full h-full object-contain"
                   style={{ 
                     filter: `blur(${i * 2}px) hue-rotate(${i * 40}deg)`,
