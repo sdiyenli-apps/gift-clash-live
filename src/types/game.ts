@@ -74,6 +74,7 @@ export interface Enemy {
   bombCooldown?: number; // Bomber bomb drop cooldown
   isDropping?: boolean; // True when enemy is dropping from top of screen
   dropTimer?: number; // Timer for drop animation
+  empOnly?: boolean; // Can only be killed by EMP (jet robots)
 }
 
 // Bomb dropped by bomber enemies

@@ -474,38 +474,36 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               </motion.div>
             )}
             
-            {/* Menacing aura - intensifies with phase - PHASE 3 IS HUGE */}
+            {/* Menacing aura - subtle for all phases */}
             <motion.div
-              className="absolute rounded-full"
+              className="absolute rounded-full -z-10"
               style={{
-                inset: bossPhase === 3 ? -30 : -12,
+                inset: -10,
                 background: bossPhase === 3 
-                  ? 'radial-gradient(circle, rgba(255,100,0,0.7), rgba(255,0,0,0.5), rgba(100,0,0,0.3), transparent)'
+                  ? 'radial-gradient(circle, rgba(255,50,0,0.3), rgba(255,0,0,0.15), transparent)'
                   : bossPhase === 2
-                  ? 'radial-gradient(circle, rgba(255,50,0,0.5), rgba(75,0,0,0.3), transparent)'
-                  : 'radial-gradient(circle, rgba(255,0,0,0.4), rgba(50,0,0,0.2), transparent)',
-                filter: `blur(${bossPhase === 3 ? 20 : 10 + bossPhase * 5}px)`,
+                  ? 'radial-gradient(circle, rgba(255,50,0,0.25), rgba(75,0,0,0.15), transparent)'
+                  : 'radial-gradient(circle, rgba(255,0,0,0.2), rgba(50,0,0,0.1), transparent)',
+                filter: 'blur(8px)',
               }}
               animate={{ 
-                scale: bossPhase === 3 ? [1, 1.4, 1] : [1, 1.2 + bossPhase * 0.1, 1], 
-                opacity: bossPhase === 3 ? [0.6, 1, 0.6] : [0.4, 0.7 + bossPhase * 0.1, 0.4] 
+                opacity: [0.4, 0.6, 0.4] 
               }}
-              transition={{ duration: bossPhase === 3 ? 0.4 : 1.5 / bossPhase, repeat: Infinity }}
+              transition={{ duration: 2, repeat: Infinity }}
             />
             
-            {/* PHASE 3 - Additional bright glow layer behind boss */}
+            {/* PHASE 3 - Subtle glow layer behind boss - reduced for visibility */}
             {bossPhase === 3 && (
               <motion.div
-                className="absolute -inset-20 rounded-full -z-10"
+                className="absolute -inset-12 rounded-full -z-10"
                 style={{
-                  background: 'radial-gradient(circle, rgba(255,200,0,0.5), rgba(255,100,0,0.3), rgba(255,0,0,0.2), transparent)',
-                  filter: 'blur(30px)',
+                  background: 'radial-gradient(circle, rgba(255,100,0,0.2), rgba(255,0,0,0.1), transparent)',
+                  filter: 'blur(15px)',
                 }}
                 animate={{ 
-                  scale: [1, 1.5, 1],
-                  opacity: [0.5, 0.9, 0.5],
+                  opacity: [0.3, 0.5, 0.3],
                 }}
-                transition={{ duration: 0.6, repeat: Infinity }}
+                transition={{ duration: 1.5, repeat: Infinity }}
               />
             )}
             
@@ -537,85 +535,52 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               </>
             )}
             
-            {/* Phase 3 rage flames - MUCH MORE VISIBLE */}
+            {/* Phase 3 rage flames - REDUCED for visibility */}
             {bossPhase === 3 && (
               <>
-                {/* Intense outer flame ring */}
+                {/* Subtle outer glow ring - much less intense */}
                 <motion.div
-                  className="absolute -inset-16 rounded-full"
+                  className="absolute -inset-8 rounded-full -z-10"
                   style={{
-                    background: 'conic-gradient(from 0deg, #ff0000, #ff4400, #ffff00, #ff4400, #ff0000)',
-                    filter: 'blur(12px)',
-                    opacity: 0.8,
+                    background: 'radial-gradient(circle, rgba(255,50,0,0.3), transparent)',
+                    filter: 'blur(10px)',
                   }}
-                  animate={{ rotate: [0, 360], scale: [1, 1.1, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }}
+                  animate={{ opacity: [0.3, 0.5, 0.3] }}
+                  transition={{ duration: 2, repeat: Infinity }}
                 />
-                {/* Inner pulsing core */}
-                <motion.div
-                  className="absolute -inset-10 rounded-full"
-                  style={{
-                    background: 'radial-gradient(circle, rgba(255,255,0,0.8), rgba(255,100,0,0.6), rgba(255,0,0,0.4), transparent)',
-                    filter: 'blur(8px)',
-                  }}
-                  animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
-                  transition={{ duration: 0.4, repeat: Infinity }}
-                />
-                {/* Multiple rage flames around the boss */}
-                {[0, 1, 2, 3, 4, 5].map(i => (
-                  <motion.div
-                    key={`flame-${i}`}
-                    className="absolute"
-                    style={{
-                      left: `${10 + i * 15}%`,
-                      top: '-30%',
-                      width: 16 + i * 4,
-                      height: 40 + i * 8,
-                      background: 'linear-gradient(0deg, #ff4400, #ffff00, #fff, transparent)',
-                      borderRadius: '50%',
-                      filter: 'blur(4px)',
-                    }}
-                    animate={{ 
-                      height: [40 + i * 8, 60 + i * 12, 40 + i * 8], 
-                      opacity: [0.7, 1, 0.7],
-                      y: [0, -15, 0],
-                    }}
-                    transition={{ duration: 0.2 + i * 0.05, repeat: Infinity, delay: i * 0.08 }}
-                  />
-                ))}
-                {/* Rage text indicator */}
-                <motion.div
-                  className="absolute -top-12 left-1/2 -translate-x-1/2 text-2xl font-black whitespace-nowrap"
-                  style={{ 
-                    color: '#ff0000', 
-                    textShadow: '0 0 20px #ff0000, 0 0 40px #ff4400, 0 0 60px #ffff00',
-                  }}
-                  animate={{ scale: [1, 1.2, 1], opacity: [0.8, 1, 0.8] }}
-                  transition={{ duration: 0.3, repeat: Infinity }}
-                >
-                  ☠️ RAGE MODE ☠️
-                </motion.div>
-                {/* Electric arcs */}
+                {/* Small rage flames at top only */}
                 {[0, 1, 2].map(i => (
                   <motion.div
-                    key={`arc-${i}`}
-                    className="absolute"
+                    key={`flame-${i}`}
+                    className="absolute -z-10"
                     style={{
-                      left: `${20 + i * 30}%`,
-                      top: '10%',
-                      width: 3,
-                      height: 30,
-                      background: 'linear-gradient(180deg, #fff, #ffff00, transparent)',
-                      filter: 'blur(1px)',
-                      transformOrigin: 'top',
+                      left: `${25 + i * 25}%`,
+                      top: '-15%',
+                      width: 10,
+                      height: 20,
+                      background: 'linear-gradient(0deg, #ff4400, #ffff00, transparent)',
+                      borderRadius: '50%',
+                      filter: 'blur(3px)',
                     }}
                     animate={{ 
-                      rotate: [-20 + i * 20, 20 - i * 10, -20 + i * 20],
-                      opacity: [0.5, 1, 0.5],
+                      height: [20, 30, 20], 
+                      opacity: [0.4, 0.7, 0.4],
                     }}
-                    transition={{ duration: 0.15, repeat: Infinity, delay: i * 0.05 }}
+                    transition={{ duration: 0.5 + i * 0.1, repeat: Infinity, delay: i * 0.15 }}
                   />
                 ))}
+                {/* Rage text indicator - smaller and less intrusive */}
+                <motion.div
+                  className="absolute -top-8 left-1/2 -translate-x-1/2 text-sm font-black whitespace-nowrap"
+                  style={{ 
+                    color: '#ff4400', 
+                    textShadow: '0 0 10px #ff0000',
+                  }}
+                  animate={{ opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  ☠️ RAGE ☠️
+                </motion.div>
               </>
             )}
             
