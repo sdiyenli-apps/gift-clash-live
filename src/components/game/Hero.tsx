@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
-import heroCaptain from '@/assets/hero-captain.jpg';
+import heroSprite from '@/assets/hero-new.png';
 
 interface HeroProps {
   player: Player;
@@ -169,9 +169,9 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           }
         >
           <motion.img
-            src={heroCaptain}
-            alt="Captain Squirbert"
-            className="w-full h-full object-cover rounded-lg"
+            src={heroSprite}
+            alt="Hero"
+            className="w-full h-full object-contain rounded-lg"
             style={{
               imageRendering: 'crisp-edges',
             }}
@@ -331,9 +331,9 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
                 transition={{ duration: 0.15, delay: i * 0.02 }}
               >
                 <img 
-                  src={heroCaptain}
+                  src={heroSprite}
                   alt=""
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   style={{ 
                     filter: `blur(${i * 2}px) hue-rotate(${i * 40}deg)`,
                     opacity: 0.3 - i * 0.08,

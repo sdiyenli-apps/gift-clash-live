@@ -1951,13 +1951,24 @@ export const useGameState = () => {
             };
           }
           
-          // Boss behavior - STAY at attack distance (don't run away)
+          // Boss behavior - STAYS PUT until hero approaches, then engages
           if (enemy.type === 'boss') {
             const distanceToBoss = enemy.x - prev.player.x;
-            const tooClose = distanceToBoss < BOSS_KEEP_DISTANCE - 50;
-            const tooFar = distanceToBoss > BOSS_KEEP_DISTANCE + 50;
+            const BOSS_ENGAGE_RANGE = 600; // Boss only engages when hero is within 600px
             
-            // Boss only moves to maintain attack distance
+            // If hero is NOT in range, boss stays completely still
+            if (distanceToBoss > BOSS_ENGAGE_RANGE) {
+              // Boss stays in original position, not moving at all
+              return { 
+                ...enemy, 
+                animationPhase: (enemy.animationPhase + delta * 2) % (Math.PI * 2), // Slow idle animation
+              };
+            }
+            
+            // Hero is in range - boss now engages and maintains attack distance
+            const tooClose = distanceToBoss < BOSS_KEEP_DISTANCE - 50;
+            const tooFar = distanceToBoss > BOSS_KEEP_DISTANCE + 50 && distanceToBoss <= BOSS_ENGAGE_RANGE;
+            
             if (tooClose) {
               // Move away slightly to maintain distance
               return { 
