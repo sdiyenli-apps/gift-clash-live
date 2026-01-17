@@ -8,6 +8,7 @@ import { Particles } from './Particles';
 import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
+import { BossHealthBar } from './BossHealthBar';
 import { MiniMap } from './MiniMap';
 import { CyberpunkBuildings } from './CyberpunkBuildings';
 import { FloorAssets } from './FloorAssets';
@@ -90,8 +91,8 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
         cameraX={cameraX}
       />
       
-      {/* Boss HUD */}
-      {bossEnemy && isBossFight && (
+      {/* Boss HUD - shows taunts at top */}
+      {bossEnemy && isBossFight && bossTaunt && (
         <BossHUD 
           bossHealth={bossEnemy.health}
           bossMaxHealth={bossEnemy.maxHealth}
@@ -100,6 +101,11 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           bossTaunt={bossTaunt}
           bossPhase={bossEnemy.bossPhase}
         />
+      )}
+      
+      {/* Boss health bar above boss head */}
+      {bossEnemy && isBossFight && (
+        <BossHealthBar boss={bossEnemy} cameraX={cameraX} />
       )}
       
       {/* Red flash for boss mega attack */}
