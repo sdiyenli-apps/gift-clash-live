@@ -114,58 +114,56 @@ const Index = () => {
 
   return (
     <div 
-      className="h-screen w-screen flex flex-col overflow-hidden safe-area-inset touch-none select-none"
+      className="h-[100dvh] w-screen flex flex-col overflow-hidden touch-none select-none"
       style={{
         background: 'linear-gradient(180deg, #0a0a12 0%, #12081c 100%)',
       }}
     >
-      {/* Gift notifications now shown as flying boxes in the Arena */}
-
-      {/* Modern TikTok Live Header - Floating pill style */}
-      <header className="absolute top-2 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
-        {/* Left side - Logo & Stats */}
-        <div className="flex items-center gap-2 pointer-events-auto">
+      {/* Compact Header - Minimal height for max game view */}
+      <header className="absolute top-1 left-1 right-1 z-30 flex items-center justify-between pointer-events-none">
+        {/* Left side - Logo only */}
+        <div className="flex items-center pointer-events-auto">
           <div 
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-full"
+            className="flex items-center gap-1 px-2 py-0.5 rounded-full"
             style={{
-              background: 'rgba(0,0,0,0.7)',
+              background: 'rgba(0,0,0,0.8)',
               backdropFilter: 'blur(10px)',
               border: '1px solid rgba(255,255,255,0.1)',
             }}
           >
-            <span className="text-base">🐿️</span>
+            <span className="text-sm">🐿️</span>
             <span 
-              className="font-black text-xs"
+              className="font-black text-[10px] sm:text-xs"
               style={{
                 background: 'linear-gradient(90deg, #ff00ff, #00ffff)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              CPT SQUIRBERT
+              SQUIRBERT
             </span>
           </div>
         </div>
 
-        {/* Right side - Audio & Wave info */}
-        <div className="flex items-center gap-2 pointer-events-auto">
+        {/* Right side - Score, Wave, Audio */}
+        <div className="flex items-center gap-1 pointer-events-auto">
           {gameState.phase === 'playing' && (
             <>
               <div 
-                className="px-2.5 py-1 rounded-full font-bold text-xs"
+                className="px-2 py-0.5 rounded-full font-bold text-[10px] sm:text-xs"
                 style={{
-                  background: 'rgba(0,0,0,0.7)',
+                  background: 'rgba(0,0,0,0.8)',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(255,255,0,0.3)',
                   color: '#ffff00',
                 }}
               >
-                ⭐ {gameState.score.toLocaleString()}
+                ⭐{gameState.score.toLocaleString()}
               </div>
               <div 
-                className="px-2.5 py-1 rounded-full font-bold text-xs"
+                className="px-2 py-0.5 rounded-full font-bold text-[10px] sm:text-xs"
                 style={{
-                  background: 'rgba(0,0,0,0.7)',
+                  background: 'rgba(0,0,0,0.8)',
                   backdropFilter: 'blur(10px)',
                   border: '1px solid rgba(0,255,255,0.3)',
                   color: '#00ffff',
@@ -175,30 +173,28 @@ const Index = () => {
               </div>
               {gameState.player.isMagicDashing && (
                 <motion.div
-                  className="px-2.5 py-1 rounded-full font-bold text-xs"
+                  className="px-2 py-0.5 rounded-full font-bold text-[10px]"
                   style={{
                     background: 'rgba(255,0,255,0.3)',
-                    backdropFilter: 'blur(10px)',
                     border: '1px solid rgba(255,0,255,0.5)',
                     color: '#ff66ff',
                   }}
                   animate={{ opacity: [1, 0.5, 1] }}
                   transition={{ duration: 0.2, repeat: Infinity }}
                 >
-                  ✨ {gameState.player.magicDashTimer.toFixed(0)}s
+                  ✨{gameState.player.magicDashTimer.toFixed(0)}
                 </motion.div>
               )}
             </>
           )}
           <motion.button
             onClick={() => setAudioOn(!audioOn)}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-sm"
+            className="w-7 h-7 rounded-full flex items-center justify-center text-sm touch-manipulation"
             style={{
               background: audioOn ? 'rgba(0,255,255,0.2)' : 'rgba(255,255,255,0.1)',
               backdropFilter: 'blur(10px)',
               border: audioOn ? '1px solid rgba(0,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
             }}
-            whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
           >
             {audioOn ? '🔊' : '🔇'}
@@ -206,35 +202,9 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Game Content */}
+      {/* Main Game Content - Maximized arena space */}
       <main className="flex-1 flex flex-col overflow-hidden min-h-0">
-        {/* Top HUD - HP, Shield, and Gifts */}
-        {gameState.phase === 'playing' && (
-          <div className="absolute top-11 left-2 right-2 z-20 space-y-1.5">
-            {/* Health bar */}
-            <div 
-              className="px-2 py-1 rounded-lg"
-              style={{
-                background: 'rgba(0,0,0,0.8)',
-                border: '1px solid rgba(0,255,255,0.2)',
-              }}
-            >
-              <HealthBar 
-                health={gameState.player.health}
-                maxHealth={gameState.player.maxHealth}
-                shield={gameState.player.shield}
-              />
-            </div>
-            
-            {/* Gift buttons - under HP bar */}
-            <GiftPanel 
-              onTriggerGift={handleTriggerGift}
-              disabled={gameState.phase !== 'playing'}
-            />
-          </div>
-        )}
-
-        {/* Game Arena */}
+        {/* Game Arena - Takes most of the screen */}
         <div className="flex-1 min-h-0 relative overflow-hidden">
           <Arena gameState={gameState} notifications={notifications} />
           <GameOverlay 
@@ -257,6 +227,38 @@ const Index = () => {
           />
         </div>
 
+        {/* Bottom HUD - HP and Controls - Fixed at bottom */}
+        {gameState.phase === 'playing' && (
+          <div 
+            className="absolute bottom-0 left-0 right-0 z-20 p-2 space-y-1.5 safe-area-inset-bottom"
+            style={{
+              background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.7) 70%, transparent 100%)',
+            }}
+          >
+            {/* Health bar - Compact */}
+            <div 
+              className="px-2 py-1.5 rounded-xl mx-auto max-w-sm"
+              style={{
+                background: 'rgba(0,0,0,0.8)',
+                border: '1px solid rgba(0,255,255,0.25)',
+              }}
+            >
+              <HealthBar 
+                health={gameState.player.health}
+                maxHealth={gameState.player.maxHealth}
+                shield={gameState.player.shield}
+              />
+            </div>
+            
+            {/* Gift buttons - Large touch targets */}
+            <div className="max-w-md mx-auto">
+              <GiftPanel 
+                onTriggerGift={handleTriggerGift}
+                disabled={gameState.phase !== 'playing'}
+              />
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );
