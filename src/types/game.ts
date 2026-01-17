@@ -217,6 +217,10 @@ export interface GameState {
   explosions: Explosion[];
   giftBlocks: GiftBlock[];
   bombs?: Bomb[];
+  // Portal state
+  portalOpen?: boolean;
+  portalX?: number;
+  heroEnteringPortal?: boolean;
 }
 
 export interface Gifter {

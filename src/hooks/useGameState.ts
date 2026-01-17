@@ -140,6 +140,10 @@ interface ExtendedGameState extends GameState {
   empGrenades: EMPGrenade[];
   // Bombs dropped by bomber enemies
   bombs: Bomb[];
+  // Portal state
+  portalOpen: boolean;
+  portalX: number;
+  heroEnteringPortal: boolean;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -189,6 +193,10 @@ const INITIAL_STATE: ExtendedGameState = {
   laserSweepAngle: 0,
   lastBossAttack: null,
   empGrenades: [],
+  // Portal starts closed
+  portalOpen: false,
+  portalX: 0,
+  heroEnteringPortal: false,
 };
 
 // 7 enemy types: robot, drone, mech, ninja, tank, giant, bomber
@@ -526,6 +534,10 @@ export const useGameState = () => {
         magicFlash: 0,
         bossTaunt: null,
         bossTauntTimer: 0,
+        // Reset portal for next wave
+        portalOpen: false,
+        portalX: 0,
+        heroEnteringPortal: false,
       }));
       showSpeechBubble(`WAVE ${nextWave} BEGINS! 🔥💪`, 'excited');
     }
@@ -1685,6 +1697,13 @@ export const useGameState = () => {
                   
                   newState.screenShake = enemy.type === 'boss' ? 1.5 : 0.25;
                   
+                  // BOSS KILLED - Open the portal!
+                  if (enemy.type === 'boss') {
+                    newState.portalOpen = true;
+                    newState.portalX = enemy.x + enemy.width / 2; // Portal spawns where boss died
+                    showSpeechBubble("BOSS DOWN! PORTAL OPENED! 🌀", 'excited');
+                  }
+                  
                   // Hero taunts enemies on kills - MORE FREQUENT!
                   if (newState.killStreak > 3 && newState.killStreak % 4 === 0) {
                     showSpeechBubble(`${newState.killStreak} KILL STREAK! 🔥`, 'excited');
@@ -2170,12 +2189,20 @@ export const useGameState = () => {
           if (newState.comboTimer <= 0) newState.combo = 0;
         }
         
-        // Win condition
-        const princessX = prev.levelLength - 80;
-        if (newState.player.x >= princessX - 30 && !bossEnemy) {
-          newState.phase = 'victory';
+        // Win condition - Hero must enter the portal after boss is defeated
+        const portalX = newState.portalX || prev.levelLength - 200;
+        const heroNearPortal = Math.abs(newState.player.x - portalX) < 50;
+        
+        // Check if portal is open and hero reaches it
+        if (newState.portalOpen && heroNearPortal && !newState.heroEnteringPortal) {
+          newState.heroEnteringPortal = true;
           newState.screenShake = 1.2;
-          showSpeechBubble("PRINCESS! I'M HERE! 💖👑", 'excited');
+          showSpeechBubble("ENTERING PORTAL! 🌀✨", 'excited');
+          
+          // Delay victory by a brief moment for the entering animation
+          setTimeout(() => {
+            setGameState(s => ({ ...s, phase: 'victory' }));
+          }, 800);
         }
         
         // Lose condition
