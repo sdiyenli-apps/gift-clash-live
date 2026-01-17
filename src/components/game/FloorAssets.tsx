@@ -5,16 +5,28 @@ interface FloorAssetsProps {
   levelLength: number;
 }
 
-// Generate deterministic assets based on position
+// Generate deterministic assets based on position - including broken tanks
 const generateAssets = (levelLength: number) => {
   const assets: Array<{
     id: string;
-    type: 'dustbin' | 'rat' | 'pipe' | 'crate' | 'barrel' | 'debris';
+    type: 'dustbin' | 'rat' | 'pipe' | 'crate' | 'barrel' | 'debris' | 'tank';
     x: number;
     size: number;
+    variant?: number;
   }> = [];
   
-  // Spread assets across the level
+  // Add broken tanks at intervals
+  for (let x = 400; x < levelLength - 400; x += 800 + Math.random() * 600) {
+    assets.push({
+      id: `tank-${x}`,
+      type: 'tank',
+      x,
+      size: 0.8 + Math.random() * 0.4,
+      variant: Math.floor(Math.random() * 3),
+    });
+  }
+  
+  // Spread other assets across the level
   for (let x = 100; x < levelLength - 200; x += 150 + Math.random() * 200) {
     const roll = Math.random();
     let type: 'dustbin' | 'rat' | 'pipe' | 'crate' | 'barrel' | 'debris';
@@ -269,6 +281,89 @@ export const FloorAssets = ({ cameraX, levelLength }: FloorAssetsProps) => {
                     }}
                   />
                 ))}
+              </div>
+            )}
+            
+            {asset.type === 'tank' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 80 * asset.size, 
+                  height: 40 * asset.size,
+                }}
+              >
+                {/* Tank body - broken and tilted */}
+                <div 
+                  className="absolute bottom-0"
+                  style={{
+                    width: '100%',
+                    height: '60%',
+                    background: 'linear-gradient(180deg, #3a3a2a 0%, #2a2a1a 50%, #1a1a0a 100%)',
+                    borderRadius: 4,
+                    transform: `rotate(${(asset.variant || 0) * 5 - 5}deg)`,
+                    boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.6)',
+                  }}
+                />
+                {/* Tank turret - damaged */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '40%',
+                    height: '35%',
+                    left: '25%',
+                    bottom: '55%',
+                    background: 'linear-gradient(180deg, #444430 0%, #333320 100%)',
+                    borderRadius: 3,
+                    transform: `rotate(${(asset.variant || 0) * 15 - 10}deg)`,
+                  }}
+                />
+                {/* Broken cannon */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '50%',
+                    height: 6 * asset.size,
+                    left: '50%',
+                    bottom: '65%',
+                    background: 'linear-gradient(90deg, #333, #222)',
+                    borderRadius: 2,
+                    transform: `rotate(${(asset.variant || 0) * 10 + 5}deg)`,
+                  }}
+                />
+                {/* Track marks */}
+                <div 
+                  className="absolute bottom-0 w-full"
+                  style={{
+                    height: 8 * asset.size,
+                    background: 'repeating-linear-gradient(90deg, #222 0px, #333 4px, #222 8px)',
+                    borderRadius: 2,
+                  }}
+                />
+                {/* Smoke/fire from damage */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: 15 * asset.size,
+                    height: 20 * asset.size,
+                    left: '30%',
+                    bottom: '70%',
+                    background: 'linear-gradient(180deg, rgba(50,50,50,0.6), transparent)',
+                    filter: 'blur(3px)',
+                    borderRadius: '50%',
+                  }}
+                />
+                {/* Rust/damage marks */}
+                <div 
+                  className="absolute rounded-full"
+                  style={{
+                    width: 8 * asset.size,
+                    height: 8 * asset.size,
+                    left: '60%',
+                    bottom: '30%',
+                    background: 'radial-gradient(circle, #5a3a2a, transparent)',
+                    opacity: 0.7,
+                  }}
+                />
               </div>
             )}
           </div>

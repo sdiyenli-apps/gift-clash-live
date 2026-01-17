@@ -1,13 +1,6 @@
 import { motion } from 'framer-motion';
 import { useMemo } from 'react';
 
-// Import zone background images
-import bgZone1 from '@/assets/bg-zone1-city.jpg';
-import bgZone2 from '@/assets/bg-zone2-factory.jpg';
-import bgZone3 from '@/assets/bg-zone3-datacore.jpg';
-import bgZone4 from '@/assets/bg-zone4-rooftop.jpg';
-import bgZone5 from '@/assets/bg-zone5-boss.jpg';
-
 interface BackgroundVideoProps {
   distance: number;
   cameraX: number;
@@ -15,12 +8,13 @@ interface BackgroundVideoProps {
   isBossFight: boolean;
 }
 
+// Zones progress from peaceful green to dark evil
 const ZONES = [
-  { name: 'NEON CITY', bg: bgZone1, start: 0, color: '#00ffff' },
-  { name: 'FACTORY', bg: bgZone2, start: 2000, color: '#ff6600' },
-  { name: 'DATA CORE', bg: bgZone3, start: 4000, color: '#8800ff' },
-  { name: 'ROOFTOPS', bg: bgZone4, start: 6000, color: '#ff0088' },
-  { name: 'BOSS LAIR', bg: bgZone5, start: 8000, color: '#ff0000' },
+  { name: 'GREEN PASTURES', start: 0, color: '#88cc44', skyGradient: 'linear-gradient(180deg, #87CEEB 0%, #98FB98 40%, #228B22 100%)', groundColor: '#4a7c23' },
+  { name: 'TWILIGHT WOODS', start: 2000, color: '#cc8844', skyGradient: 'linear-gradient(180deg, #FF8C00 0%, #8B4513 50%, #2F1810 100%)', groundColor: '#3d2817' },
+  { name: 'DARK MARSHES', start: 4000, color: '#6644aa', skyGradient: 'linear-gradient(180deg, #4B0082 0%, #2E0854 50%, #1a0a2e 100%)', groundColor: '#1a1a2e' },
+  { name: 'CURSED LANDS', start: 6000, color: '#aa2255', skyGradient: 'linear-gradient(180deg, #4a0a0a 0%, #2a0505 50%, #0a0202 100%)', groundColor: '#1a0505' },
+  { name: 'DEMON FORTRESS', start: 8000, color: '#ff0000', skyGradient: 'linear-gradient(180deg, #330000 0%, #1a0000 40%, #0a0000 100%)', groundColor: '#0a0000' },
 ];
 
 const getZone = (distance: number) => {
@@ -32,7 +26,6 @@ const getZone = (distance: number) => {
 
 export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight }: BackgroundVideoProps) => {
   const { zone: currentZone, index: zoneIndex } = getZone(distance);
-  const nextZone = ZONES[Math.min(zoneIndex + 1, ZONES.length - 1)];
   const zoneProgress = (distance - currentZone.start) / 2000;
   
   // Parallax offset
@@ -117,15 +110,109 @@ export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight }:
     return elements;
   }, [currentZone.color]);
   
+  // Burning jets flying past
+  const burningJets = useMemo(() => {
+    const jets: JSX.Element[] = [];
+    for (let i = 0; i < 3; i++) {
+      jets.push(
+        <motion.div
+          key={`jet-${i}`}
+          className="absolute pointer-events-none"
+          style={{
+            top: `${10 + i * 15}%`,
+            width: 60,
+            height: 20,
+          }}
+          animate={{
+            x: ['120%', '-120%'],
+          }}
+          transition={{
+            duration: 2 + i * 0.5,
+            repeat: Infinity,
+            delay: i * 3,
+            ease: 'linear',
+          }}
+        >
+          {/* Jet body - flat */}
+          <div 
+            className="absolute w-full h-3"
+            style={{
+              background: 'linear-gradient(90deg, #333 0%, #555 50%, #333 100%)',
+              top: '50%',
+              transform: 'translateY(-50%)',
+            }}
+          />
+          {/* Jet nose */}
+          <div 
+            className="absolute w-4 h-2"
+            style={{
+              background: '#666',
+              left: -4,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              borderRadius: '50% 0 0 50%',
+            }}
+          />
+          {/* Burning trail */}
+          <motion.div
+            className="absolute"
+            style={{
+              right: -40,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 50,
+              height: 8,
+              background: 'linear-gradient(90deg, #ff6600, #ff4400, #ff2200, transparent)',
+              filter: 'blur(2px)',
+              borderRadius: '0 50% 50% 0',
+            }}
+            animate={{
+              scaleX: [1, 1.3, 1],
+              opacity: [0.8, 1, 0.8],
+            }}
+            transition={{
+              duration: 0.1,
+              repeat: Infinity,
+            }}
+          />
+          {/* Smoke trail */}
+          <motion.div
+            className="absolute"
+            style={{
+              right: -80,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              width: 60,
+              height: 12,
+              background: 'linear-gradient(90deg, rgba(100,100,100,0.5), transparent)',
+              filter: 'blur(4px)',
+            }}
+            animate={{
+              scaleY: [1, 1.5, 1],
+            }}
+            transition={{
+              duration: 0.2,
+              repeat: Infinity,
+            }}
+          />
+        </motion.div>
+      );
+    }
+    return jets;
+  }, []);
+
+  // Calculate transition progress between zones
+  const nextZone = ZONES[Math.min(zoneIndex + 1, ZONES.length - 1)];
+  const transitionProgress = Math.min(1, Math.max(0, (zoneProgress - 0.7) / 0.3));
+  
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {/* Base background image with parallax */}
+      {/* Base sky gradient */}
       <motion.div
-        className="absolute inset-0 bg-cover bg-center"
+        className="absolute inset-0"
         style={{
-          backgroundImage: `url(${currentZone.bg})`,
-          backgroundPosition: `${parallaxX}px center`,
-          filter: isBossFight ? 'brightness(0.6) saturate(1.4)' : 'brightness(0.8)',
+          background: currentZone.skyGradient,
+          filter: isBossFight ? 'brightness(0.6) saturate(1.4)' : 'brightness(0.9)',
         }}
         animate={{
           scale: [1, 1.02, 1],
@@ -137,20 +224,22 @@ export const BackgroundVideo = ({ distance, cameraX, isUltraMode, isBossFight }:
         }}
       />
       
-      {/* Next zone crossfade */}
-      {zoneProgress > 0.6 && (
+      {/* Next zone crossfade for smooth transition */}
+      {transitionProgress > 0 && (
         <motion.div
-          className="absolute inset-0 bg-cover bg-center"
+          className="absolute inset-0"
           style={{
-            backgroundImage: `url(${nextZone.bg})`,
-            backgroundPosition: `${parallaxX}px center`,
-            opacity: (zoneProgress - 0.6) * 2.5,
+            background: nextZone.skyGradient,
+            opacity: transitionProgress,
           }}
         />
       )}
       
       {/* Animated video-like overlay */}
       {animatedElements}
+      
+      {/* Burning jets flying past */}
+      {burningJets}
       
       {/* Color overlay based on zone */}
       <motion.div
