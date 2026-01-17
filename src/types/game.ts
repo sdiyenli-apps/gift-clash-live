@@ -68,6 +68,7 @@ export interface Enemy {
   flyHeight?: number;
   bossPhase?: number; // 1 = normal, 2 = 50% health, 3 = 25% health
   isSlashing?: boolean; // True when enemy is doing melee slash attack
+  bossShieldTimer?: number; // Boss shield duration remaining (2 seconds max)
 }
 
 export interface FlyingRobot {

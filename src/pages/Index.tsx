@@ -6,7 +6,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { Arena } from '@/components/game/Arena';
 import { HealthBar } from '@/components/game/HealthBar';
 import { GiftPanel } from '@/components/game/GiftPanel';
-import { GiftNotification } from '@/components/game/GiftNotification';
+// Gift notifications are now flying boxes in the Arena
 import { GameOverlay } from '@/components/game/GameOverlay';
 import { WaveTransition } from '@/components/game/WaveTransition';
 import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
@@ -80,6 +80,9 @@ const Index = () => {
         case 'screen_attack':
           playSound('screenAttack');
           break;
+        case 'shield':
+          playSound('shieldBlock');
+          break;
       }
     }
   }, [gameState.lastBossAttack, playSound]);
@@ -116,7 +119,7 @@ const Index = () => {
         background: 'linear-gradient(180deg, #0a0a12 0%, #12081c 100%)',
       }}
     >
-      <GiftNotification notifications={notifications} />
+      {/* Gift notifications now shown as flying boxes in the Arena */}
 
       {/* Modern TikTok Live Header - Floating pill style */}
       <header className="absolute top-2 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
@@ -233,7 +236,7 @@ const Index = () => {
 
         {/* Game Arena */}
         <div className="flex-1 min-h-0 relative overflow-hidden">
-          <Arena gameState={gameState} />
+          <Arena gameState={gameState} notifications={notifications} />
           <GameOverlay 
             phase={gameState.phase}
             score={gameState.score}

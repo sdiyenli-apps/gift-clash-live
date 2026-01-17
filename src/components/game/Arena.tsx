@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { GameState, Projectile, GiftBlock, getBossName } from '@/types/game';
+import { GameState, Projectile, GiftBlock, getBossName, GiftEvent } from '@/types/game';
 import { BackgroundVideo } from './BackgroundVideo';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
@@ -11,6 +11,7 @@ import { BossHUD } from './BossHUD';
 import { MiniMap } from './MiniMap';
 import { CyberpunkBuildings } from './CyberpunkBuildings';
 import { FloorAssets } from './FloorAssets';
+import { FlyingGiftBoxes } from './FlyingGiftBoxes';
 
 interface NeonLaser {
   id: string;
@@ -46,9 +47,10 @@ interface ExtendedGameState extends GameState {
 
 interface ArenaProps {
   gameState: ExtendedGameState;
+  notifications?: GiftEvent[];
 }
 
-export const Arena = ({ gameState }: ArenaProps) => {
+export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
   const { 
     player, enemies, projectiles, particles, obstacles,
     cameraX, distance, levelLength, isUltraMode, speechBubble,
@@ -156,6 +158,9 @@ export const Arena = ({ gameState }: ArenaProps) => {
       >
         {/* Cyberpunk buildings in background */}
         <CyberpunkBuildings cameraX={cameraX} />
+        
+        {/* Flying gift boxes in the sky */}
+        <FlyingGiftBoxes notifications={notifications} cameraX={cameraX} />
         
         {/* Video-like background */}
         <BackgroundVideo 

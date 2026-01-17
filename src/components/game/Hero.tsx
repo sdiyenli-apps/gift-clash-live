@@ -173,15 +173,15 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           )}
         </motion.div>
         
-        {/* Shooting muzzle flash */}
+        {/* Shooting muzzle flash - LOWER position */}
         {player.isShooting && (
           <>
             <motion.div
               initial={{ opacity: 1, scale: 0.4 }}
               animate={{ opacity: 0, scale: 2 }}
               transition={{ duration: 0.1 }}
-              className="absolute right-0 top-1/3"
-              style={{ right: -8 }}
+              className="absolute"
+              style={{ right: -8, bottom: 8 }}
             >
               <div 
                 className="w-8 h-8 rounded-full"
@@ -202,7 +202,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
                 className="absolute rounded-full border"
                 style={{
                   right: -5,
-                  top: '30%',
+                  bottom: 10,
                   width: 10,
                   height: 10,
                   borderColor: player.isMagicDashing ? '#ff00ff' : '#ffff00',
@@ -215,15 +215,16 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           </>
         )}
         
-        {/* Laser trail */}
+        {/* Laser trail - LOWER position */}
         {player.isShooting && (
           <motion.div
             initial={{ scaleX: 0, opacity: 1 }}
             animate={{ scaleX: 1, opacity: 0.7 }}
             transition={{ duration: 0.1 }}
-            className="absolute top-1/3 h-2"
+            className="absolute h-2"
             style={{ 
-              left: heroWidth - 2, 
+              left: heroWidth - 2,
+              bottom: 12, // Lower position - from bottom of hero
               width: 200,
               background: player.isMagicDashing
                 ? 'linear-gradient(90deg, #fff, #ff00ff, #00ffff, transparent)'
