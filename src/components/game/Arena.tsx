@@ -330,73 +330,112 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           );
         })}
         
-        {/* EMP Grenades - thrown by hero */}
+        {/* EMP Grenades - THROWN BY HERO - visible arc trajectory */}
         {empGrenades.map(grenade => {
           const screenX = grenade.x - cameraX;
-          // Grenade is falling from arc - y increases as it goes up (bottom-based)
+          // Grenade follows arc - y increases as it goes up
           const screenY = Math.max(80, 120 - grenade.y + 100);
+          const isAboutToExplode = grenade.timer < 0.4;
           
           return (
             <motion.div
               key={grenade.id}
-              className="absolute pointer-events-none z-35"
+              className="absolute pointer-events-none z-40"
               style={{
                 left: screenX,
                 bottom: screenY,
-                width: 24,
-                height: 24,
+                width: 32,
+                height: 32,
               }}
             >
-              {/* Grenade body */}
+              {/* Grenade body - LARGER and more visible */}
               <motion.div
-                className="w-full h-full rounded-full relative"
+                className="w-full h-full rounded-lg relative"
                 style={{
-                  background: 'linear-gradient(135deg, #333 0%, #111 50%, #444 100%)',
-                  border: '2px solid #00ffff',
-                  boxShadow: '0 0 15px #00ffff, 0 0 30px rgba(0,255,255,0.5), inset 0 2px 4px rgba(255,255,255,0.3)',
+                  background: 'linear-gradient(135deg, #222 0%, #111 50%, #333 100%)',
+                  border: '3px solid #00ffff',
+                  boxShadow: isAboutToExplode 
+                    ? '0 0 25px #ff0000, 0 0 50px rgba(255,0,0,0.8)' 
+                    : '0 0 20px #00ffff, 0 0 40px rgba(0,255,255,0.6)',
+                  borderColor: isAboutToExplode ? '#ff0000' : '#00ffff',
                 }}
                 animate={{ 
                   rotate: [0, 360],
+                  scale: isAboutToExplode ? [1, 1.2, 1] : 1,
                 }}
                 transition={{ 
-                  duration: 0.3,
-                  repeat: Infinity,
-                  ease: 'linear',
+                  rotate: { duration: 0.25, repeat: Infinity, ease: 'linear' },
+                  scale: { duration: 0.1, repeat: Infinity },
                 }}
               >
-                {/* EMP lightning symbol */}
+                {/* EMP lightning symbol - LARGER */}
                 <div 
-                  className="absolute inset-0 flex items-center justify-center text-xs font-bold"
-                  style={{ color: '#00ffff', textShadow: '0 0 5px #00ffff' }}
+                  className="absolute inset-0 flex items-center justify-center text-base font-black"
+                  style={{ 
+                    color: isAboutToExplode ? '#ff4400' : '#00ffff', 
+                    textShadow: `0 0 8px ${isAboutToExplode ? '#ff4400' : '#00ffff'}` 
+                  }}
                 >
                   ⚡
                 </div>
+                
+                {/* Pin on top */}
+                <div
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 w-2 h-3"
+                  style={{
+                    background: '#666',
+                    borderRadius: '2px 2px 0 0',
+                    border: '1px solid #888',
+                  }}
+                />
               </motion.div>
               
-              {/* Trail effect */}
+              {/* Arc trail effect - shows throwing trajectory */}
               <motion.div
                 className="absolute -z-10"
                 style={{
-                  left: -15,
+                  left: -30,
                   top: '50%',
-                  transform: 'translateY(-50%)',
-                  width: 25,
-                  height: 8,
-                  background: 'linear-gradient(90deg, transparent, #00ffff)',
-                  filter: 'blur(3px)',
-                  opacity: 0.7,
+                  transform: 'translateY(-50%) rotate(-20deg)',
+                  width: 45,
+                  height: 12,
+                  background: 'linear-gradient(90deg, transparent, #00ffff, #00ffff)',
+                  filter: 'blur(4px)',
+                  opacity: 0.8,
+                  borderRadius: '50%',
                 }}
               />
               
-              {/* Warning flash as it's about to explode */}
-              {grenade.timer < 0.3 && (
+              {/* Spinning arc particles */}
+              {[0, 1, 2].map(i => (
                 <motion.div
-                  className="absolute -inset-4 rounded-full"
+                  key={`trail-${i}`}
+                  className="absolute rounded-full"
                   style={{
-                    background: 'radial-gradient(circle, rgba(0,255,255,0.8) 0%, transparent 70%)',
+                    width: 6,
+                    height: 6,
+                    background: isAboutToExplode ? '#ff4400' : '#00ffff',
+                    boxShadow: `0 0 6px ${isAboutToExplode ? '#ff4400' : '#00ffff'}`,
+                    left: -10 - i * 12,
+                    top: '50%',
                   }}
-                  animate={{ scale: [1, 2, 1], opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 0.1, repeat: Infinity }}
+                  animate={{ 
+                    opacity: [1, 0.3, 0],
+                    scale: [1, 0.5, 0],
+                  }}
+                  transition={{ duration: 0.2, delay: i * 0.05, repeat: Infinity }}
+                />
+              ))}
+              
+              {/* Warning flash as it's about to explode */}
+              {isAboutToExplode && (
+                <motion.div
+                  className="absolute -inset-6 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(255,68,0,0.8) 0%, rgba(255,0,0,0.4) 50%, transparent 70%)',
+                  }}
+                  animate={{ scale: [1, 2.5, 1], opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 0.08, repeat: Infinity }}
                 />
               )}
             </motion.div>
@@ -482,55 +521,68 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           <SupportUnitSprite key={unit.id} unit={unit} cameraX={cameraX} />
         ))}
         
-        {/* Support Unit Projectiles */}
+        {/* Support Unit Projectiles - VISIBLE ALLY ATTACKS */}
         {supportProjectiles.map(proj => {
           const screenX = proj.x - cameraX;
           const screenY = proj.y;
-          const isBomb = proj.type === 'ultra';
+          const isMech = proj.type === 'ultra';
           
           return (
             <motion.div
               key={proj.id}
-              className="absolute pointer-events-none z-30"
+              className="absolute pointer-events-none z-35"
               style={{
                 left: screenX,
                 bottom: screenY,
-                width: isBomb ? 16 : 24,
-                height: isBomb ? 16 : 6,
+                width: isMech ? 28 : 35,
+                height: isMech ? 14 : 8,
               }}
               initial={{ scale: 0.5, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
             >
-              {isBomb ? (
-                // Bomb projectile
+              {isMech ? (
+                // Mech heavy projectile - orange/yellow plasma
                 <motion.div
                   className="w-full h-full rounded-full"
                   style={{
-                    background: 'radial-gradient(circle, #ff8800, #ff4400, #aa2200)',
-                    boxShadow: '0 0 12px #ff8800, 0 0 20px rgba(255,136,0,0.6)',
+                    background: 'radial-gradient(ellipse at 30% 50%, #fff, #ffaa00, #ff6600)',
+                    boxShadow: '0 0 15px #ff8800, 0 0 25px rgba(255,136,0,0.7)',
                   }}
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 0.3, repeat: Infinity, ease: 'linear' }}
+                  animate={{ scaleX: [1, 1.2, 1] }}
+                  transition={{ duration: 0.08, repeat: Infinity }}
                 >
                   <motion.div
                     className="absolute inset-0 rounded-full"
-                    style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.4), transparent)' }}
-                    animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 0.15, repeat: Infinity }}
+                    style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.5), transparent)' }}
+                    animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 0.1, repeat: Infinity }}
                   />
                 </motion.div>
               ) : (
-                // Laser projectile
+                // Walker laser projectile - green/cyan energy
                 <motion.div
                   className="w-full h-full rounded-full"
                   style={{
-                    background: 'linear-gradient(90deg, transparent, #00ff88, #00ffaa, #00ff88, transparent)',
-                    boxShadow: '0 0 10px #00ff88, 0 0 20px rgba(0,255,136,0.6)',
+                    background: 'linear-gradient(90deg, transparent, #00ff88, #00ffcc, #fff, #00ffcc, #00ff88, transparent)',
+                    boxShadow: '0 0 12px #00ff88, 0 0 25px rgba(0,255,136,0.7)',
                   }}
-                  animate={{ scaleX: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
-                  transition={{ duration: 0.1, repeat: Infinity }}
+                  animate={{ scaleX: [1, 1.15, 1], opacity: [0.85, 1, 0.85] }}
+                  transition={{ duration: 0.06, repeat: Infinity }}
                 />
               )}
+              
+              {/* Trail effect */}
+              <motion.div
+                className="absolute right-full top-1/2 -translate-y-1/2"
+                style={{
+                  width: 40,
+                  height: isMech ? 8 : 4,
+                  background: isMech 
+                    ? 'linear-gradient(90deg, transparent, #ff880066, #ffaa00)'
+                    : 'linear-gradient(90deg, transparent, #00ff8866, #00ffaa)',
+                  filter: 'blur(2px)',
+                }}
+              />
             </motion.div>
           );
         })}

@@ -140,71 +140,103 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
         </>
       )}
       
-      {/* ATTACK EFFECTS - Muzzle flash and projectile trail */}
+      {/* ATTACK EFFECTS - ENHANCED Muzzle flash and projectile visuals */}
       {isAttacking && !isSelfDestructing && !isLanding && (
         <>
-          {/* Muzzle flash glow */}
+          {/* Large muzzle flash glow */}
           <motion.div
             className="absolute"
             style={{
-              right: -20,
-              top: '40%',
-              width: 30,
-              height: 30,
-              background: unit.type === 'mech' 
-                ? 'radial-gradient(circle, #fff, #ff8800, #ff4400, transparent)'
-                : 'radial-gradient(circle, #fff, #00ff88, #00ffff, transparent)',
+              right: isMech ? -30 : -25,
+              top: '35%',
+              width: isMech ? 50 : 40,
+              height: isMech ? 50 : 40,
+              background: isMech 
+                ? 'radial-gradient(circle, #fff, #ffaa00, #ff6600, transparent)'
+                : 'radial-gradient(circle, #fff, #00ffaa, #00ff88, transparent)',
               borderRadius: '50%',
-              filter: 'blur(2px)',
+              filter: 'blur(3px)',
             }}
             initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 1.5, 1], opacity: [0, 1, 0.5] }}
+            animate={{ scale: [0, 2, 1.5], opacity: [0, 1, 0.3] }}
+            transition={{ duration: 0.12 }}
+          />
+          
+          {/* VISIBLE projectile launch beam */}
+          <motion.div
+            className="absolute"
+            style={{
+              right: isMech ? -80 : -100,
+              top: '38%',
+              width: isMech ? 60 : 90,
+              height: isMech ? 16 : 10,
+              background: isMech
+                ? 'linear-gradient(90deg, #ff6600, #ffaa00, #ffff00, #fff)'
+                : 'linear-gradient(90deg, #00aa66, #00ff88, #00ffcc, #fff)',
+              borderRadius: isMech ? 8 : 5,
+              boxShadow: isMech
+                ? '0 0 20px #ff8800, 0 0 40px #ff4400'
+                : '0 0 15px #00ff88, 0 0 30px #00ffaa',
+            }}
+            initial={{ scaleX: 0, opacity: 0 }}
+            animate={{ scaleX: [0, 1.2, 0.8], opacity: [0, 1, 0] }}
             transition={{ duration: 0.15 }}
           />
           
-          {/* Projectile beam/trail */}
-          <motion.div
-            className="absolute"
-            style={{
-              right: -60,
-              top: '42%',
-              width: unit.type === 'mech' ? 40 : 80,
-              height: unit.type === 'mech' ? 12 : 6,
-              background: unit.type === 'mech'
-                ? 'linear-gradient(90deg, #ff8800, #ffff00, #fff)'
-                : 'linear-gradient(90deg, #00ff88, #00ffff, #fff)',
-              borderRadius: unit.type === 'mech' ? 6 : 3,
-              boxShadow: unit.type === 'mech'
-                ? '0 0 15px #ff8800, 0 0 30px #ff4400'
-                : '0 0 10px #00ff88, 0 0 20px #00ffff',
-            }}
-            initial={{ scaleX: 0, x: 0 }}
-            animate={{ scaleX: [0, 1, 0.5], x: [0, 40, 80], opacity: [1, 1, 0] }}
-            transition={{ duration: 0.2 }}
-          />
+          {/* Energy rings from muzzle */}
+          {[0, 1, 2].map(i => (
+            <motion.div
+              key={`ring-${i}`}
+              className="absolute rounded-full"
+              style={{
+                right: -10 - i * 20,
+                top: '40%',
+                width: 16,
+                height: 16,
+                border: `2px solid ${isMech ? '#ffaa00' : '#00ff88'}`,
+                opacity: 0.8 - i * 0.2,
+              }}
+              initial={{ scale: 0.5, opacity: 1 }}
+              animate={{ scale: 2.5 + i, opacity: 0 }}
+              transition={{ duration: 0.2, delay: i * 0.03 }}
+            />
+          ))}
           
-          {/* Sparks */}
-          {[...Array(4)].map((_, i) => (
+          {/* Sparks flying out */}
+          {[...Array(6)].map((_, i) => (
             <motion.div
               key={`attack-spark-${i}`}
               className="absolute rounded-full"
               style={{
-                right: -15,
-                top: `${35 + i * 8}%`,
-                width: 4,
-                height: 4,
-                background: unit.type === 'mech' ? '#ffff00' : '#00ffff',
-                boxShadow: `0 0 4px ${unit.type === 'mech' ? '#ff8800' : '#00ff88'}`,
+                right: -20,
+                top: `${30 + i * 7}%`,
+                width: 5,
+                height: 5,
+                background: isMech ? '#ffff00' : '#00ffff',
+                boxShadow: `0 0 6px ${isMech ? '#ff8800' : '#00ff88'}`,
               }}
               animate={{
-                x: [0, 30 + Math.random() * 20],
-                y: [(i - 1.5) * 5, (i - 1.5) * 15],
+                x: [0, 50 + Math.random() * 40],
+                y: [(i - 2.5) * 8, (i - 2.5) * 20],
                 opacity: [1, 0],
-                scale: [1, 0.5],
+                scale: [1, 0.3],
               }}
-              transition={{ duration: 0.2, delay: i * 0.02 }}
+              transition={{ duration: 0.25, delay: i * 0.02 }}
             />
           ))}
+          
+          {/* Recoil flash on unit */}
+          <motion.div
+            className="absolute inset-0 rounded-lg pointer-events-none"
+            style={{
+              background: isMech 
+                ? 'radial-gradient(ellipse at right, rgba(255,136,0,0.4), transparent 60%)'
+                : 'radial-gradient(ellipse at right, rgba(0,255,136,0.3), transparent 60%)',
+            }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0, 0.8, 0] }}
+            transition={{ duration: 0.1 }}
+          />
         </>
       )}
       
