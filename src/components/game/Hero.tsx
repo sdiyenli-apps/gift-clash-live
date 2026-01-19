@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
-import heroVideo from '@/assets/hero-video-sprite.mp4';
+import heroSprite from '@/assets/hero-sprite.gif';
 
 interface HeroProps {
   player: Player;
@@ -10,18 +10,19 @@ interface HeroProps {
 }
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
-  // Fixed screen position - hero stays on LEFT side
-  const screenX = 40; // Fixed at left edge of screen
+  // Fixed screen position - hero stays on LEFT side with more breathing room
+  const screenX = 50; // Slightly more centered for TikTok view
   const isEmpowered = isUltraMode || player.isMagicDashing;
   const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
   const isWalking = player.animationState === 'run' || player.animationState === 'dash';
+  const isShooting = player.isShooting;
 
-  // Hero sized LARGER for better visibility
-  const heroWidth = 140;
-  const heroHeight = 120;
+  // Hero sized LARGER for better visibility in zoomed out view
+  const heroWidth = 100;
+  const heroHeight = 100;
   
-  // Hero flies during magic dash - elevated position
-  const flyingHeight = player.isMagicDashing ? 260 : 140; // Fly high during magic rush
+  // Hero flies during magic dash - elevated position (adjusted for zoom)
+  const flyingHeight = player.isMagicDashing ? 180 : 90; // Lower base for zoomed out view
 
   return (
     <motion.div
@@ -168,27 +169,31 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
               : { duration: 0.1 }
           }
         >
-          <motion.video
-            src={heroVideo}
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-contain rounded-lg"
+          <motion.img
+            src={heroSprite}
+            alt="Hero"
+            className="w-full h-full object-contain"
             style={{
-              imageRendering: 'crisp-edges',
-              transform: 'scaleX(-1)', // Flip to face right
+              imageRendering: 'pixelated',
+              // Hero faces right (GIF already faces right direction)
             }}
-            // Walking animation simulation through scaling
+            // Walking/running animation - bob and lean
             animate={
-              isWalking || isEmpowered
-                ? {
-                    scaleY: [1, 0.98, 1],
-                    scaleX: [1, 1.02, 1],
-                  }
-                : {}
+              isShooting 
+                ? { scaleX: [1, 0.95, 1], x: [-2, 0] } // Recoil on shoot
+                : isWalking || isEmpowered
+                  ? {
+                      scaleY: [1, 0.97, 1],
+                      scaleX: [1, 1.03, 1],
+                      rotate: [-1, 1, -1],
+                    }
+                  : { scaleY: 1, scaleX: 1 }
             }
-            transition={{ duration: 0.2, repeat: Infinity }}
+            transition={{ 
+              duration: isShooting ? 0.1 : 0.15, 
+              repeat: isShooting ? 0 : Infinity,
+              ease: 'easeInOut'
+            }}
           />
           
           {/* Power glow overlay */}
@@ -334,17 +339,14 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
                 animate={{ opacity: 0, x: -15 - i * 8 }}
                 transition={{ duration: 0.15, delay: i * 0.02 }}
               >
-                <video 
-                  src={heroVideo}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
+                <img 
+                  src={heroSprite}
+                  alt="Hero trail"
                   className="w-full h-full object-contain"
                   style={{ 
                     filter: `blur(${i * 2}px) hue-rotate(${i * 40}deg)`,
                     opacity: 0.3 - i * 0.08,
-                    transform: 'scaleX(-1)', // Keep trail facing right too
+                    imageRendering: 'pixelated',
                   }}
                 />
               </motion.div>

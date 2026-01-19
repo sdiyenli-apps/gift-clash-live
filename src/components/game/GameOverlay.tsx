@@ -31,14 +31,15 @@ export const GameOverlay = ({ phase, score, distance, currentWave, maxWaves, onS
           {phase === 'waiting' && (
             <>
               <motion.h1
-                className="font-bold text-2xl sm:text-4xl md:text-5xl"
+                className="font-bold text-3xl sm:text-4xl md:text-5xl tracking-tight"
                 style={{
                   background: 'linear-gradient(135deg, #ff00ff, #00ffff, #ffff00)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
+                  textShadow: '0 0 30px rgba(255,0,255,0.3)',
                 }}
               >
-                CAPTAIN SQUIRBERT
+                RUN & GUN
               </motion.h1>
               
               <p className="text-xs sm:text-sm text-gray-300">
@@ -54,10 +55,13 @@ export const GameOverlay = ({ phase, score, distance, currentWave, maxWaves, onS
                 <Button
                   onClick={() => onStart()}
                   size="lg"
-                  className="font-bold text-base sm:text-lg px-6 py-3 sm:px-10 sm:py-5 text-white"
-                  style={{ background: 'linear-gradient(135deg, #ff00ff, #00ffff)' }}
+                  className="font-bold text-base sm:text-lg px-6 py-3 sm:px-10 sm:py-5 text-white shadow-lg"
+                  style={{ 
+                    background: 'linear-gradient(135deg, #ff00ff, #00ffff)',
+                    boxShadow: '0 0 25px rgba(255,0,255,0.5), 0 0 50px rgba(0,255,255,0.3)',
+                  }}
                 >
-                  🚀 START WAVE 1
+                  🔫 START WAVE 1
                 </Button>
               </motion.div>
             </>
