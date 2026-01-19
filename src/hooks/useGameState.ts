@@ -680,20 +680,23 @@ export const useGameState = () => {
   };
 
   // Create support units - mech and walker allies that fight alongside hero
-  const createSupportUnits = (playerX: number, playerY: number, playerMaxHealth: number, playerShield: number): SupportUnit[] => {
+  // Stagger positions based on existing support unit count to prevent overlap
+  const createSupportUnits = (playerX: number, playerY: number, playerMaxHealth: number, playerShield: number, existingCount: number): SupportUnit[] => {
     const supportUnits: SupportUnit[] = [];
     // Half of hero's stats
     const halfMaxHealth = Math.floor(playerMaxHealth / 2);
     const halfShield = Math.floor(playerShield / 2);
     
-    // Mech unit - heavier, shoots bombs
-    // Mech unit - heavier, shoots bombs - positioned IN FRONT of hero
+    // Stagger offset based on existing allies to prevent overlap
+    const staggerOffset = existingCount * 60;
+    
+    // Mech unit - DOUBLE SIZE (bigger tank ally) - positioned IN FRONT of hero
     supportUnits.push({
-      id: `support-mech-${Date.now()}`,
-      x: playerX + 80,
+      id: `support-mech-${Date.now()}-${Math.random()}`,
+      x: playerX + 60 + staggerOffset,
       y: playerY,
-      width: 55,
-      height: 60,
+      width: 100, // Double width
+      height: 110, // Double height
       health: halfMaxHealth,
       maxHealth: halfMaxHealth,
       shield: halfShield,
@@ -705,10 +708,10 @@ export const useGameState = () => {
       landingTimer: 1.0,
     });
     
-    // Walker unit - lighter, shoots lasers - positioned IN FRONT of hero (further)
+    // Walker unit - normal size, positioned further in front
     supportUnits.push({
-      id: `support-walker-${Date.now()}`,
-      x: playerX + 140,
+      id: `support-walker-${Date.now()}-${Math.random()}`,
+      x: playerX + 170 + staggerOffset,
       y: playerY,
       width: 50,
       height: 55,
@@ -860,8 +863,9 @@ export const useGameState = () => {
           break;
 
         case 'summon_support' as GiftAction:
-          // Summon 2 support units that fight alongside the hero for 10 seconds
-          const newSupportUnits = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield);
+          // Summon 2 support units that fight alongside the hero - stagger based on existing count
+          const existingAllyCount = prev.supportUnits.filter(u => !u.isSelfDestructing).length;
+          const newSupportUnits = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield, existingAllyCount);
           newState.supportUnits = [...prev.supportUnits, ...newSupportUnits];
           newState.particles = [
             ...prev.particles, 
@@ -1840,8 +1844,14 @@ export const useGameState = () => {
             }
             
             // Follow hero - stay IN FRONT of hero (between hero and enemies) - but not if self-destructing
+            // Each unit gets a staggered position based on its index to prevent overlap
             if (!unit.isSelfDestructing) {
-              const targetX = prev.player.x + (unit.type === 'mech' ? 80 : 140);
+              // Find unit's index among all support units for staggering
+              const unitIndex = prev.supportUnits.findIndex(u => u.id === unit.id);
+              const pairIndex = Math.floor(unitIndex / 2); // Which pair of allies (0, 1, 2...)
+              const staggerOffset = pairIndex * 50; // Each pair gets additional offset
+              const baseOffset = unit.type === 'mech' ? 60 : 170;
+              const targetX = prev.player.x + baseOffset + staggerOffset;
               newUnit.x = unit.x + (targetX - unit.x) * 0.08;
             }
             newUnit.y = GROUND_Y; // Stay on ground

@@ -11,12 +11,17 @@ interface SupportUnitProps {
 export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   const screenX = unit.x - cameraX;
   
-  if (screenX < -100 || screenX > 700) return null;
+  if (screenX < -150 || screenX > 750) return null;
   
   const sprite = unit.type === 'mech' ? supportMech : supportWalker;
   const glowColor = unit.type === 'mech' ? '#ff8800' : '#00ff88';
   const healthPercent = (unit.health / unit.maxHealth) * 100;
   const shieldPercent = unit.maxShield > 0 ? (unit.shield / unit.maxShield) * 100 : 0;
+  
+  // Mech is double size
+  const isMech = unit.type === 'mech';
+  const displayWidth = isMech ? unit.width : unit.width;
+  const displayHeight = isMech ? unit.height : unit.height;
   
   // Landing animation - starts from top of screen
   const isLanding = unit.isLanding && (unit.landingTimer || 0) > 0;
@@ -29,8 +34,8 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   // Check if currently attacking (cooldown just started)
   const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : 0.4);
   
-  // Calculate bottom position - account for self-destruct flying up
-  const baseBottom = 118;
+  // Calculate bottom position - account for self-destruct flying up and larger mech
+  const baseBottom = isMech ? 108 : 118; // Mech sits slightly lower due to larger size
   const selfDestructYOffset = isSelfDestructing ? (unit.y - 120) : 0; // unit.y tracks actual Y during self-destruct
   
   return (
@@ -39,8 +44,8 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
       style={{
         left: screenX,
         bottom: isLanding ? baseBottom + 300 * (1 - landProgress) : baseBottom + selfDestructYOffset,
-        width: unit.width,
-        height: unit.height,
+        width: displayWidth,
+        height: displayHeight,
       }}
       initial={{ opacity: 0, y: -200 }}
       animate={{ 
