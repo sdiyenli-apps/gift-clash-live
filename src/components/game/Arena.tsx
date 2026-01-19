@@ -330,12 +330,14 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           );
         })}
         
-        {/* EMP Grenades - THROWN BY HERO - visible arc trajectory */}
+        {/* EMP Grenades - THROWN HIGH into the sky - Metal Slug style arc */}
         {empGrenades.map(grenade => {
           const screenX = grenade.x - cameraX;
-          // Grenade follows arc - y increases as it goes up
-          const screenY = Math.max(80, 120 - grenade.y + 100);
-          const isAboutToExplode = grenade.timer < 0.4;
+          // Grenade goes HIGH into the sky - y value maps to screen bottom position
+          // Higher Y = higher on screen (further from ground)
+          const screenY = Math.min(500, Math.max(60, grenade.y - 80));
+          const isAboutToExplode = grenade.timer < 0.5;
+          const isRising = grenade.velocityY > 0;
           
           return (
             <motion.div
@@ -344,8 +346,8 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
               style={{
                 left: screenX,
                 bottom: screenY,
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
               }}
             >
               {/* Grenade body - LARGER and more visible */}
