@@ -63,6 +63,9 @@ export interface SupportUnit {
   attackCooldown: number;
   isLanding?: boolean;
   landingTimer?: number;
+  isSelfDestructing?: boolean; // Flying forward to explode
+  selfDestructTimer?: number;
+  targetEnemyId?: string; // Enemy being targeted for self-destruct
 }
 
 export interface Enemy {
@@ -98,6 +101,7 @@ export interface Enemy {
   originalY?: number; // Original spawn Y position for flying enemies
   isRetreating?: boolean; // True when flying enemy is zooming back to original position
   droneVariant?: number; // Variant of drone sprite (1-4)
+  targetType?: 'hero' | 'ally'; // Who this enemy is targeting (for indicators)
 }
 
 // Bomb dropped by bomber enemies

@@ -699,7 +699,7 @@ export const useGameState = () => {
       shield: halfShield,
       maxShield: halfShield,
       type: 'mech',
-      timer: 10, // 10 seconds
+      timer: 20, // 20 seconds - starts AFTER landing
       attackCooldown: 0,
       isLanding: true,
       landingTimer: 1.0,
@@ -717,7 +717,7 @@ export const useGameState = () => {
       shield: halfShield,
       maxShield: halfShield,
       type: 'walker',
-      timer: 10, // 10 seconds
+      timer: 20, // 20 seconds - starts AFTER landing
       attackCooldown: 0,
       isLanding: true,
       landingTimer: 1.2,
@@ -1432,52 +1432,73 @@ export const useGameState = () => {
           }))
           .filter(b => b.y > 0 && b.timer > 0);
         
-        // Bomb-player collision - ARMOR BLOCKS BOMBS!
+        // Bomb-player collision - ARMOR BLOCKS BOMBS! - AOE DAMAGE
+        const BOMB_AOE_RADIUS = 100; // AOE radius for bomb explosions
         (prev.bombs || []).forEach(bomb => {
           const bombScreenX = bomb.x - prev.cameraX;
           const heroScreenX = 60; // Hero's fixed screen position
           
-          // Check if bomb hit ground near player (raised ground at 160)
-          if (bomb.y <= 180 && 
-              Math.abs(bombScreenX - heroScreenX) < 80 &&
-              bomb.timer > 0
-          ) {
-            if (newState.player.shield > 0) {
-              // ARMOR BLOCKS THE BOMB!
-              newState.player.shield = Math.max(0, newState.player.shield - bomb.damage * 0.7);
-              newState.shieldBlockFlash = 1;
-              newState.screenShake = 0.4;
-              newState.particles = [
-                ...newState.particles, 
-                ...createParticles(bomb.x, 180, 20, 'spark', '#00ffff'),
-                ...createParticles(bomb.x, 180, 15, 'explosion', '#ffff00'),
-              ];
-              showSpeechBubble("🛡️ BOMB BLOCKED! 🛡️", 'excited');
-            } else {
-              // No armor - take damage!
-              newState.player.health -= bomb.damage;
-              newState.player.animationState = 'hurt';
-              newState.damageFlash = 1.2;
-              newState.screenShake = 0.6;
-              newState.particles = [
-                ...newState.particles, 
-                ...createParticles(bomb.x, 180, 25, 'explosion', '#ff4400'),
-              ];
-              if (navigator.vibrate) {
-                navigator.vibrate(200);
+          // Check if bomb hit ground (raised ground at 160)
+          if (bomb.y <= 180 && bomb.timer > 0) {
+            // AOE damage check - affects hero AND support units within radius
+            const heroDistToBomb = Math.abs(bombScreenX - heroScreenX);
+            const hitHero = heroDistToBomb < BOMB_AOE_RADIUS;
+            
+            // Check if bomb hits support units (AOE)
+            newState.supportUnits = newState.supportUnits.map(unit => {
+              const unitScreenX = unit.x - prev.cameraX;
+              const distToUnit = Math.abs(bombScreenX - unitScreenX);
+              if (distToUnit < BOMB_AOE_RADIUS) {
+                const aoeDamage = bomb.damage * (1 - distToUnit / BOMB_AOE_RADIUS) * 0.8;
+                if (unit.shield > 0) {
+                  return { ...unit, shield: Math.max(0, unit.shield - aoeDamage) };
+                } else {
+                  return { ...unit, health: unit.health - aoeDamage };
+                }
               }
-              showSpeechBubble("💣 OUCH! BOMB HIT! 💣", 'urgent');
+              return unit;
+            });
+            
+            // Hero damage (if in range)
+            if (hitHero) {
+              const aoeDamageFactor = 1 - heroDistToBomb / BOMB_AOE_RADIUS;
+              const aoeDamage = bomb.damage * aoeDamageFactor;
+              
+              if (newState.player.shield > 0) {
+                // ARMOR BLOCKS THE BOMB!
+                newState.player.shield = Math.max(0, newState.player.shield - aoeDamage * 0.7);
+                newState.shieldBlockFlash = 1;
+                newState.screenShake = 0.4;
+                newState.particles = [
+                  ...newState.particles, 
+                  ...createParticles(bomb.x, 180, 20, 'spark', '#00ffff'),
+                  ...createParticles(bomb.x, 180, 15, 'explosion', '#ffff00'),
+                ];
+                showSpeechBubble("🛡️ BOMB BLOCKED! 🛡️", 'excited');
+              } else {
+                // No armor - take damage!
+                newState.player.health -= aoeDamage;
+                newState.player.animationState = 'hurt';
+                newState.damageFlash = 1.2;
+                newState.screenShake = 0.6;
+                newState.particles = [
+                  ...newState.particles, 
+                  ...createParticles(bomb.x, 180, 25, 'explosion', '#ff4400'),
+                ];
+                if (navigator.vibrate) {
+                  navigator.vibrate(200);
+                }
+                showSpeechBubble("💣 OUCH! BOMB HIT! 💣", 'urgent');
+              }
             }
-            // Remove the bomb
-            newState.bombs = newState.bombs.filter(b => b.id !== bomb.id);
-          }
-          
-          // Bomb hits ground (explodes harmlessly if not near player)
-          if (bomb.y <= 160) {
+            
+            // Always create explosion effect when bomb hits ground
             newState.particles = [
               ...newState.particles, 
               ...createParticles(bomb.x, 165, 15, 'explosion', '#ff8800'),
             ];
+            
+            // Remove the bomb
             newState.bombs = newState.bombs.filter(b => b.id !== bomb.id);
           }
         });
@@ -1718,11 +1739,17 @@ export const useGameState = () => {
           .filter(c => c.state !== 'gone');
         
         // UPDATE SUPPORT UNITS - move with hero, shoot enemies, count down timer
+        const SELF_DESTRUCT_AOE_RADIUS = 120; // AOE damage radius
+        const SELF_DESTRUCT_DAMAGE = 150; // Damage dealt on self-destruct
+        
         newState.supportUnits = (prev.supportUnits || [])
           .map(unit => {
+            // Timer only counts down AFTER landing
+            const timerDecrement = unit.isLanding ? 0 : delta;
+            
             let newUnit = { 
               ...unit, 
-              timer: unit.timer - delta,
+              timer: unit.timer - timerDecrement,
               attackCooldown: Math.max(0, unit.attackCooldown - delta),
             };
             
@@ -1734,14 +1761,72 @@ export const useGameState = () => {
               }
             }
             
-            // Follow hero - stay slightly behind
-            // Follow hero - stay IN FRONT of hero (between hero and enemies)
-            const targetX = prev.player.x + (unit.type === 'mech' ? 80 : 140);
-            newUnit.x = unit.x + (targetX - unit.x) * 0.08;
+            // Check if unit should start self-destruct (health critical or timer almost up)
+            const shouldSelfDestruct = (newUnit.health <= 0 || newUnit.timer <= 0.5) && !unit.isSelfDestructing && !unit.isLanding;
+            
+            if (shouldSelfDestruct) {
+              // Find nearest enemy to fly toward
+              const nearestEnemy = newState.enemies
+                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x)
+                .sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x))[0];
+              
+              newUnit.isSelfDestructing = true;
+              newUnit.selfDestructTimer = 1.0; // 1 second to reach and explode
+              newUnit.targetEnemyId = nearestEnemy?.id;
+              newUnit.health = Math.max(1, newUnit.health); // Keep alive during self-destruct
+              newUnit.timer = 2; // Extend timer for self-destruct animation
+            }
+            
+            // Handle self-destruct flying forward
+            if (unit.isSelfDestructing) {
+              newUnit.selfDestructTimer = (unit.selfDestructTimer || 1) - delta;
+              
+              // Fly forward quickly toward enemies
+              newUnit.x += 400 * delta;
+              
+              // Explode when timer ends
+              if (newUnit.selfDestructTimer <= 0) {
+                // AOE DAMAGE to nearby enemies
+                newState.enemies = newState.enemies.map(enemy => {
+                  if (enemy.isDying) return enemy;
+                  const dist = Math.abs(enemy.x - newUnit.x);
+                  if (dist < SELF_DESTRUCT_AOE_RADIUS) {
+                    const newHealth = enemy.health - SELF_DESTRUCT_DAMAGE;
+                    if (newHealth <= 0) {
+                      const scoreMap: Record<string, number> = { tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 400, bomber: 120 };
+                      newState.score += scoreMap[enemy.type] || 60;
+                      newState.combo++;
+                      newState.killStreak++;
+                      return { ...enemy, health: 0, isDying: true, deathTimer: 0.4 };
+                    }
+                    return { ...enemy, health: newHealth };
+                  }
+                  return enemy;
+                });
+                
+                // Big explosion particles
+                newState.particles = [
+                  ...newState.particles,
+                  ...createParticles(newUnit.x, GROUND_Y + 60, 30, 'explosion', '#ff8800'),
+                  ...createParticles(newUnit.x, GROUND_Y + 60, 20, 'spark', '#ffff00'),
+                ];
+                newState.screenShake = 0.6;
+                showSpeechBubble(`💥 ALLY SACRIFICED! 💥`, 'excited');
+                
+                // Remove the unit
+                return { ...newUnit, timer: -1 };
+              }
+            }
+            
+            // Follow hero - stay IN FRONT of hero (between hero and enemies) - but not if self-destructing
+            if (!unit.isSelfDestructing) {
+              const targetX = prev.player.x + (unit.type === 'mech' ? 80 : 140);
+              newUnit.x = unit.x + (targetX - unit.x) * 0.08;
+            }
             newUnit.y = GROUND_Y; // Stay on ground
             
-            // Attack nearby enemies
-            if (newUnit.attackCooldown <= 0 && !unit.isLanding) {
+            // Attack nearby enemies (only if not landing or self-destructing)
+            if (newUnit.attackCooldown <= 0 && !unit.isLanding && !unit.isSelfDestructing) {
               const nearestEnemy = newState.enemies.find(e => 
                 !e.isDying && !e.isSpawning && 
                 e.x > unit.x && e.x < unit.x + 400 &&
@@ -2101,13 +2186,16 @@ export const useGameState = () => {
           let closestSupportDist = Infinity;
           
           for (const unit of newState.supportUnits) {
-            if (unit.health <= 0) continue;
+            if (unit.health <= 0 || unit.isSelfDestructing) continue;
             const distToUnit = Math.abs(enemy.x - unit.x);
             if (distToUnit < closestSupportDist && distToUnit < ENEMY_ATTACK_RANGE * 1.5) {
               closestSupportDist = distToUnit;
               targetSupport = unit;
             }
           }
+          
+          // Set target type for visual indicator
+          const targetType = targetSupport ? 'ally' : 'hero';
           
           // Enemy attacks support unit first if one is in range
           if (targetSupport && closestSupportDist < ENEMY_ATTACK_RANGE && (enemy.attackCooldown || 0) <= 0 && !enemy.isRetreating) {
@@ -2137,6 +2225,7 @@ export const useGameState = () => {
               originalX: retreatX,
               originalY: retreatY,
               attackCooldown: 1.5 + Math.random() * 0.5,
+              targetType,
             };
           }
           
@@ -2168,7 +2257,8 @@ export const useGameState = () => {
               isRetreating: true,
               originalX: retreatX,
               originalY: retreatY,
-              attackCooldown: 1.5 + Math.random() * 0.5, // Cooldown before attacking again
+              attackCooldown: 1.5 + Math.random() * 0.5,
+              targetType: 'hero' as const,
             };
           }
           
