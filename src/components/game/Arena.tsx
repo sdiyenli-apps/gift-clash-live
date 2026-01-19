@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { GameState, Projectile, GiftBlock, getBossName, GiftEvent, Bomb } from '@/types/game';
+import { GameState, Projectile, GiftBlock, getBossName, GiftEvent, Bomb, SupportUnit } from '@/types/game';
 import { BackgroundVideo } from './BackgroundVideo';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
@@ -12,7 +12,7 @@ import { BossHealthBar } from './BossHealthBar';
 import { MiniMap } from './MiniMap';
 import { CyberpunkBuildings } from './CyberpunkBuildings';
 import { FloorAssets } from './FloorAssets';
-
+import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
 
 interface NeonLaser {
@@ -62,6 +62,8 @@ interface ExtendedGameState extends GameState {
   heroEnteringPortal?: boolean;
   bossTransformFlash?: number;
   neonBeams?: NeonBeam[];
+  supportUnits?: SupportUnit[];
+  supportProjectiles?: Projectile[];
 }
 
 interface ArenaProps {
@@ -80,7 +82,8 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
     damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
     empGrenades = [], bombs = [],
     portalOpen = false, portalX = 0, heroEnteringPortal = false,
-    bossTransformFlash = 0, neonBeams = []
+    bossTransformFlash = 0, neonBeams = [],
+    supportUnits = [], supportProjectiles = []
   } = gameState;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
