@@ -9,6 +9,7 @@ import enemyDroneV3 from '@/assets/enemy-drone-v3.png';
 import enemyDroneV4 from '@/assets/enemy-drone-v4.png';
 import enemyMech from '@/assets/enemy-mech.png';
 import enemyJetRobot from '@/assets/enemy-jet-robot.png';
+import enemySentinel from '@/assets/enemy-sentinel.png';
 import bossPhase1 from '@/assets/boss-phase1.png';
 import bossPhase2 from '@/assets/boss-phase2.png';
 import bossPhase3 from '@/assets/boss-phase3.png';
@@ -41,7 +42,8 @@ const ENEMY_SPRITES: Record<string, string> = {
   flyer: enemyDrone, // Will be overridden by getDroneSprite
   giant: enemyMech, // Giant uses mech sprite but scaled
   bomber: enemyDrone, // Bomber uses drone sprite with different color
-  jetrobot: enemyJetRobot, // New jet robot enemy
+  jetrobot: enemyJetRobot, // Jet robot enemy
+  sentinel: enemySentinel, // New large ground mech with laser attacks
 };
 
 const ENEMY_COLORS: Record<string, string> = {
@@ -56,6 +58,7 @@ const ENEMY_COLORS: Record<string, string> = {
   giant: '#ff00ff', // Giant has magenta glow
   bomber: '#ff6600', // Bomber has orange glow
   jetrobot: '#00ff88', // Jet robot has green glow
+  sentinel: '#ff0066', // Sentinel has hot pink/red laser glow
 };
 
 export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
@@ -437,45 +440,114 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
             </motion.div>
           )}
           
-          {/* Enemy shooting muzzle flash - ROCKET ATTACK for ranged */}
+          {/* Enemy shooting muzzle flash - ROCKET ATTACK for ranged, LASER for sentinel */}
           {enemy.attackCooldown <= 0.5 && enemy.attackCooldown > 0 && !enemy.isSlashing && (
             <motion.div
               className="absolute left-0 top-1/2 -translate-y-1/2"
-              style={{ left: -25 }}
+              style={{ left: enemy.type === 'sentinel' ? -80 : -25 }}
               initial={{ scale: 0 }}
               animate={{ opacity: [0.6, 1, 0.6], scale: [0.8, 1.4, 0.8] }}
               transition={{ duration: 0.1, repeat: Infinity }}
             >
-              {/* Muzzle flash */}
-              <div 
-                className="w-6 h-6 rounded-full"
-                style={{
-                  background: enemy.type === 'drone' 
-                    ? 'radial-gradient(circle, #fff, #00ffff, #0088ff, transparent)'
-                    : 'radial-gradient(circle, #fff, #ff8800, #ff4400, transparent)',
-                  boxShadow: enemy.type === 'drone'
-                    ? '0 0 20px #00ffff, 0 0 40px #0088ff'
-                    : '0 0 15px #ff8800, 0 0 30px #ff4400',
-                }}
-              />
+              {/* SENTINEL LASER BEAM - wide, hot pink laser with screen flash */}
+              {enemy.type === 'sentinel' && (
+                <>
+                  {/* Main laser beam */}
+                  <motion.div
+                    style={{
+                      width: 120,
+                      height: 12,
+                      background: 'linear-gradient(90deg, #fff, #ff0066, #ff0044, #ff0066, #fff)',
+                      boxShadow: '0 0 30px #ff0066, 0 0 60px #ff0066, 0 0 100px rgba(255,0,102,0.5)',
+                      borderRadius: 6,
+                    }}
+                    animate={{ 
+                      scaleY: [1, 1.5, 1],
+                      opacity: [0.9, 1, 0.9],
+                    }}
+                    transition={{ duration: 0.08, repeat: Infinity }}
+                  />
+                  {/* Laser core - white hot center */}
+                  <motion.div
+                    className="absolute top-1/2 -translate-y-1/2"
+                    style={{
+                      width: 110,
+                      height: 4,
+                      left: 5,
+                      background: 'linear-gradient(90deg, #fff, #ffaacc, #fff)',
+                      filter: 'blur(1px)',
+                      borderRadius: 4,
+                    }}
+                    animate={{ opacity: [0.7, 1, 0.7] }}
+                    transition={{ duration: 0.05, repeat: Infinity }}
+                  />
+                  {/* Screen flash effect around laser origin */}
+                  <motion.div
+                    className="absolute -inset-20 pointer-events-none"
+                    style={{
+                      background: 'radial-gradient(circle, rgba(255,0,102,0.4), transparent 70%)',
+                    }}
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: [0.5, 1.5], opacity: [0.8, 0] }}
+                    transition={{ duration: 0.15, repeat: Infinity }}
+                  />
+                  {/* Laser impact sparks */}
+                  {[...Array(5)].map((_, i) => (
+                    <motion.div
+                      key={`laser-spark-${i}`}
+                      className="absolute rounded-full"
+                      style={{
+                        width: 4 + Math.random() * 4,
+                        height: 4 + Math.random() * 4,
+                        left: 110,
+                        top: -10 + i * 5,
+                        background: i % 2 === 0 ? '#ff0066' : '#fff',
+                        boxShadow: `0 0 8px ${i % 2 === 0 ? '#ff0066' : '#ffaacc'}`,
+                      }}
+                      animate={{
+                        x: [0, 20 + Math.random() * 20],
+                        y: [(i - 2) * 5, (i - 2) * 15],
+                        opacity: [1, 0],
+                        scale: [1, 0.3],
+                      }}
+                      transition={{ duration: 0.2, repeat: Infinity, delay: i * 0.03 }}
+                    />
+                  ))}
+                </>
+              )}
+              
+              {/* Regular muzzle flash for other enemies */}
+              {enemy.type !== 'sentinel' && (
+                <div 
+                  className="w-6 h-6 rounded-full"
+                  style={{
+                    background: enemy.type === 'drone' 
+                      ? 'radial-gradient(circle, #fff, #00ffff, #0088ff, transparent)'
+                      : 'radial-gradient(circle, #fff, #ff8800, #ff4400, transparent)',
+                    boxShadow: enemy.type === 'drone'
+                      ? '0 0 20px #00ffff, 0 0 40px #0088ff'
+                      : '0 0 15px #ff8800, 0 0 30px #ff4400',
+                  }}
+                />
+              )}
               {/* Flash rings */}
               {[0, 1].map(i => (
                 <motion.div
                   key={`flash-${i}`}
                   className="absolute rounded-full border-2"
                   style={{
-                    left: -5 - i * 5,
+                    left: enemy.type === 'sentinel' ? 100 - i * 5 : -5 - i * 5,
                     top: -5 - i * 5,
                     width: 16 + i * 10,
                     height: 16 + i * 10,
-                    borderColor: enemy.type === 'drone' ? '#00ffff' : '#ff8800',
+                    borderColor: enemy.type === 'sentinel' ? '#ff0066' : enemy.type === 'drone' ? '#00ffff' : '#ff8800',
                   }}
                   animate={{ scale: [1, 2], opacity: [1, 0] }}
                   transition={{ duration: 0.2, repeat: Infinity, delay: i * 0.05 }}
                 />
               ))}
               {/* Rocket smoke trail */}
-              {enemy.type !== 'drone' && (
+              {enemy.type !== 'drone' && enemy.type !== 'sentinel' && (
                 <motion.div
                   className="absolute"
                   style={{
