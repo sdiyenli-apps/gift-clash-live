@@ -1765,31 +1765,52 @@ export const useGameState = () => {
             const shouldSelfDestruct = (newUnit.health <= 0 || newUnit.timer <= 0.5) && !unit.isSelfDestructing && !unit.isLanding;
             
             if (shouldSelfDestruct) {
-              // Find nearest enemy to fly toward
+              // Find nearest enemy to fly toward (including flying drones)
               const nearestEnemy = newState.enemies
                 .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x)
-                .sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x))[0];
+                .sort((a, b) => {
+                  // Calculate true distance including Y position for flying enemies
+                  const distA = Math.sqrt(Math.pow(a.x - unit.x, 2) + Math.pow((a.y || GROUND_Y) - unit.y, 2));
+                  const distB = Math.sqrt(Math.pow(b.x - unit.x, 2) + Math.pow((b.y || GROUND_Y) - unit.y, 2));
+                  return distA - distB;
+                })[0];
               
               newUnit.isSelfDestructing = true;
               newUnit.selfDestructTimer = 1.0; // 1 second to reach and explode
               newUnit.targetEnemyId = nearestEnemy?.id;
               newUnit.health = Math.max(1, newUnit.health); // Keep alive during self-destruct
               newUnit.timer = 2; // Extend timer for self-destruct animation
+              
+              // Reset all enemy targetType when ally starts self-destructing
+              newState.enemies = newState.enemies.map(e => ({ ...e, targetType: undefined }));
             }
             
             // Handle self-destruct flying forward
             if (unit.isSelfDestructing) {
               newUnit.selfDestructTimer = (unit.selfDestructTimer || 1) - delta;
               
-              // Fly forward quickly toward enemies
-              newUnit.x += 400 * delta;
+              // Fly toward the closest enemy (including upward for flying enemies)
+              const targetEnemy = newState.enemies.find(e => e.id === unit.targetEnemyId);
+              if (targetEnemy) {
+                // Move toward target enemy position
+                const dx = targetEnemy.x - newUnit.x;
+                const dy = (targetEnemy.y || GROUND_Y) - newUnit.y;
+                const speed = 500;
+                newUnit.x += (dx > 0 ? 1 : -1) * Math.min(Math.abs(dx), speed * delta);
+                newUnit.y += (dy > 0 ? 1 : -1) * Math.min(Math.abs(dy), speed * delta * 0.5);
+              } else {
+                // No target, fly forward
+                newUnit.x += 400 * delta;
+              }
               
               // Explode when timer ends
               if (newUnit.selfDestructTimer <= 0) {
-                // AOE DAMAGE to nearby enemies
+                // AOE DAMAGE to nearby enemies (including flying ones using 2D distance)
                 newState.enemies = newState.enemies.map(enemy => {
                   if (enemy.isDying) return enemy;
-                  const dist = Math.abs(enemy.x - newUnit.x);
+                  const dx = enemy.x - newUnit.x;
+                  const dy = (enemy.y || GROUND_Y) - newUnit.y;
+                  const dist = Math.sqrt(dx * dx + dy * dy);
                   if (dist < SELF_DESTRUCT_AOE_RADIUS) {
                     const newHealth = enemy.health - SELF_DESTRUCT_DAMAGE;
                     if (newHealth <= 0) {
@@ -1797,18 +1818,18 @@ export const useGameState = () => {
                       newState.score += scoreMap[enemy.type] || 60;
                       newState.combo++;
                       newState.killStreak++;
-                      return { ...enemy, health: 0, isDying: true, deathTimer: 0.4 };
+                      return { ...enemy, health: 0, isDying: true, deathTimer: 0.4, targetType: undefined };
                     }
-                    return { ...enemy, health: newHealth };
+                    return { ...enemy, health: newHealth, targetType: undefined };
                   }
-                  return enemy;
+                  return { ...enemy, targetType: undefined };
                 });
                 
-                // Big explosion particles
+                // Big explosion particles at current position
                 newState.particles = [
                   ...newState.particles,
-                  ...createParticles(newUnit.x, GROUND_Y + 60, 30, 'explosion', '#ff8800'),
-                  ...createParticles(newUnit.x, GROUND_Y + 60, 20, 'spark', '#ffff00'),
+                  ...createParticles(newUnit.x, newUnit.y + 30, 30, 'explosion', '#ff8800'),
+                  ...createParticles(newUnit.x, newUnit.y + 30, 20, 'spark', '#ffff00'),
                 ];
                 newState.screenShake = 0.6;
                 showSpeechBubble(`💥 ALLY SACRIFICED! 💥`, 'excited');
@@ -1827,32 +1848,39 @@ export const useGameState = () => {
             
             // Attack nearby enemies (only if not landing or self-destructing)
             if (newUnit.attackCooldown <= 0 && !unit.isLanding && !unit.isSelfDestructing) {
-              const nearestEnemy = newState.enemies.find(e => 
-                !e.isDying && !e.isSpawning && 
-                e.x > unit.x && e.x < unit.x + 400 &&
-                e.type !== 'boss' // Don't target boss
-              );
+              // Find nearest enemy - check all enemies including flying ones
+              const nearestEnemy = newState.enemies
+                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x && e.x < unit.x + 400 && e.type !== 'boss')
+                .sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x))[0];
               
               if (nearestEnemy) {
-                newUnit.attackCooldown = unit.type === 'mech' ? 1.5 : 0.8; // Mech slower but bombs, walker faster lasers
+                newUnit.attackCooldown = unit.type === 'mech' ? 1.2 : 0.6; // Faster attack rate
                 
-                // Create projectile
-                const projType = unit.type === 'mech' ? 'ultra' : 'mega'; // Mech shoots bombs (ultra), walker shoots lasers (mega)
+                // Calculate target Y for projectile (aim at enemy center)
+                const targetY = nearestEnemy.y + nearestEnemy.height / 2;
+                const startY = GROUND_Y + 40; // Fire from chest height
+                const dx = nearestEnemy.x - unit.x;
+                const dy = targetY - startY;
+                const angle = Math.atan2(dy, dx);
+                
+                // Create projectile aimed at enemy
+                const projSpeed = unit.type === 'mech' ? 450 : 700;
                 const proj: Projectile = {
                   id: `support-proj-${Date.now()}-${Math.random()}`,
                   x: unit.x + unit.width,
-                  y: unit.y + unit.height * 0.5,
-                  velocityX: unit.type === 'mech' ? 400 : 600,
-                  velocityY: unit.type === 'mech' ? 80 : 0, // Mech bombs arc slightly
+                  y: startY,
+                  velocityX: Math.cos(angle) * projSpeed,
+                  velocityY: Math.sin(angle) * projSpeed,
                   damage: unit.type === 'mech' ? 80 : 40,
-                  type: projType,
+                  type: unit.type === 'mech' ? 'ultra' : 'mega',
                 };
                 newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                 
-                // Muzzle flash
+                // Enhanced muzzle flash effect
                 newState.particles = [
                   ...newState.particles,
-                  ...createParticles(unit.x + unit.width, unit.y + unit.height * 0.5, 8, 'muzzle', unit.type === 'mech' ? '#ff8800' : '#00ff88'),
+                  ...createParticles(unit.x + unit.width, startY, 12, 'muzzle', unit.type === 'mech' ? '#ff8800' : '#00ff88'),
+                  ...createParticles(unit.x + unit.width + 10, startY, 6, 'spark', '#ffff00'),
                 ];
               }
             }

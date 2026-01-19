@@ -26,19 +26,26 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   const isSelfDestructing = unit.isSelfDestructing;
   const selfDestructProgress = isSelfDestructing ? 1 - ((unit.selfDestructTimer || 1) / 1.0) : 0;
   
+  // Check if currently attacking (cooldown just started)
+  const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : 0.4);
+  
+  // Calculate bottom position - account for self-destruct flying up
+  const baseBottom = 118;
+  const selfDestructYOffset = isSelfDestructing ? (unit.y - 120) : 0; // unit.y tracks actual Y during self-destruct
+  
   return (
     <motion.div
       className="absolute z-20"
       style={{
         left: screenX,
-        bottom: isLanding ? 118 + 300 * (1 - landProgress) : 118,
+        bottom: isLanding ? baseBottom + 300 * (1 - landProgress) : baseBottom + selfDestructYOffset,
         width: unit.width,
         height: unit.height,
       }}
       initial={{ opacity: 0, y: -200 }}
       animate={{ 
         opacity: 1, 
-        y: isSelfDestructing ? -20 - selfDestructProgress * 30 : 0,
+        y: 0,
         scale: isSelfDestructing ? 1 + selfDestructProgress * 0.3 : 1,
       }}
       transition={{ duration: 0.5 }}
@@ -128,14 +135,83 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
         </>
       )}
       
+      {/* ATTACK EFFECTS - Muzzle flash and projectile trail */}
+      {isAttacking && !isSelfDestructing && !isLanding && (
+        <>
+          {/* Muzzle flash glow */}
+          <motion.div
+            className="absolute"
+            style={{
+              right: -20,
+              top: '40%',
+              width: 30,
+              height: 30,
+              background: unit.type === 'mech' 
+                ? 'radial-gradient(circle, #fff, #ff8800, #ff4400, transparent)'
+                : 'radial-gradient(circle, #fff, #00ff88, #00ffff, transparent)',
+              borderRadius: '50%',
+              filter: 'blur(2px)',
+            }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0, 1.5, 1], opacity: [0, 1, 0.5] }}
+            transition={{ duration: 0.15 }}
+          />
+          
+          {/* Projectile beam/trail */}
+          <motion.div
+            className="absolute"
+            style={{
+              right: -60,
+              top: '42%',
+              width: unit.type === 'mech' ? 40 : 80,
+              height: unit.type === 'mech' ? 12 : 6,
+              background: unit.type === 'mech'
+                ? 'linear-gradient(90deg, #ff8800, #ffff00, #fff)'
+                : 'linear-gradient(90deg, #00ff88, #00ffff, #fff)',
+              borderRadius: unit.type === 'mech' ? 6 : 3,
+              boxShadow: unit.type === 'mech'
+                ? '0 0 15px #ff8800, 0 0 30px #ff4400'
+                : '0 0 10px #00ff88, 0 0 20px #00ffff',
+            }}
+            initial={{ scaleX: 0, x: 0 }}
+            animate={{ scaleX: [0, 1, 0.5], x: [0, 40, 80], opacity: [1, 1, 0] }}
+            transition={{ duration: 0.2 }}
+          />
+          
+          {/* Sparks */}
+          {[...Array(4)].map((_, i) => (
+            <motion.div
+              key={`attack-spark-${i}`}
+              className="absolute rounded-full"
+              style={{
+                right: -15,
+                top: `${35 + i * 8}%`,
+                width: 4,
+                height: 4,
+                background: unit.type === 'mech' ? '#ffff00' : '#00ffff',
+                boxShadow: `0 0 4px ${unit.type === 'mech' ? '#ff8800' : '#00ff88'}`,
+              }}
+              animate={{
+                x: [0, 30 + Math.random() * 20],
+                y: [(i - 1.5) * 5, (i - 1.5) * 15],
+                opacity: [1, 0],
+                scale: [1, 0.5],
+              }}
+              transition={{ duration: 0.2, delay: i * 0.02 }}
+            />
+          ))}
+        </>
+      )}
+      
       {/* Support unit sprite - faces RIGHT toward enemies */}
       <motion.div
         className="relative w-full h-full"
         animate={{ 
           y: isSelfDestructing ? [0, -5, 0] : [0, -3, 0],
-          rotate: isSelfDestructing ? [0, 5, -5, 0] : 0,
+          rotate: isSelfDestructing ? [0, 5, -5, 0] : isAttacking ? [0, -2, 0] : 0,
+          x: isAttacking ? [0, 3, 0] : 0, // Recoil effect
         }}
-        transition={{ duration: isSelfDestructing ? 0.1 : 0.4, repeat: Infinity }}
+        transition={{ duration: isSelfDestructing ? 0.1 : isAttacking ? 0.1 : 0.4, repeat: Infinity }}
       >
         <img
           src={sprite}
@@ -144,7 +220,9 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
           style={{
             filter: isSelfDestructing 
               ? `drop-shadow(0 0 20px #ff4400) brightness(${1 + selfDestructProgress * 0.5})`
-              : `drop-shadow(0 0 12px ${glowColor})`,
+              : isAttacking
+                ? `drop-shadow(0 0 15px ${glowColor}) brightness(1.2)`
+                : `drop-shadow(0 0 12px ${glowColor})`,
           }}
         />
         
