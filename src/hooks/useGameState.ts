@@ -688,15 +688,15 @@ export const useGameState = () => {
     const halfShield = Math.floor(playerShield / 2);
     
     // Stagger offset based on existing allies to prevent overlap
-    const staggerOffset = existingCount * 60;
+    const staggerOffset = existingCount * 80;
     
-    // Mech unit - DOUBLE SIZE (bigger tank ally) - positioned IN FRONT of hero
+    // Mech unit - LARGE TANK (2.5x size) - positioned IN FRONT of hero
     supportUnits.push({
       id: `support-mech-${Date.now()}-${Math.random()}`,
       x: playerX + 60 + staggerOffset,
       y: playerY,
-      width: 100, // Double width
-      height: 110, // Double height
+      width: 130, // 2.5x width - LARGER
+      height: 140, // 2.5x height - LARGER
       health: halfMaxHealth,
       maxHealth: halfMaxHealth,
       shield: halfShield,
@@ -708,13 +708,13 @@ export const useGameState = () => {
       landingTimer: 1.0,
     });
     
-    // Walker unit - normal size, positioned further in front
+    // Walker unit - LARGER size (1.5x), positioned further in front
     supportUnits.push({
       id: `support-walker-${Date.now()}-${Math.random()}`,
-      x: playerX + 170 + staggerOffset,
+      x: playerX + 200 + staggerOffset,
       y: playerY,
-      width: 50,
-      height: 55,
+      width: 75, // 1.5x width - LARGER
+      height: 85, // 1.5x height - LARGER
       health: halfMaxHealth,
       maxHealth: halfMaxHealth,
       shield: halfShield,
@@ -1857,10 +1857,11 @@ export const useGameState = () => {
             newUnit.y = GROUND_Y; // Stay on ground
             
             // Attack nearby enemies (only if not landing or self-destructing)
+            // NOW ATTACKS BOSS TOO!
             if (newUnit.attackCooldown <= 0 && !unit.isLanding && !unit.isSelfDestructing) {
-              // Find nearest enemy - check all enemies including flying ones
+              // Find nearest enemy - check all enemies INCLUDING BOSS
               const nearestEnemy = newState.enemies
-                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x && e.x < unit.x + 400 && e.type !== 'boss')
+                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x && e.x < unit.x + 500)
                 .sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x))[0];
               
               if (nearestEnemy) {
@@ -2028,10 +2029,45 @@ export const useGameState = () => {
           }))
           .filter(p => p.x > prev.cameraX - 50);
         
-        // Enemy laser-player collision - ARMOR TAKES DAMAGE FIRST with impact FX
+        // Enemy laser collision - ALLIES BLOCK ATTACKS AIMED AT HERO!
         newState.enemyLasers.forEach(laser => {
           const laserWidth = 20;
           const laserHeight = 15;
+          
+          // FIRST: Check if any support unit intercepts the laser
+          let laserBlocked = false;
+          for (const unit of newState.supportUnits) {
+            if (unit.isSelfDestructing || unit.isLanding || unit.health <= 0) continue;
+            
+            // Ally hitbox for blocking - generous to catch projectiles
+            const unitCenterX = unit.x + unit.width / 2;
+            const unitCenterY = GROUND_Y + unit.height / 2;
+            
+            if (
+              laser.x < unit.x + unit.width + 20 &&
+              laser.x + laserWidth > unit.x - 10 &&
+              laser.y < GROUND_Y + unit.height + 30 &&
+              laser.y + laserHeight > GROUND_Y - 10
+            ) {
+              // ALLY BLOCKS THE ATTACK!
+              const damage = laser.damage * 0.7; // Allies take 70% damage when blocking
+              if (unit.shield > 0) {
+                unit.shield = Math.max(0, unit.shield - damage);
+                newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 15, 'spark', '#00ffff')];
+              } else {
+                unit.health -= damage;
+                newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 12, 'spark', '#ff8800')];
+              }
+              newState.particles = [...newState.particles, ...createParticles(unitCenterX, unitCenterY, 8, 'impact', '#00ff88')];
+              laserBlocked = true;
+              newState.enemyLasers = newState.enemyLasers.filter(l => l.id !== laser.id);
+              break;
+            }
+          }
+          
+          if (laserBlocked) return;
+          
+          // If not blocked by ally, check player collision
           if (
             laser.x < prev.player.x + PLAYER_WIDTH + 5 &&
             laser.x + laserWidth > prev.player.x - 5 &&
@@ -2040,39 +2076,27 @@ export const useGameState = () => {
           ) {
             // ARMOR ABSORBS DAMAGE FIRST!
             if (newState.player.shield > 0) {
-              // Armor absorbs the hit completely
               const damageToArmor = laser.damage;
               newState.player.shield = Math.max(0, newState.player.shield - damageToArmor);
-              
-              // ARMOR IMPACT FX!
               newState.shieldBlockFlash = 1;
               newState.screenShake = 0.25;
-              
-              // Spark burst at impact point
               newState.particles = [
                 ...newState.particles, 
                 ...createParticles(laser.x, laser.y, 20, 'spark', '#00ffff'),
                 ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 10, 'spark', '#00ffff'),
               ];
-              
-              // Hero taunts when blocking!
               if (Math.random() > 0.7) {
                 const taunt = ENEMY_TAUNTS[Math.floor(Math.random() * ENEMY_TAUNTS.length)];
                 showSpeechBubble(taunt, 'excited');
               }
             } else {
-              // NO ARMOR - Take health damage
               newState.player.health -= laser.damage;
               newState.player.animationState = 'hurt';
               newState.damageFlash = 1;
               newState.screenShake = 0.3;
-              
-              // Vibrate on damage
               if (navigator.vibrate) {
                 navigator.vibrate(100);
               }
-              
-              // Ask for gifts when hurt!
               if (Math.random() > 0.6) {
                 const request = GIFT_REQUESTS[Math.floor(Math.random() * GIFT_REQUESTS.length)];
                 showSpeechBubble(request, 'help');

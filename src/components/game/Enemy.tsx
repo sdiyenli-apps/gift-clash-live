@@ -800,26 +800,24 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         </div>
       )}
       
-      {/* TARGETING INDICATOR - shows who enemy is targeting (smaller) */}
+      {/* TARGETING INDICATOR - shows who enemy is targeting (ALL RED) */}
       {!isBoss && !enemy.isDying && !enemy.isSpawning && enemy.targetType && (
         <motion.div
           className="absolute -top-8 left-1/2 -translate-x-1/2 font-bold px-1 py-0.5 rounded whitespace-nowrap"
           style={{
             fontSize: '8px',
-            background: enemy.targetType === 'ally' 
-              ? 'linear-gradient(135deg, #00ff88, #00aa55)' 
-              : 'linear-gradient(135deg, #ff4400, #ff0000)',
-            color: enemy.targetType === 'ally' ? '#000' : '#fff',
-            boxShadow: enemy.targetType === 'ally' 
-              ? '0 0 4px #00ff88' 
-              : '0 0 4px #ff0000',
+            background: 'linear-gradient(135deg, #ff0000, #cc0000)',
+            color: '#fff',
+            boxShadow: '0 0 6px #ff0000',
+            border: '1px solid #ff4444',
           }}
           animate={{ 
             y: [0, -1, 0],
+            opacity: [0.9, 1, 0.9],
           }}
-          transition={{ duration: 0.4, repeat: Infinity }}
+          transition={{ duration: 0.3, repeat: Infinity }}
         >
-          {enemy.targetType === 'ally' ? '→ALLY' : '→HERO'}
+          {enemy.targetType === 'ally' ? '🎯ALLY' : '🎯HERO'}
         </motion.div>
       )}
       
