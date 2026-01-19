@@ -10,9 +10,10 @@ import enemyDroneV4 from '@/assets/enemy-drone-v4.png';
 import enemyMech from '@/assets/enemy-mech.png';
 import enemyJetRobot from '@/assets/enemy-jet-robot.png';
 import enemySentinel from '@/assets/enemy-sentinel.png';
-import bossPhase1 from '@/assets/boss-phase1.png';
-import bossPhase2 from '@/assets/boss-phase2.png';
-import bossPhase3 from '@/assets/boss-phase3.png';
+// Boss animated GIFs for different states
+import bossIdle from '@/assets/boss-idle.gif';
+import bossAttack from '@/assets/boss-attack.gif';
+import bossAttackAlt from '@/assets/boss-attack-alt.gif';
 
 // Get random drone variant sprite
 const getDroneSprite = (variant?: number) => {
@@ -25,18 +26,20 @@ interface EnemyProps {
   cameraX: number;
 }
 
-// Get boss sprite based on phase
-const getBossSprite = (phase: number) => {
-  if (phase >= 3) return bossPhase3;
-  if (phase >= 2) return bossPhase2;
-  return bossPhase1;
+// Get boss sprite based on attack state - uses animated GIFs
+const getBossSprite = (isAttacking: boolean, attackVariant: number = 0) => {
+  if (isAttacking) {
+    // Alternate between attack with breath and without breath
+    return attackVariant % 2 === 0 ? bossAttack : bossAttackAlt;
+  }
+  return bossIdle; // Idle animation when not attacking
 };
 
 const ENEMY_SPRITES: Record<string, string> = {
   robot: enemyRobot,
   drone: enemyDrone, // Will be overridden by getDroneSprite
   mech: enemyMech,
-  boss: bossPhase1, // Default, will be overridden
+  boss: bossIdle, // Default idle, will be overridden by getBossSprite
   ninja: enemyRobot,
   tank: enemyMech,
   flyer: enemyDrone, // Will be overridden by getDroneSprite
@@ -76,12 +79,14 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const color = ENEMY_COLORS[enemy.type] || '#ff4444';
   const healthPercent = (enemy.health / enemy.maxHealth) * 100;
   
-  // Get sprite - for boss, use phase-specific sprite; for drones, use variant
+  // Get sprite - for boss, use attack state GIF; for drones, use variant
   const isBoss = enemy.type === 'boss';
   const bossPhase = enemy.bossPhase || 1;
   const isDrone = enemy.type === 'drone' || enemy.type === 'flyer' || enemy.type === 'bomber';
+  // Boss is "attacking" when attackCooldown is active (just fired)
+  const isAttacking = enemy.attackCooldown !== undefined && enemy.attackCooldown > 0 && enemy.attackCooldown <= 1.5;
   const sprite = isBoss 
-    ? getBossSprite(bossPhase) 
+    ? getBossSprite(isAttacking, bossPhase) // Use attack GIF when attacking, idle otherwise
     : isDrone 
       ? getDroneSprite(enemy.droneVariant)
       : ENEMY_SPRITES[enemy.type];
