@@ -56,7 +56,7 @@ export interface Enemy {
   maxHealth: number;
   speed: number;
   damage: number;
-  type: 'robot' | 'drone' | 'mech' | 'boss' | 'ninja' | 'tank' | 'flyer' | 'giant' | 'bomber' | 'jetrobot';
+  type: 'robot' | 'drone' | 'mech' | 'boss' | 'ninja' | 'tank' | 'flyer' | 'giant' | 'bomber' | 'jetrobot' | 'sentinel';
   isDying: boolean;
   deathTimer: number;
   attackCooldown: number;
@@ -156,7 +156,7 @@ export interface Particle {
   color: string;
   size: number;
   life: number;
-  type: 'spark' | 'explosion' | 'muzzle' | 'death' | 'ultra' | 'blood' | 'magic' | 'dash' | 'neon' | 'confetti';
+  type: 'spark' | 'explosion' | 'muzzle' | 'death' | 'ultra' | 'blood' | 'magic' | 'dash' | 'neon' | 'confetti' | 'impact' | 'laser';
 }
 
 export interface NeonLight {

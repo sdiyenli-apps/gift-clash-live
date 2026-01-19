@@ -218,10 +218,11 @@ const INITIAL_STATE: ExtendedGameState = {
   neonBeams: [],
 };
 
-// 7 enemy types: robot, drone, mech, ninja, tank, giant, bomber
-const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant', 'bomber'] as const;
-const GIANT_CHANCE = 0.08; // 8% chance for giant enemies
-const BOMBER_CHANCE = 0.12; // 12% chance for bomber enemies (flying, drop bombs)
+// 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel
+const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant', 'bomber', 'sentinel'] as const;
+const GIANT_CHANCE = 0.04; // 4% chance for giant enemies (reduced)
+const BOMBER_CHANCE = 0.06; // 6% chance for bomber enemies (reduced)
+const SENTINEL_CHANCE = 0.12; // 12% chance for sentinel - new large ground unit with laser
 
 const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[], levelLength: number } => {
   const enemies: Enemy[] = [];
@@ -233,10 +234,10 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const densityReduction = Math.min(wave * 8, 120); // Reduces spacing as wave increases
   const enemyDensity = Math.max(80, baseDensity - densityReduction);
   
-  // More drones as waves progress
-  const droneChance = Math.min(0.35 + wave * 0.02, 0.55); // 35% base, up to 55%
+  // REDUCED DRONES - more ground units now!
+  const droneChance = Math.min(0.15 + wave * 0.01, 0.25); // 15% base, up to 25% (was 35-55%)
   const ninjaChance = Math.min(0.12 + wave * 0.015, 0.25);
-  const tankChance = Math.min(0.05 + wave * 0.01, 0.15);
+  const tankChance = Math.min(0.08 + wave * 0.015, 0.20); // Increased tanks
   
   for (let x = 400; x < levelLength - 800; x += enemyDensity + Math.random() * 80) {
     const typeRoll = Math.random();
@@ -244,21 +245,29 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     let enemyType: Enemy['type'];
     let width: number, height: number, health: number, speed: number, damage: number;
     
-    // Progressive difficulty with more varied enemies
+    // Progressive difficulty with more varied enemies - MORE GROUND UNITS!
     if (typeRoll < tankChance) {
       enemyType = 'tank';
       width = 70; height = 65; health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; damage = 22 + wave;
-    } else if (typeRoll < tankChance + 0.08) {
+    } else if (typeRoll < tankChance + SENTINEL_CHANCE) {
+      // SENTINEL - Large ground mech with laser attacks (bigger than hero, more HP)
+      enemyType = 'sentinel';
+      width = 75; height = 80; // Larger than hero (32x48)
+      health = 220 * (1 + waveBonus); // More HP than other enemies
+      speed = 35 + wave * 1.5; 
+      damage = 25 + wave;
+    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12) {
       enemyType = 'mech';
-      width = 65; height = 70; health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; damage = 16 + wave;
-    } else if (typeRoll < tankChance + 0.08 + ninjaChance) {
+      width = 55; height = 60; // Slightly bigger than hero
+      health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; damage = 16 + wave;
+    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance) {
       enemyType = 'ninja';
       width = 45; height = 52; health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; damage = 12 + wave;
-    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance) {
-      // MORE DRONES - flying enemies that shoot lasers
+    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance + droneChance) {
+      // DRONES - flying enemies (REDUCED spawn rate)
       enemyType = 'drone';
-      width = 42; height = 42; 
-      health = 28 * (1 + waveBonus * 0.5); 
+      width = 50; height = 50; // Slightly bigger than hero
+      health = 32 * (1 + waveBonus * 0.5); 
       speed = 90 + wave * 3; 
       damage = 7 + Math.floor(wave / 2);
       
@@ -284,12 +293,12 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       };
       enemies.push(droneEnemy);
       continue;
-    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + GIANT_CHANCE) {
+    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance + droneChance + GIANT_CHANCE) {
       // GIANT enemies - large and tough
       enemyType = 'giant';
       width = 90; height = 100; health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
-    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + GIANT_CHANCE + BOMBER_CHANCE) {
-      // BOMBER - flying enemy that drops bombs!
+    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance + droneChance + GIANT_CHANCE + BOMBER_CHANCE) {
+      // BOMBER - flying enemy that drops bombs (REDUCED)
       enemyType = 'bomber';
       width = 55; height = 50; 
       health = 50 * (1 + waveBonus * 0.6); 
@@ -299,7 +308,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       const bomberEnemy = {
         id: `bomber-${x}-${Math.random()}`,
         x,
-        y: GROUND_Y + 220 + Math.random() * 60, // MUCH higher flying - above all other enemies
+        y: GROUND_Y + 220 + Math.random() * 60, // MUCH higher flying
         width,
         height,
         health,
@@ -314,15 +323,16 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         isSpawning: true,
         spawnTimer: 0.8,
         isFlying: true,
-        flyHeight: 220 + Math.random() * 60, // MUCH higher than drones
+        flyHeight: 220 + Math.random() * 60,
         bombCooldown: 2 + Math.random() * 2,
       };
       enemies.push(bomberEnemy);
       continue;
-    } else if (typeRoll < tankChance + 0.08 + ninjaChance + droneChance + GIANT_CHANCE + BOMBER_CHANCE + 0.05) {
+    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance + droneChance + GIANT_CHANCE + BOMBER_CHANCE + 0.03) {
       enemyType = 'flyer';
       width = 50; height = 46; health = 40 * (1 + waveBonus * 0.5); speed = 75 + wave * 3; damage = 9 + wave;
     } else {
+      // ROBOT - ground unit, most common
       enemyType = 'robot';
       width = 50; height = 58; health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
     }
@@ -1531,7 +1541,7 @@ export const useGameState = () => {
                   isDying: true,
                   deathTimer: 0.5,
                 };
-                const scoreMap: Record<string, number> = { tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70 };
+                const scoreMap: Record<string, number> = { tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250 };
                 newState.score += scoreMap[enemy.type] || 60;
                 newState.combo++;
                 newState.killStreak++;

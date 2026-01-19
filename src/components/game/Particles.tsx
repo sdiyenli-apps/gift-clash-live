@@ -35,6 +35,34 @@ export const Particles = ({ particles, cameraX }: ParticlesProps) => {
                 boxShadow: `0 0 ${particle.size}px ${particle.color}`,
                 borderRadius: '50%',
               };
+            case 'impact':
+              // Hero impact FX - bright, energetic
+              return {
+                background: `radial-gradient(circle, #fff, ${particle.color})`,
+                boxShadow: `0 0 ${particle.size * 1.5}px ${particle.color}, 0 0 ${particle.size * 3}px ${particle.color}`,
+                borderRadius: '50%',
+              };
+            case 'laser':
+              // Laser particle FX - hot pink/red glow
+              return {
+                background: `linear-gradient(90deg, transparent, ${particle.color}, #fff, ${particle.color}, transparent)`,
+                boxShadow: `0 0 ${particle.size * 2}px ${particle.color}`,
+                borderRadius: '2px',
+                width: particle.size * 3,
+                height: particle.size,
+              };
+            case 'magic':
+              return {
+                background: `radial-gradient(circle, #fff, ${particle.color}, transparent)`,
+                boxShadow: `0 0 ${particle.size * 2}px ${particle.color}, 0 0 ${particle.size * 4}px ${particle.color}`,
+                borderRadius: '50%',
+              };
+            case 'spark':
+              return {
+                background: particle.color,
+                boxShadow: `0 0 ${particle.size}px ${particle.color}, 0 0 ${particle.size * 2}px ${particle.color}`,
+                borderRadius: '50%',
+              };
             default:
               return {
                 background: particle.color,
@@ -56,6 +84,11 @@ export const Particles = ({ particles, cameraX }: ParticlesProps) => {
               opacity: particle.life,
               ...getParticleStyle(),
             }}
+            animate={particle.type === 'impact' ? {
+              scale: [1, 1.5, 0.5],
+              opacity: [particle.life, particle.life * 0.5, 0],
+            } : undefined}
+            transition={{ duration: 0.2 }}
           />
         );
       })}
