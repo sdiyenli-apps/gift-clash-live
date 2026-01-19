@@ -2151,83 +2151,95 @@ export const useGameState = () => {
           }))
           .filter(p => p.x > prev.cameraX - 50);
         
-        // Enemy laser collision - ALLIES BLOCK ATTACKS AIMED AT HERO!
-        newState.enemyLasers.forEach(laser => {
-          const laserWidth = 20;
-          const laserHeight = 15;
-          
-          // FIRST: Check if any support unit intercepts the laser
-          let laserBlocked = false;
-          for (const unit of newState.supportUnits) {
-            if (unit.isSelfDestructing || unit.isLanding || unit.health <= 0) continue;
-            
-            // Ally hitbox for blocking - generous to catch projectiles
-            const unitCenterX = unit.x + unit.width / 2;
-            const unitCenterY = GROUND_Y + unit.height / 2;
-            
+        // Enemy laser collision - SUPPORT UNITS CAN INTERCEPT, otherwise hero takes damage
+        {
+          const lasersToRemove: Set<string> = new Set();
+
+          newState.enemyLasers.forEach(laser => {
+            if (lasersToRemove.has(laser.id)) return;
+
+            const laserWidth = 20;
+            const laserHeight = 15;
+            const laserCenterX = laser.x + laserWidth / 2;
+            const laserCenterY = laser.y + laserHeight / 2;
+
+            // 1) Check if any support unit intercepts the laser
+            for (const unit of newState.supportUnits) {
+              if (unit.isSelfDestructing || unit.isLanding || unit.health <= 0) continue;
+
+              const unitCenterX = unit.x + unit.width / 2;
+              const unitCenterY = unit.y + unit.height / 2;
+              const radius = Math.max(unit.width, unit.height) * 0.5 + 30; // generous, fixes drones firing from above
+
+              const dx = laserCenterX - unitCenterX;
+              const dy = laserCenterY - unitCenterY;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+
+              if (dist < radius) {
+                // ALLY BLOCKS THE ATTACK!
+                const rawDamage = laser.damage ?? 0;
+                const damage = rawDamage * 0.7; // Allies take 70% damage when blocking
+
+                if (unit.shield > 0) {
+                  unit.shield = Math.max(0, unit.shield - damage);
+                  newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 15, 'spark', '#00ffff')];
+                } else {
+                  unit.health -= damage;
+                  newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 12, 'spark', '#ff8800')];
+                }
+
+                newState.particles = [...newState.particles, ...createParticles(unitCenterX, unitCenterY, 8, 'impact', '#00ff88')];
+                lasersToRemove.add(laser.id);
+                return;
+              }
+            }
+
+            // 2) If not blocked by ally, check player collision
             if (
-              laser.x < unit.x + unit.width + 20 &&
-              laser.x + laserWidth > unit.x - 10 &&
-              laser.y < GROUND_Y + unit.height + 30 &&
-              laser.y + laserHeight > GROUND_Y - 10
+              laser.x < newState.player.x + PLAYER_WIDTH + 5 &&
+              laser.x + laserWidth > newState.player.x - 5 &&
+              laser.y < newState.player.y + PLAYER_HEIGHT + 10 &&
+              laser.y + laserHeight > newState.player.y - 10
             ) {
-              // ALLY BLOCKS THE ATTACK!
-              const damage = laser.damage * 0.7; // Allies take 70% damage when blocking
-              if (unit.shield > 0) {
-                unit.shield = Math.max(0, unit.shield - damage);
-                newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 15, 'spark', '#00ffff')];
+              const dmg = laser.damage ?? 0;
+
+              // ARMOR ABSORBS DAMAGE FIRST!
+              if (newState.player.shield > 0) {
+                newState.player.shield = Math.max(0, newState.player.shield - dmg);
+                newState.shieldBlockFlash = 1;
+                newState.screenShake = 0.25;
+                newState.particles = [
+                  ...newState.particles,
+                  ...createParticles(laser.x, laser.y, 20, 'spark', '#00ffff'),
+                  ...createParticles(newState.player.x + PLAYER_WIDTH / 2, newState.player.y + PLAYER_HEIGHT / 2, 10, 'spark', '#00ffff'),
+                ];
+                if (Math.random() > 0.7) {
+                  const taunt = ENEMY_TAUNTS[Math.floor(Math.random() * ENEMY_TAUNTS.length)];
+                  showSpeechBubble(taunt, 'excited');
+                }
               } else {
-                unit.health -= damage;
-                newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 12, 'spark', '#ff8800')];
+                newState.player.health -= dmg;
+                newState.player.animationState = 'hurt';
+                newState.damageFlash = 1;
+                newState.screenShake = 0.3;
+                if (navigator.vibrate) {
+                  navigator.vibrate(100);
+                }
+                if (Math.random() > 0.6) {
+                  const request = GIFT_REQUESTS[Math.floor(Math.random() * GIFT_REQUESTS.length)];
+                  showSpeechBubble(request, 'help');
+                }
               }
-              newState.particles = [...newState.particles, ...createParticles(unitCenterX, unitCenterY, 8, 'impact', '#00ff88')];
-              laserBlocked = true;
-              newState.enemyLasers = newState.enemyLasers.filter(l => l.id !== laser.id);
-              break;
+
+              newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 8, 'spark', '#ff0000')];
+              lasersToRemove.add(laser.id);
             }
+          });
+
+          if (lasersToRemove.size > 0) {
+            newState.enemyLasers = newState.enemyLasers.filter(l => !lasersToRemove.has(l.id));
           }
-          
-          if (laserBlocked) return;
-          
-          // If not blocked by ally, check player collision
-          if (
-            laser.x < prev.player.x + PLAYER_WIDTH + 5 &&
-            laser.x + laserWidth > prev.player.x - 5 &&
-            laser.y < prev.player.y + PLAYER_HEIGHT + 10 &&
-            laser.y + laserHeight > prev.player.y - 10
-          ) {
-            // ARMOR ABSORBS DAMAGE FIRST!
-            if (newState.player.shield > 0) {
-              const damageToArmor = laser.damage;
-              newState.player.shield = Math.max(0, newState.player.shield - damageToArmor);
-              newState.shieldBlockFlash = 1;
-              newState.screenShake = 0.25;
-              newState.particles = [
-                ...newState.particles, 
-                ...createParticles(laser.x, laser.y, 20, 'spark', '#00ffff'),
-                ...createParticles(prev.player.x + PLAYER_WIDTH/2, prev.player.y + PLAYER_HEIGHT/2, 10, 'spark', '#00ffff'),
-              ];
-              if (Math.random() > 0.7) {
-                const taunt = ENEMY_TAUNTS[Math.floor(Math.random() * ENEMY_TAUNTS.length)];
-                showSpeechBubble(taunt, 'excited');
-              }
-            } else {
-              newState.player.health -= laser.damage;
-              newState.player.animationState = 'hurt';
-              newState.damageFlash = 1;
-              newState.screenShake = 0.3;
-              if (navigator.vibrate) {
-                navigator.vibrate(100);
-              }
-              if (Math.random() > 0.6) {
-                const request = GIFT_REQUESTS[Math.floor(Math.random() * GIFT_REQUESTS.length)];
-                showSpeechBubble(request, 'help');
-              }
-            }
-            newState.enemyLasers = newState.enemyLasers.filter(l => l.id !== laser.id);
-            newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 8, 'spark', '#ff0000')];
-          }
-        });
+        }
         
         // Projectile-enemy collisions - LARGER hitboxes for reliable hits
         const hitProjectiles = new Set<string>();
@@ -2572,17 +2584,32 @@ export const useGameState = () => {
             
             // Shoot while spiraling - every 0.6 seconds
             if (enemy.attackCooldown <= 0 && enemy.x < prev.cameraX + 600) {
+              // Prefer targeting a support unit; otherwise target hero
+              const targetUnit = (newState.supportUnits || [])
+                .filter(u => !u.isLanding && !u.isSelfDestructing && u.health > 0 && u.x < spiralX)
+                .sort((a, b) => (spiralX - a.x) - (spiralX - b.x))[0];
+
+              const originX = spiralX;
+              const originY = spiralY + enemy.height / 2;
+              const targetX = targetUnit ? (targetUnit.x + targetUnit.width / 2) : (prev.player.x + PLAYER_WIDTH / 2);
+              const targetY = targetUnit ? (targetUnit.y + targetUnit.height / 2) : (prev.player.y + PLAYER_HEIGHT / 2);
+
+              const dx = targetX - originX;
+              const dy = targetY - originY;
+              const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+              const speed = 520;
+
               const laser: Projectile = {
                 id: `spiral-laser-${Date.now()}-${Math.random()}`,
-                x: enemy.x,
-                y: enemy.y + enemy.height / 2,
-                velocityX: -400,
-                velocityY: (prev.player.y - enemy.y) * 0.8,
+                x: originX,
+                y: originY,
+                velocityX: (dx / dist) * speed,
+                velocityY: (dy / dist) * speed,
                 damage: 5,
                 type: 'normal',
               };
               newState.enemyLasers = [...newState.enemyLasers, laser];
-              newState.particles = [...newState.particles, ...createParticles(enemy.x, enemy.y + enemy.height / 2, 3, 'muzzle', '#ff00ff')];
+              newState.particles = [...newState.particles, ...createParticles(originX, originY, 3, 'muzzle', '#ff00ff')];
               
               return {
                 ...enemy,
@@ -2658,13 +2685,28 @@ export const useGameState = () => {
             
             // Check if close to hero and ready to attack - ATTACK FIRST then retreat!
             if (distToHero < RETREAT_DISTANCE && distToHero > 0 && enemy.attackCooldown <= 0) {
+              // Prefer targeting a support unit in front of the hero; otherwise target hero
+              const targetUnit = (newState.supportUnits || [])
+                .filter(u => !u.isLanding && !u.isSelfDestructing && u.health > 0 && u.x < enemy.x)
+                .sort((a, b) => (enemy.x - a.x) - (enemy.x - b.x))[0];
+
+              const originX = enemy.x - 8;
+              const originY = targetY + enemy.height / 2;
+              const targetX = targetUnit ? (targetUnit.x + targetUnit.width / 2) : (prev.player.x + PLAYER_WIDTH / 2);
+              const targetY2 = targetUnit ? (targetUnit.y + targetUnit.height / 2) : (prev.player.y + PLAYER_HEIGHT / 2);
+
+              const dx = targetX - originX;
+              const dy = targetY2 - originY;
+              const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+              const speed = 650;
+
               // Fire attack before retreating!
               const enemyLaser: Projectile = {
                 id: `elaser-${Date.now()}-${Math.random()}`,
-                x: enemy.x - 8,
-                y: targetY + enemy.height / 2,
-                velocityX: -550,
-                velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - targetY - enemy.height / 2) * 0.6,
+                x: originX,
+                y: originY,
+                velocityX: (dx / dist) * speed,
+                velocityY: (dy / dist) * speed,
                 damage: 8,
                 type: 'normal',
               };
@@ -2673,7 +2715,7 @@ export const useGameState = () => {
               // Attack particles
               newState.particles = [
                 ...newState.particles,
-                ...createParticles(enemy.x - 8, targetY + enemy.height / 2, 8, 'muzzle', '#00ffff'),
+                ...createParticles(originX, originY, 8, 'muzzle', '#00ffff'),
               ];
               
               // Now retreat!
@@ -2687,6 +2729,7 @@ export const useGameState = () => {
                 originalY: enemy.originalY ?? targetY,
               };
             }
+
             
             // Smooth horizontal approach toward player
             const horizontalMove = direction * enemy.speed * delta * 0.25;

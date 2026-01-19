@@ -526,42 +526,62 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
         {/* Support Unit Projectiles - SMALL VISIBLE ALLY ATTACKS */}
         {supportProjectiles.map(proj => {
           const screenX = proj.x - cameraX;
-          // Convert game Y to screen Y (bottom-based positioning)
-          const screenY = proj.y + 40; // Offset to match floor level
           const isMech = proj.type === 'ultra';
-          
+          const width = isMech ? 10 : 8;
+          const height = isMech ? 5 : 4;
+
           if (screenX < -20 || screenX > 700) return null;
-          
+
           return (
             <motion.div
               key={proj.id}
               className="absolute pointer-events-none z-35"
               style={{
                 left: screenX,
-                bottom: screenY,
-                width: isMech ? 12 : 10,
-                height: isMech ? 6 : 4,
+                bottom: 280 - proj.y - height / 2,
+                width,
+                height,
               }}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: [0.7, 1, 0.7], scale: [1, 1.05, 1] }}
+              transition={{ duration: 0.12, repeat: Infinity }}
             >
-              {isMech ? (
-                // Mech projectile - small orange dot
-                <div
-                  className="w-full h-full rounded-full"
-                  style={{
-                    background: '#ffaa00',
-                    boxShadow: '0 0 6px #ff8800, 0 0 12px #ff6600',
-                  }}
-                />
-              ) : (
-                // Walker projectile - small green dot
-                <div
-                  className="w-full h-full rounded-full"
-                  style={{
-                    background: '#00ff88',
-                    boxShadow: '0 0 6px #00ff88, 0 0 10px #00ffaa',
-                  }}
-                />
-              )}
+              {/* Trail */}
+              <div
+                className="absolute right-full top-1/2 -translate-y-1/2"
+                style={{
+                  width: isMech ? 28 : 22,
+                  height: Math.max(2, height - 1),
+                  background: isMech
+                    ? 'linear-gradient(90deg, transparent, rgba(255,170,0,0.9))'
+                    : 'linear-gradient(90deg, transparent, rgba(0,255,136,0.9))',
+                  filter: 'blur(0.5px)',
+                }}
+              />
+
+              {/* Core */}
+              <div
+                className="w-full h-full rounded-full"
+                style={{
+                  background: isMech ? '#ffaa00' : '#00ff88',
+                  boxShadow: isMech
+                    ? '0 0 6px #ff8800, 0 0 14px #ff6600'
+                    : '0 0 6px #00ff88, 0 0 14px #00ffaa',
+                }}
+              />
+
+              {/* Tiny spark */}
+              <motion.div
+                className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
+                style={{
+                  background: isMech
+                    ? 'radial-gradient(circle, #fff, #ffaa00, transparent)'
+                    : 'radial-gradient(circle, #fff, #00ff88, transparent)',
+                  filter: 'blur(0.5px)',
+                }}
+                animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 0.1, repeat: Infinity }}
+              />
             </motion.div>
           );
         })}
