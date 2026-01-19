@@ -145,24 +145,21 @@ interface ExtendedGameState extends GameState {
   bossAttacks: BossAttack[];
   bossAttackCooldown: number;
   laserSweepAngle: number;
-  // Sound event triggers
   lastBossAttack: BossAttackType | null;
-  // EMP Grenade
   empGrenades: EMPGrenade[];
-  // Bombs dropped by bomber enemies
   bombs: Bomb[];
-  // Portal state
   portalOpen: boolean;
   portalX: number;
   heroEnteringPortal: boolean;
-  // Boss transformation flash effect
   bossTransformFlash: number;
-  // Neon beams from jet robots
   neonBeams: NeonBeam[];
-  // Support units that fight alongside the hero
   supportUnits: SupportUnit[];
-  // Support unit projectiles
   supportProjectiles: Projectile[];
+  // Cooldown timers for limited abilities (10 second cooldowns)
+  empCooldown: number; // Seconds until next EMP allowed
+  empCharges: number; // Current EMP charges (max 2)
+  allyCooldown: number; // Seconds until next ally allowed
+  allyCharges: number; // Current ally charges (max 2)
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -223,6 +220,11 @@ const INITIAL_STATE: ExtendedGameState = {
   // Support units
   supportUnits: [],
   supportProjectiles: [],
+  // Cooldowns - start ready (0 = ready, charges start at max)
+  empCooldown: 0,
+  empCharges: 2,
+  allyCooldown: 0,
+  allyCharges: 2,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -517,15 +519,16 @@ export const useGameState = () => {
   const lastUpdateRef = useRef<number>(Date.now());
   const helpRequestTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Max particles limit for performance
-  const MAX_PARTICLES = 30;
+  // Max particles limit for performance - reduced for mobile
+  const MAX_PARTICLES = 25;
+  const MAX_SUPPORT_PROJECTILES = 10;
 
   const createParticles = useCallback((x: number, y: number, count: number, type: Particle['type'], color?: string): Particle[] => {
     const particles: Particle[] = [];
     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
     
-    // Optimized: fewer particles for performance
-    const maxParticles = Math.min(count, 6);
+    // Optimized: very few particles for performance
+    const maxParticles = Math.min(count, 4);
     for (let i = 0; i < maxParticles; i++) {
       particles.push({
         id: `p-${Date.now()}-${i}-${Math.random()}`,
@@ -817,22 +820,21 @@ export const useGameState = () => {
           newState.redFlash = 0.3; // Extra flash
           newState.chickens = [...prev.chickens, ...createAttackChickens(prev.player.x, prev.enemies)];
           
-          // SPAWN NEON LASERS THAT BOUNCE OFF WALLS!
-          const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
+          // SPAWN NEON LASERS THAT BOUNCE OFF WALLS - reduced count for performance
           const newNeonLasers: NeonLaser[] = [];
-          for (let i = 0; i < 12; i++) {
-            const angle = (i / 12) * Math.PI * 2;
+          for (let i = 0; i < 6; i++) {
+            const angle = (i / 6) * Math.PI * 2;
             newNeonLasers.push({
               id: `neon-${Date.now()}-${i}`,
               x: prev.player.x + PLAYER_WIDTH / 2,
               y: prev.player.y + PLAYER_HEIGHT / 2,
-              velocityX: Math.cos(angle) * (400 + Math.random() * 300),
-              velocityY: Math.sin(angle) * (400 + Math.random() * 300),
-              bounces: 5,
-              life: 4,
+              velocityX: Math.cos(angle) * (400 + Math.random() * 200),
+              velocityY: Math.sin(angle) * (400 + Math.random() * 200),
+              bounces: 3,
+              life: 3,
             });
           }
-          newState.neonLasers = [...prev.neonLasers, ...newNeonLasers];
+          newState.neonLasers = [...prev.neonLasers.slice(-4), ...newNeonLasers]; // Limit total
           
           showSpeechBubble("🦁 RAWWWWR! NEON FURY! 🦁", 'excited');
           break;
@@ -845,41 +847,60 @@ export const useGameState = () => {
           break;
 
         case 'emp_grenade' as GiftAction:
-          // Hero THROWS an EMP grenade HIGH into the sky - Metal Slug / Contra style arc
+          // Check if EMP is available (has charges)
+          if (prev.empCharges <= 0) {
+            showSpeechBubble("⚡ EMP RELOADING... ⚡", 'normal');
+            break;
+          }
+          
+          // Hero THROWS an EMP grenade HIGH into the sky
           const grenade: EMPGrenade = {
             id: `emp-${Date.now()}`,
             x: prev.player.x + PLAYER_WIDTH / 2,
-            y: prev.player.y + PLAYER_HEIGHT + 30, // From TOP of hero (above head)
-            velocityX: 180, // Slower horizontal - goes more UP than forward
-            velocityY: 650, // MUCH higher launch - shoots to the sky!
-            timer: 1.8, // Longer air time for bigger arc
+            y: prev.player.y + PLAYER_HEIGHT + 30,
+            velocityX: 180,
+            velocityY: 650,
+            timer: 1.8,
           };
           newState.empGrenades = [...prev.empGrenades, grenade];
+          newState.empCharges = prev.empCharges - 1; // Use a charge
+          newState.empCooldown = 10; // 10 second cooldown to recharge
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          // Throw particles going UP
           newState.particles = [
             ...prev.particles, 
-            ...createParticles(prev.player.x + PLAYER_WIDTH / 2, prev.player.y + PLAYER_HEIGHT + 50, 15, 'spark', '#00ffff'),
-            ...createParticles(prev.player.x + PLAYER_WIDTH / 2, prev.player.y + PLAYER_HEIGHT + 80, 8, 'magic', '#ffff00'),
+            ...createParticles(prev.player.x + PLAYER_WIDTH / 2, prev.player.y + PLAYER_HEIGHT + 50, 10, 'spark', '#00ffff'),
           ];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 300);
           newState.score += 100;
-          showSpeechBubble("⚡ GRENADE UP! ⚡", 'excited');
+          showSpeechBubble(`⚡ GRENADE UP! [${newState.empCharges}/2] ⚡`, 'excited');
           break;
 
         case 'summon_support' as GiftAction:
-          // Summon 2 support units that fight alongside the hero - stagger based on existing count
-          const existingAllyCount = prev.supportUnits.filter(u => !u.isSelfDestructing).length;
-          const newSupportUnits = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield, existingAllyCount);
+          // Check if ally is available (has charges)
+          if (prev.allyCharges <= 0) {
+            showSpeechBubble("🤖 ALLIES RECHARGING... 🤖", 'normal');
+            break;
+          }
+          
+          // Limit to max 2 active allies at once
+          const activeAllies = prev.supportUnits.filter(u => !u.isSelfDestructing).length;
+          if (activeAllies >= 2) {
+            showSpeechBubble("🤖 MAX ALLIES DEPLOYED! 🤖", 'normal');
+            break;
+          }
+          
+          // Summon 1 support unit (not 2)
+          const newSupportUnits = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield, activeAllies).slice(0, 1);
           newState.supportUnits = [...prev.supportUnits, ...newSupportUnits];
+          newState.allyCharges = prev.allyCharges - 1; // Use a charge
+          newState.allyCooldown = 10; // 10 second cooldown to recharge
           newState.particles = [
             ...prev.particles, 
-            ...createParticles(prev.player.x - 50, 400, 20, 'magic', '#00ff88'),
-            ...createParticles(prev.player.x - 100, 400, 20, 'magic', '#ffaa00'),
+            ...createParticles(prev.player.x - 50, 400, 12, 'magic', '#00ff88'),
           ];
-          newState.screenShake = 0.5;
+          newState.screenShake = 0.3;
           newState.score += 200;
-          showSpeechBubble("🤖 REINFORCEMENTS INCOMING! 🤖", 'excited');
+          showSpeechBubble(`🤖 ALLY DEPLOYED! [${newState.allyCharges}/2] 🤖`, 'excited');
           break;
       }
       
@@ -1605,6 +1626,21 @@ export const useGameState = () => {
           newState.bossTransformFlash = Math.max(0, prev.bossTransformFlash - delta * 3);
         }
         
+        // EMP and Ally cooldown recharge - 10 second cooldown to restore charges
+        if (prev.empCooldown > 0) {
+          newState.empCooldown = prev.empCooldown - delta;
+          if (newState.empCooldown <= 0 && prev.empCharges < 2) {
+            newState.empCharges = Math.min(2, prev.empCharges + 1);
+            newState.empCooldown = prev.empCharges < 1 ? 10 : 0; // If still needs charge, reset timer
+          }
+        }
+        if (prev.allyCooldown > 0) {
+          newState.allyCooldown = prev.allyCooldown - delta;
+          if (newState.allyCooldown <= 0 && prev.allyCharges < 2) {
+            newState.allyCharges = Math.min(2, prev.allyCharges + 1);
+            newState.allyCooldown = prev.allyCharges < 1 ? 10 : 0; // If still needs charge, reset timer
+          }
+        }
         // Magic Dash auto-actions - NUKE ALL ENEMIES ON SCREEN
         if (prev.player.isMagicDashing) {
           newState.player = {
@@ -1861,18 +1897,18 @@ export const useGameState = () => {
             }
             newUnit.y = GROUND_Y; // Stay on ground
             
-            // Attack nearby enemies (only if not landing or self-destructing)
-            // ATTACKS ALL ENEMIES - Like Metal Slug allies - rapid fire at everything!
-            if (newUnit.attackCooldown <= 0 && !unit.isLanding && !unit.isSelfDestructing) {
+            // Attack nearby enemies - slower rate to reduce lag
+            const currentProjCount = (newState.supportProjectiles || []).length;
+            if (newUnit.attackCooldown <= 0 && !unit.isLanding && !unit.isSelfDestructing && currentProjCount < MAX_SUPPORT_PROJECTILES) {
               // Find all enemies in range - prioritize closest
               const enemiesInRange = newState.enemies
-                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x - 50 && e.x < unit.x + 600)
+                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x - 50 && e.x < unit.x + 500)
                 .sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
               
               const nearestEnemy = enemiesInRange[0];
               
               if (nearestEnemy) {
-                newUnit.attackCooldown = unit.type === 'mech' ? 0.4 : 0.2; // Even faster - like Contra turrets
+                newUnit.attackCooldown = unit.type === 'mech' ? 0.6 : 0.4; // Slower fire rate for performance
                 
                 // Get enemy center - screen coordinates style (higher Y = higher on screen)
                 const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
@@ -1906,12 +1942,11 @@ export const useGameState = () => {
                 };
                 newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                 
-                // Muzzle flash and tracer
+                // Minimal muzzle flash for performance
                 const muzzleColor = unit.type === 'mech' ? '#ff6600' : '#00ff88';
                 newState.particles = [
                   ...newState.particles,
-                  ...createParticles(startX, startY, 8, 'muzzle', muzzleColor),
-                  ...createParticles(startX + 15, startY, 4, 'spark', '#ffffff'),
+                  ...createParticles(startX, startY, 3, 'muzzle', muzzleColor),
                 ];
               }
             }
@@ -1920,14 +1955,15 @@ export const useGameState = () => {
           })
           .filter(unit => unit.timer > 0);
         
-        // Update support projectiles
+        // Update support projectiles - limit count for performance
         newState.supportProjectiles = (prev.supportProjectiles || [])
+          .slice(-MAX_SUPPORT_PROJECTILES) // Limit projectiles on screen
           .map(p => ({
             ...p,
             x: p.x + p.velocityX * delta,
             y: p.y + (p.velocityY || 0) * delta,
           }))
-          .filter(p => p.x < prev.cameraX + 1000);
+          .filter(p => p.x < prev.cameraX + 800 && p.x > prev.cameraX - 50);
         
         // Support projectile-enemy collision - DAMAGES ALL ENEMIES INCLUDING DRONES
         const hitProjectileIds: string[] = [];
