@@ -477,6 +477,64 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} />
         ))}
         
+        {/* Support Units - friendly mech and walker allies */}
+        {supportUnits.map(unit => (
+          <SupportUnitSprite key={unit.id} unit={unit} cameraX={cameraX} />
+        ))}
+        
+        {/* Support Unit Projectiles */}
+        {supportProjectiles.map(proj => {
+          const screenX = proj.x - cameraX;
+          const screenY = proj.y;
+          const isBomb = proj.type === 'ultra';
+          
+          return (
+            <motion.div
+              key={proj.id}
+              className="absolute pointer-events-none z-30"
+              style={{
+                left: screenX,
+                bottom: screenY,
+                width: isBomb ? 16 : 24,
+                height: isBomb ? 16 : 6,
+              }}
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+            >
+              {isBomb ? (
+                // Bomb projectile
+                <motion.div
+                  className="w-full h-full rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, #ff8800, #ff4400, #aa2200)',
+                    boxShadow: '0 0 12px #ff8800, 0 0 20px rgba(255,136,0,0.6)',
+                  }}
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 0.3, repeat: Infinity, ease: 'linear' }}
+                >
+                  <motion.div
+                    className="absolute inset-0 rounded-full"
+                    style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.4), transparent)' }}
+                    animate={{ scale: [1, 1.2, 1], opacity: [0.6, 1, 0.6] }}
+                    transition={{ duration: 0.15, repeat: Infinity }}
+                  />
+                </motion.div>
+              ) : (
+                // Laser projectile
+                <motion.div
+                  className="w-full h-full rounded-full"
+                  style={{
+                    background: 'linear-gradient(90deg, transparent, #00ff88, #00ffaa, #00ff88, transparent)',
+                    boxShadow: '0 0 10px #00ff88, 0 0 20px rgba(0,255,136,0.6)',
+                  }}
+                  animate={{ scaleX: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
+                  transition={{ duration: 0.1, repeat: Infinity }}
+                />
+              )}
+            </motion.div>
+          );
+        })}
+        
         <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
         
         {/* Floor Assets - dustbins, rats, debris */}

@@ -18,6 +18,7 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
       magic_dash: { border: 'rgba(255,0,255,0.6)', bg: 'rgba(255,0,255,0.2)', glow: '0 0 12px rgba(255,0,255,0.4)' },
       spawn_enemies: { border: 'rgba(255,50,50,0.6)', bg: 'rgba(255,50,50,0.2)', glow: '0 0 12px rgba(255,50,50,0.4)' },
       emp_grenade: { border: 'rgba(255,255,0,0.6)', bg: 'rgba(255,255,0,0.2)', glow: '0 0 12px rgba(255,255,0,0.4)' },
+      summon_support: { border: 'rgba(0,255,136,0.6)', bg: 'rgba(0,255,136,0.2)', glow: '0 0 12px rgba(0,255,136,0.4)' },
     };
     return styles[action] || { border: 'rgba(255,255,255,0.2)', bg: 'rgba(255,255,255,0.05)', glow: 'none' };
   };
@@ -33,7 +34,7 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
       }}
     >
       {/* Gift Grid - Mobile optimized larger buttons */}
-      <div className="grid grid-cols-7 gap-1.5 sm:gap-2">
+      <div className="grid grid-cols-8 gap-1.5 sm:gap-2">
         {gifts.map(gift => {
           const style = getGiftStyle(gift.action);
           const actionInfo = GIFT_ACTION_INFO[gift.action];
@@ -73,7 +74,8 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
                  gift.action === 'armor' ? 'DEF' :
                  gift.action === 'heal' ? 'HP' :
                  gift.action === 'magic_dash' ? 'ULT' :
-                 gift.action === 'spawn_enemies' ? '⚠️' : ''}
+                 gift.action === 'spawn_enemies' ? '⚠️' : 
+                 gift.action === 'summon_support' ? 'ALLY' : ''}
               </span>
             </motion.button>
           );
@@ -84,7 +86,8 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
       <div className="mt-1.5 pt-1.5 border-t border-white/15 flex justify-center gap-2 text-[8px] sm:text-[9px] text-gray-300">
         <span className="flex items-center gap-0.5"><span className="opacity-70">🌹</span>Move</span>
         <span className="flex items-center gap-0.5"><span className="opacity-70">🫰</span>Shoot</span>
-        <span className="flex items-center gap-0.5"><span className="opacity-70">⚡</span>EMP=✈️</span>
+        <span className="flex items-center gap-0.5"><span className="opacity-70">⚡</span>EMP</span>
+        <span className="flex items-center gap-0.5"><span className="opacity-70">🤖</span>Ally</span>
       </div>
     </div>
   );
