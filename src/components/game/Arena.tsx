@@ -523,11 +523,14 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           <SupportUnitSprite key={unit.id} unit={unit} cameraX={cameraX} />
         ))}
         
-        {/* Support Unit Projectiles - VISIBLE ALLY ATTACKS */}
+        {/* Support Unit Projectiles - SMALL VISIBLE ALLY ATTACKS */}
         {supportProjectiles.map(proj => {
           const screenX = proj.x - cameraX;
-          const screenY = proj.y;
+          // Convert game Y to screen Y (bottom-based positioning)
+          const screenY = proj.y + 40; // Offset to match floor level
           const isMech = proj.type === 'ultra';
+          
+          if (screenX < -20 || screenX > 700) return null;
           
           return (
             <motion.div
@@ -536,55 +539,29 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
               style={{
                 left: screenX,
                 bottom: screenY,
-                width: isMech ? 28 : 35,
-                height: isMech ? 14 : 8,
+                width: isMech ? 12 : 10,
+                height: isMech ? 6 : 4,
               }}
-              initial={{ scale: 0.5, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
             >
               {isMech ? (
-                // Mech heavy projectile - orange/yellow plasma
-                <motion.div
+                // Mech projectile - small orange dot
+                <div
                   className="w-full h-full rounded-full"
                   style={{
-                    background: 'radial-gradient(ellipse at 30% 50%, #fff, #ffaa00, #ff6600)',
-                    boxShadow: '0 0 15px #ff8800, 0 0 25px rgba(255,136,0,0.7)',
+                    background: '#ffaa00',
+                    boxShadow: '0 0 6px #ff8800, 0 0 12px #ff6600',
                   }}
-                  animate={{ scaleX: [1, 1.2, 1] }}
-                  transition={{ duration: 0.08, repeat: Infinity }}
-                >
-                  <motion.div
-                    className="absolute inset-0 rounded-full"
-                    style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.5), transparent)' }}
-                    animate={{ scale: [1, 1.3, 1], opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 0.1, repeat: Infinity }}
-                  />
-                </motion.div>
+                />
               ) : (
-                // Walker laser projectile - green/cyan energy
-                <motion.div
+                // Walker projectile - small green dot
+                <div
                   className="w-full h-full rounded-full"
                   style={{
-                    background: 'linear-gradient(90deg, transparent, #00ff88, #00ffcc, #fff, #00ffcc, #00ff88, transparent)',
-                    boxShadow: '0 0 12px #00ff88, 0 0 25px rgba(0,255,136,0.7)',
+                    background: '#00ff88',
+                    boxShadow: '0 0 6px #00ff88, 0 0 10px #00ffaa',
                   }}
-                  animate={{ scaleX: [1, 1.15, 1], opacity: [0.85, 1, 0.85] }}
-                  transition={{ duration: 0.06, repeat: Infinity }}
                 />
               )}
-              
-              {/* Trail effect */}
-              <motion.div
-                className="absolute right-full top-1/2 -translate-y-1/2"
-                style={{
-                  width: 40,
-                  height: isMech ? 8 : 4,
-                  background: isMech 
-                    ? 'linear-gradient(90deg, transparent, #ff880066, #ffaa00)'
-                    : 'linear-gradient(90deg, transparent, #00ff8866, #00ffaa)',
-                  filter: 'blur(2px)',
-                }}
-              />
             </motion.div>
           );
         })}

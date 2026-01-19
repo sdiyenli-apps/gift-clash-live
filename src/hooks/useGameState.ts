@@ -1982,78 +1982,82 @@ export const useGameState = () => {
           }))
           .filter(p => p.x < prev.cameraX + 800 && p.x > prev.cameraX - 50);
         
-        // Support projectile-enemy collision - DAMAGES ALL ENEMIES INCLUDING DRONES
-        const hitProjectileIds: string[] = [];
+        // Support projectile-enemy collision - DAMAGES ALL ENEMIES
+        const hitProjectileIds: Set<string> = new Set();
+        const enemyDamageMap: Map<number, number> = new Map(); // Track damage per enemy index
+        const enemyKillMap: Set<number> = new Set(); // Track killed enemies
+        
         (newState.supportProjectiles || []).forEach(proj => {
-          if (hitProjectileIds.includes(proj.id)) return; // Already hit something
+          if (hitProjectileIds.has(proj.id)) return;
           
-          newState.enemies.forEach((enemy, idx) => {
-            if (enemy.isDying || enemy.isSpawning) return;
-            if (hitProjectileIds.includes(proj.id)) return; // Already hit something
+          for (let idx = 0; idx < newState.enemies.length; idx++) {
+            const enemy = newState.enemies[idx];
+            if (enemy.isDying || enemy.isSpawning) continue;
+            if (hitProjectileIds.has(proj.id)) break;
             
-            // Get enemy's actual position - flying enemies have Y offset
+            // Get enemy position
             const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer' || enemy.type === 'jetrobot';
             const enemyY = isFlying ? (enemy.y || GROUND_Y) : GROUND_Y;
             const enemyCenterX = enemy.x + enemy.width / 2;
             const enemyCenterY = enemyY + enemy.height / 2;
             
-            // Use distance-based collision for more reliable hits
+            // Distance check
             const dx = proj.x - enemyCenterX;
             const dy = proj.y - enemyCenterY;
             const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // Much larger hit radius - 60 for flying, 40 for ground
-            const hitRadius = isFlying ? 60 : 40;
+            const hitRadius = isFlying ? 70 : 50; // Larger hit radius
             
             if (distance < hitRadius) {
-              hitProjectileIds.push(proj.id);
+              hitProjectileIds.add(proj.id);
               
-              let remainingDamage = proj.damage;
-              
-              // ARMOR/SHIELD FIRST - if enemy has shield, damage that first
-              if (newState.enemies[idx].bossShieldTimer && newState.enemies[idx].bossShieldTimer! > 0) {
-                // Boss shield active - reduced damage but still hits
-                remainingDamage = proj.damage * 0.3;
-                newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 8, 'spark', '#00ffff')];
+              // Calculate damage
+              let damage = proj.damage;
+              if (enemy.bossShieldTimer && enemy.bossShieldTimer > 0) {
+                damage = proj.damage * 0.3;
               }
               
-              // Apply damage to health
-              newState.enemies[idx] = {
-                ...newState.enemies[idx],
-                health: newState.enemies[idx].health - remainingDamage,
-              };
+              // Accumulate damage for this enemy
+              const currentDamage = enemyDamageMap.get(idx) || 0;
+              enemyDamageMap.set(idx, currentDamage + damage);
               
-              // Impact particles - different color for boss and flying
+              // Impact particles
               const impactColor = enemy.type === 'boss' ? '#ff00ff' : (isFlying ? '#00ffff' : '#00ff88');
-              newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 15, 'impact', impactColor)];
+              newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 3, 'impact', impactColor)];
               
-              // Screen shake for boss hits
               if (enemy.type === 'boss') {
-                newState.screenShake = Math.max(newState.screenShake, 0.15);
-              }
-              
-              // Check if enemy is killed
-              if (newState.enemies[idx].health <= 0) {
-                newState.enemies[idx].isDying = true;
-                newState.enemies[idx].deathTimer = 0.4;
-                const scoreMap: Record<string, number> = { boss: 2500, tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 400, bomber: 120, jetrobot: 150 };
-                newState.score += scoreMap[enemy.type] || 60;
-                newState.combo++;
-                newState.killStreak++;
-                
-                // Boss killed by ally - open portal!
-                if (enemy.type === 'boss') {
-                  newState.portalOpen = true;
-                  newState.portalX = enemy.x + enemy.width / 2;
-                  showSpeechBubble("🤖 ALLY KILLED THE BOSS! 🤖", 'excited');
-                }
+                newState.screenShake = Math.max(newState.screenShake, 0.1);
               }
             }
-          });
+          }
         });
         
-        // Remove projectiles that hit enemies
-        newState.supportProjectiles = (newState.supportProjectiles || []).filter(p => !hitProjectileIds.includes(p.id));
+        // Apply accumulated damage to enemies
+        enemyDamageMap.forEach((damage, idx) => {
+          const newHealth = newState.enemies[idx].health - damage;
+          newState.enemies[idx] = {
+            ...newState.enemies[idx],
+            health: newHealth,
+          };
+          
+          if (newHealth <= 0 && !newState.enemies[idx].isDying) {
+            newState.enemies[idx].isDying = true;
+            newState.enemies[idx].deathTimer = 0.4;
+            const enemy = newState.enemies[idx];
+            const scoreMap: Record<string, number> = { boss: 2500, tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 400, bomber: 120, jetrobot: 150 };
+            newState.score += scoreMap[enemy.type] || 60;
+            newState.combo++;
+            newState.killStreak++;
+            
+            if (enemy.type === 'boss') {
+              newState.portalOpen = true;
+              newState.portalX = enemy.x + enemy.width / 2;
+              showSpeechBubble("🤖 ALLY KILLED THE BOSS! 🤖", 'excited');
+            }
+          }
+        });
+        
+        // Remove projectiles that hit
+        newState.supportProjectiles = (newState.supportProjectiles || []).filter(p => !hitProjectileIds.has(p.id));
         
         // UPDATE NEON LASERS - BOUNCE OFF WALLS!
         const ARENA_TOP = 50;
