@@ -103,6 +103,10 @@ export interface Enemy {
   isRetreating?: boolean; // True when flying enemy is zooming back to original position
   droneVariant?: number; // Variant of drone sprite (1-4)
   targetType?: 'hero' | 'ally'; // Who this enemy is targeting (for indicators)
+  isSpiralDrone?: boolean; // Special drone that spirals while shooting
+  spiralAngle?: number; // Current angle in spiral pattern
+  spiralCenterX?: number; // Center of spiral
+  spiralCenterY?: number; // Center of spiral
 }
 
 // Bomb dropped by bomber enemies

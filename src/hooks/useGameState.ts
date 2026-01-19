@@ -286,10 +286,14 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       speed = 90 + wave * 3; 
       damage = 7 + Math.floor(wave / 2);
       
+      // 25% chance to be a spiral drone
+      const isSpiralDrone = Math.random() < 0.25;
+      const spiralCenterY = GROUND_Y + 120 + Math.random() * 80;
+      
       const droneEnemy = {
         id: `enemy-${x}-${Math.random()}`,
         x,
-        y: GROUND_Y + 60 + Math.random() * 50,
+        y: isSpiralDrone ? spiralCenterY : (GROUND_Y + 60 + Math.random() * 50),
         width,
         height,
         health,
@@ -299,12 +303,16 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         type: enemyType as 'drone',
         isDying: false,
         deathTimer: 0,
-        attackCooldown: 0,
+        attackCooldown: isSpiralDrone ? 0.5 : 0, // Spiral drones shoot faster
         animationPhase: Math.random() * Math.PI * 2,
         isSpawning: true,
         spawnTimer: 0.8,
         isFlying: true,
         flyHeight: 60 + Math.random() * 50,
+        isSpiralDrone,
+        spiralAngle: 0,
+        spiralCenterX: x,
+        spiralCenterY,
       };
       enemies.push(droneEnemy);
       continue;
@@ -889,18 +897,20 @@ export const useGameState = () => {
             break;
           }
           
-          // Summon 1 support unit (not 2)
-          const newSupportUnits = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield, activeAllies).slice(0, 1);
-          newState.supportUnits = [...prev.supportUnits, ...newSupportUnits];
-          newState.allyCharges = prev.allyCharges - 1; // Use a charge
-          newState.allyCooldown = 10; // 10 second cooldown to recharge
+          // Summon BOTH mech and walker - one of each type
+          const allySupportUnits = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield, activeAllies);
+          // Only add up to 2 total active allies
+          const unitsToAdd = allySupportUnits.slice(0, 2 - activeAllies);
+          newState.supportUnits = [...prev.supportUnits, ...unitsToAdd];
+          newState.allyCharges = prev.allyCharges - 1;
+          newState.allyCooldown = 10;
           newState.particles = [
             ...prev.particles, 
-            ...createParticles(prev.player.x - 50, 400, 12, 'magic', '#00ff88'),
+            ...createParticles(prev.player.x - 50, 400, 8, 'magic', '#00ff88'),
           ];
           newState.screenShake = 0.3;
           newState.score += 200;
-          showSpeechBubble(`🤖 ALLY DEPLOYED! [${newState.allyCharges}/2] 🤖`, 'excited');
+          showSpeechBubble(`🤖 ALLIES DEPLOYED! [${newState.allyCharges}/2] 🤖`, 'excited');
           break;
       }
       
@@ -2535,7 +2545,57 @@ export const useGameState = () => {
           const canMeleeAttack = isCloseForSlash && isOnScreen;
           const canRangedAttack = isCloseForRocket && isOnScreen;
 
-          // DRONE VERTICAL FLYING PATTERN - fly up and down the screen
+          // SPIRAL DRONE - flies in circles while shooting!
+          if ((enemy.type === 'drone' || enemy.type === 'flyer') && enemy.isSpiralDrone) {
+            const spiralSpeed = 3.0; // Rotation speed
+            const spiralRadius = 60; // Size of spiral
+            const newSpiralAngle = (enemy.spiralAngle || 0) + spiralSpeed * delta;
+            
+            // Move spiral center toward player
+            const centerX = (enemy.spiralCenterX || enemy.x) - enemy.speed * delta * 0.5;
+            const centerY = enemy.spiralCenterY || (GROUND_Y + 120);
+            
+            // Calculate position on spiral
+            const spiralX = centerX + Math.cos(newSpiralAngle) * spiralRadius;
+            const spiralY = centerY + Math.sin(newSpiralAngle) * spiralRadius;
+            
+            // Shoot while spiraling - every 0.6 seconds
+            if (enemy.attackCooldown <= 0 && enemy.x < prev.cameraX + 600) {
+              const laser: Projectile = {
+                id: `spiral-laser-${Date.now()}-${Math.random()}`,
+                x: enemy.x,
+                y: enemy.y + enemy.height / 2,
+                velocityX: -400,
+                velocityY: (prev.player.y - enemy.y) * 0.8,
+                damage: 5,
+                type: 'normal',
+              };
+              newState.enemyLasers = [...newState.enemyLasers, laser];
+              newState.particles = [...newState.particles, ...createParticles(enemy.x, enemy.y + enemy.height / 2, 3, 'muzzle', '#ff00ff')];
+              
+              return {
+                ...enemy,
+                x: spiralX,
+                y: spiralY,
+                spiralAngle: newSpiralAngle,
+                spiralCenterX: centerX,
+                attackCooldown: 0.6,
+                animationPhase: newAnimPhase,
+              };
+            }
+            
+            return {
+              ...enemy,
+              x: spiralX,
+              y: spiralY,
+              spiralAngle: newSpiralAngle,
+              spiralCenterX: centerX,
+              attackCooldown: Math.max(0, enemy.attackCooldown - delta),
+              animationPhase: newAnimPhase,
+            };
+          }
+
+          // DRONE VERTICAL FLYING PATTERN - fly up and down the screen (non-spiral)
           if (enemy.type === 'drone' || enemy.type === 'flyer') {
             // Vertical movement - drones fly UP and DOWN the screen
             const verticalSpeed = 2.5;
