@@ -800,6 +800,29 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         </div>
       )}
       
+      {/* TARGETING INDICATOR - shows who enemy is targeting */}
+      {!isBoss && !enemy.isDying && !enemy.isSpawning && enemy.targetType && (
+        <motion.div
+          className="absolute -top-10 left-1/2 -translate-x-1/2 text-xs font-black px-1.5 py-0.5 rounded whitespace-nowrap"
+          style={{
+            background: enemy.targetType === 'ally' 
+              ? 'linear-gradient(135deg, #00ff88, #00aa55)' 
+              : 'linear-gradient(135deg, #ff4400, #ff0000)',
+            color: enemy.targetType === 'ally' ? '#000' : '#fff',
+            boxShadow: enemy.targetType === 'ally' 
+              ? '0 0 8px #00ff88' 
+              : '0 0 8px #ff0000',
+          }}
+          animate={{ 
+            y: [0, -2, 0],
+            scale: [1, 1.05, 1],
+          }}
+          transition={{ duration: 0.5, repeat: Infinity }}
+        >
+          {enemy.targetType === 'ally' ? '🎯 ALLY' : '🎯 HERO'}
+        </motion.div>
+      )}
+      
       {/* Damage sparks */}
       {healthPercent < 35 && !enemy.isDying && (
         <>
