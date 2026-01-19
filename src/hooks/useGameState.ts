@@ -1882,7 +1882,7 @@ export const useGameState = () => {
                   y: startY,
                   velocityX: Math.cos(angle) * projSpeed,
                   velocityY: Math.sin(angle) * projSpeed,
-                  damage: unit.type === 'mech' ? 80 : 40,
+                  damage: 15, // Quarter of hero's 60 damage
                   type: unit.type === 'mech' ? 'ultra' : 'mega',
                 };
                 newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
@@ -1909,7 +1909,7 @@ export const useGameState = () => {
           }))
           .filter(p => p.x < prev.cameraX + 1000);
         
-        // Support projectile-enemy collision
+        // Support projectile-enemy collision - DAMAGES ARMOR/SHIELD FIRST, THEN HP
         (newState.supportProjectiles || []).forEach(proj => {
           newState.enemies.forEach((enemy, idx) => {
             if (enemy.isDying || enemy.isSpawning) return;
@@ -1918,20 +1918,45 @@ export const useGameState = () => {
               proj.x > enemy.x - 10 && proj.x < enemy.x + enemy.width + 10 &&
               proj.y > enemy.y - 10 && proj.y < enemy.y + enemy.height + 10
             ) {
+              let remainingDamage = proj.damage;
+              
+              // ARMOR/SHIELD FIRST - if enemy has shield, damage that first
+              if (newState.enemies[idx].bossShieldTimer && newState.enemies[idx].bossShieldTimer! > 0) {
+                // Boss shield active - reduced damage but still hits
+                remainingDamage = proj.damage * 0.3;
+                newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 8, 'spark', '#00ffff')];
+              }
+              
+              // Apply damage to health
               newState.enemies[idx] = {
                 ...newState.enemies[idx],
-                health: newState.enemies[idx].health - proj.damage,
+                health: newState.enemies[idx].health - remainingDamage,
               };
-              newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 10, 'impact', '#00ff88')];
+              
+              // Impact particles - different color for boss
+              const impactColor = enemy.type === 'boss' ? '#ff00ff' : '#00ff88';
+              newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 12, 'impact', impactColor)];
               newState.supportProjectiles = (newState.supportProjectiles || []).filter(p => p.id !== proj.id);
+              
+              // Screen shake for boss hits
+              if (enemy.type === 'boss') {
+                newState.screenShake = Math.max(newState.screenShake, 0.15);
+              }
               
               if (newState.enemies[idx].health <= 0) {
                 newState.enemies[idx].isDying = true;
                 newState.enemies[idx].deathTimer = 0.4;
-                const scoreMap: Record<string, number> = { tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 400, bomber: 120 };
+                const scoreMap: Record<string, number> = { boss: 2500, tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 400, bomber: 120 };
                 newState.score += scoreMap[enemy.type] || 60;
                 newState.combo++;
                 newState.killStreak++;
+                
+                // Boss killed by ally - open portal!
+                if (enemy.type === 'boss') {
+                  newState.portalOpen = true;
+                  newState.portalX = enemy.x + enemy.width / 2;
+                  showSpeechBubble("🤖 ALLY KILLED THE BOSS! 🤖", 'excited');
+                }
               }
             }
           });
