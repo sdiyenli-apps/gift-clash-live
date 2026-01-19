@@ -1921,21 +1921,31 @@ export const useGameState = () => {
           .filter(p => p.x < prev.cameraX + 1000);
         
         // Support projectile-enemy collision - DAMAGES ALL ENEMIES INCLUDING DRONES
+        const hitProjectileIds: string[] = [];
         (newState.supportProjectiles || []).forEach(proj => {
+          if (hitProjectileIds.includes(proj.id)) return; // Already hit something
+          
           newState.enemies.forEach((enemy, idx) => {
             if (enemy.isDying || enemy.isSpawning) return;
+            if (hitProjectileIds.includes(proj.id)) return; // Already hit something
             
-            // Get enemy's actual Y position for flying enemies
+            // Get enemy's actual position - flying enemies have Y offset
             const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer' || enemy.type === 'jetrobot';
             const enemyY = isFlying ? (enemy.y || GROUND_Y) : GROUND_Y;
+            const enemyCenterX = enemy.x + enemy.width / 2;
+            const enemyCenterY = enemyY + enemy.height / 2;
             
-            // Larger hitbox for flying enemies to make hits easier
-            const hitboxPadding = isFlying ? 25 : 10;
+            // Use distance-based collision for more reliable hits
+            const dx = proj.x - enemyCenterX;
+            const dy = proj.y - enemyCenterY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
             
-            if (
-              proj.x > enemy.x - hitboxPadding && proj.x < enemy.x + enemy.width + hitboxPadding &&
-              proj.y > enemyY - hitboxPadding && proj.y < enemyY + enemy.height + hitboxPadding
-            ) {
+            // Much larger hit radius - 60 for flying, 40 for ground
+            const hitRadius = isFlying ? 60 : 40;
+            
+            if (distance < hitRadius) {
+              hitProjectileIds.push(proj.id);
+              
               let remainingDamage = proj.damage;
               
               // ARMOR/SHIELD FIRST - if enemy has shield, damage that first
@@ -1951,20 +1961,20 @@ export const useGameState = () => {
                 health: newState.enemies[idx].health - remainingDamage,
               };
               
-              // Impact particles - different color for boss
-              const impactColor = enemy.type === 'boss' ? '#ff00ff' : '#00ff88';
-              newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 12, 'impact', impactColor)];
-              newState.supportProjectiles = (newState.supportProjectiles || []).filter(p => p.id !== proj.id);
+              // Impact particles - different color for boss and flying
+              const impactColor = enemy.type === 'boss' ? '#ff00ff' : (isFlying ? '#00ffff' : '#00ff88');
+              newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 15, 'impact', impactColor)];
               
               // Screen shake for boss hits
               if (enemy.type === 'boss') {
                 newState.screenShake = Math.max(newState.screenShake, 0.15);
               }
               
+              // Check if enemy is killed
               if (newState.enemies[idx].health <= 0) {
                 newState.enemies[idx].isDying = true;
                 newState.enemies[idx].deathTimer = 0.4;
-                const scoreMap: Record<string, number> = { boss: 2500, tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 400, bomber: 120 };
+                const scoreMap: Record<string, number> = { boss: 2500, tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 400, bomber: 120, jetrobot: 150 };
                 newState.score += scoreMap[enemy.type] || 60;
                 newState.combo++;
                 newState.killStreak++;
@@ -1979,6 +1989,9 @@ export const useGameState = () => {
             }
           });
         });
+        
+        // Remove projectiles that hit enemies
+        newState.supportProjectiles = (newState.supportProjectiles || []).filter(p => !hitProjectileIds.includes(p.id));
         
         // UPDATE NEON LASERS - BOUNCE OFF WALLS!
         const ARENA_TOP = 50;
