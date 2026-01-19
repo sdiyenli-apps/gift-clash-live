@@ -1857,25 +1857,35 @@ export const useGameState = () => {
             newUnit.y = GROUND_Y; // Stay on ground
             
             // Attack nearby enemies (only if not landing or self-destructing)
-            // NOW ATTACKS BOSS TOO!
+            // ATTACKS ALL ENEMIES INCLUDING DRONES AND BOSS!
             if (newUnit.attackCooldown <= 0 && !unit.isLanding && !unit.isSelfDestructing) {
-              // Find nearest enemy - check all enemies INCLUDING BOSS
+              // Find nearest enemy - check all enemies INCLUDING flying drones and boss
               const nearestEnemy = newState.enemies
                 .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x && e.x < unit.x + 500)
-                .sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x))[0];
+                .sort((a, b) => {
+                  // Calculate 2D distance for proper drone targeting
+                  const distA = Math.sqrt(Math.pow(a.x - unit.x, 2) + Math.pow((a.y || GROUND_Y) - GROUND_Y, 2));
+                  const distB = Math.sqrt(Math.pow(b.x - unit.x, 2) + Math.pow((b.y || GROUND_Y) - GROUND_Y, 2));
+                  return distA - distB;
+                })[0];
               
               if (nearestEnemy) {
-                newUnit.attackCooldown = unit.type === 'mech' ? 1.2 : 0.6; // Faster attack rate
+                newUnit.attackCooldown = unit.type === 'mech' ? 1.0 : 0.5; // Faster attack rate
                 
-                // Calculate target Y for projectile (aim at enemy center)
-                const targetY = nearestEnemy.y + nearestEnemy.height / 2;
-                const startY = GROUND_Y + 40; // Fire from chest height
+                // Calculate target Y for projectile - use enemy's ACTUAL position
+                const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
+                const enemyCenterY = isFlying 
+                  ? (nearestEnemy.y || GROUND_Y) + nearestEnemy.height / 2
+                  : GROUND_Y + nearestEnemy.height / 2;
+                
+                // Ally fires from higher up to reach drones
+                const startY = GROUND_Y + (unit.type === 'mech' ? 70 : 50); // Higher firing position
                 const dx = nearestEnemy.x - unit.x;
-                const dy = targetY - startY;
+                const dy = enemyCenterY - startY;
                 const angle = Math.atan2(dy, dx);
                 
-                // Create projectile aimed at enemy
-                const projSpeed = unit.type === 'mech' ? 450 : 700;
+                // Create projectile aimed at enemy - faster for drones
+                const projSpeed = isFlying ? 800 : (unit.type === 'mech' ? 500 : 700);
                 const proj: Projectile = {
                   id: `support-proj-${Date.now()}-${Math.random()}`,
                   x: unit.x + unit.width,
@@ -1884,6 +1894,7 @@ export const useGameState = () => {
                   velocityY: Math.sin(angle) * projSpeed,
                   damage: 15, // Quarter of hero's 60 damage
                   type: unit.type === 'mech' ? 'ultra' : 'mega',
+                  isAllyProjectile: true, // Mark as ally projectile to bypass EMP-only check
                 };
                 newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                 
@@ -1909,14 +1920,21 @@ export const useGameState = () => {
           }))
           .filter(p => p.x < prev.cameraX + 1000);
         
-        // Support projectile-enemy collision - DAMAGES ARMOR/SHIELD FIRST, THEN HP
+        // Support projectile-enemy collision - DAMAGES ALL ENEMIES INCLUDING DRONES
         (newState.supportProjectiles || []).forEach(proj => {
           newState.enemies.forEach((enemy, idx) => {
             if (enemy.isDying || enemy.isSpawning) return;
             
+            // Get enemy's actual Y position for flying enemies
+            const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer' || enemy.type === 'jetrobot';
+            const enemyY = isFlying ? (enemy.y || GROUND_Y) : GROUND_Y;
+            
+            // Larger hitbox for flying enemies to make hits easier
+            const hitboxPadding = isFlying ? 25 : 10;
+            
             if (
-              proj.x > enemy.x - 10 && proj.x < enemy.x + enemy.width + 10 &&
-              proj.y > enemy.y - 10 && proj.y < enemy.y + enemy.height + 10
+              proj.x > enemy.x - hitboxPadding && proj.x < enemy.x + enemy.width + hitboxPadding &&
+              proj.y > enemyY - hitboxPadding && proj.y < enemyY + enemy.height + hitboxPadding
             ) {
               let remainingDamage = proj.damage;
               

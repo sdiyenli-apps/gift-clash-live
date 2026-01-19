@@ -45,6 +45,7 @@ export interface Projectile {
   velocityY: number;
   damage: number;
   type: 'normal' | 'mega' | 'ultra';
+  isAllyProjectile?: boolean; // Marks projectile as from ally - can hit all enemy types
 }
 
 // Support unit that fights alongside the hero
