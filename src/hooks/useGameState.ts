@@ -7,21 +7,21 @@ import {
 } from '@/types/game';
 
 const GRAVITY = 0;
-const GROUND_Y = 160; // Raised ground level to match new floor height
-const PLAYER_WIDTH = 24; // Smaller for mobile
-const PLAYER_HEIGHT = 42; // Smaller for mobile
+const GROUND_Y = 120; // Lowered ground for zoomed out view
+const PLAYER_WIDTH = 32; // Slightly larger hitbox
+const PLAYER_HEIGHT = 48; // Taller for run-and-gun style
 const BASE_LEVEL_LENGTH = 12000; // Longer levels
 const MAX_WAVES = 1000;
 const HELP_REQUEST_DELAY = 8000;
-const KILL_RADIUS = 60;
-const ENEMY_MIN_DISTANCE = 80; // Regular enemies keep this distance (collision prevention)
-const ENEMY_COLLISION_DISTANCE = 50; // Enemies stop here - no overlap with hero
-const SLASH_ATTACK_RANGE = 120; // Close range = slash/melee attack
-const ROCKET_ATTACK_RANGE = 400; // Far range = rocket/ranged attack
-const BOSS_FIREBALL_INTERVAL = 5;
-const BOSS_MEGA_ATTACK_THRESHOLD = 0.3;
-const BOSS_KEEP_DISTANCE = 450; // Boss keeps FAR away from player - ranged combat only
-const HERO_FIXED_SCREEN_X = 60; // Hero stays on LEFT side of screen
+const KILL_RADIUS = 70; // Bigger kill radius
+const ENEMY_MIN_DISTANCE = 100; // More space between enemies
+const ENEMY_COLLISION_DISTANCE = 60; // Enemies stop here - no overlap with hero
+const SLASH_ATTACK_RANGE = 80; // Closer melee range for better gameplay
+const ROCKET_ATTACK_RANGE = 350; // Ranged attack distance
+const BOSS_FIREBALL_INTERVAL = 4; // Faster boss attacks
+const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
+const BOSS_KEEP_DISTANCE = 400; // Boss combat distance
+const HERO_FIXED_SCREEN_X = 50; // Hero position on screen
 
 // Boss attack types
 type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield';

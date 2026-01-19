@@ -479,11 +479,11 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
         {/* Floor Assets - dustbins, rats, debris */}
         <FloorAssets cameraX={cameraX} levelLength={levelLength} />
         
-        {/* Floor - RAISED to just below HP bar - Concrete with cyberpunk styling */}
+        {/* Floor - Adjusted for zoomed out view */}
         <div 
           className="absolute bottom-0 left-0 right-0 z-5"
           style={{
-            height: 160, // Raised ground height
+            height: 120, // Lowered ground for zoom out
           }}
         >
           {/* Concrete base texture */}
