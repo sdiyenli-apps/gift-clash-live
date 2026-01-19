@@ -345,7 +345,8 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
               alt={enemy.type}
               className="w-full h-full object-contain"
               style={{
-                // Face LEFT toward the hero (no flip needed - default faces left)
+                // Flip to face LEFT toward the hero (hero is on the left)
+                transform: 'scaleX(-1)',
                 // Make boss phase 3 image super bright and visible
                 filter: isBoss && bossPhase === 3 
                   ? 'brightness(1.4) saturate(1.5) contrast(1.2)' 

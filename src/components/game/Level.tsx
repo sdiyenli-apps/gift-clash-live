@@ -46,7 +46,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
   const environmentalElements = useMemo(() => {
     const elements: JSX.Element[] = [];
     
-    // Foreground structures (parallax fast)
+    // Foreground structures (parallax fast) - aligned with floor
     for (let x = 0; x < cameraX + 1500; x += 500) {
       const parallaxX = x - (cameraX * 0.9);
       if (parallaxX >= -200 && parallaxX <= 1200) {
@@ -57,7 +57,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: parallaxX,
-              bottom: 80,
+              bottom: 118, // Aligned with floor level
               width: 80 + ((x * 3) % 60),
               height,
               background: `linear-gradient(180deg, ${currentZone.color}22, transparent)`,
@@ -198,7 +198,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: screenX,
-              bottom: 80,
+              bottom: 118, // Aligned with floor level
               width: obstacle.width,
               height: obstacle.height,
             }}
