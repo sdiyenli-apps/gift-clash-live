@@ -34,8 +34,8 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   // Check if currently attacking (cooldown just started)
   const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : 0.4);
   
-  // Calculate bottom position - account for self-destruct flying up and larger mech
-  const baseBottom = isMech ? 108 : 118; // Mech sits slightly lower due to larger size
+  // Calculate bottom position - account for self-destruct flying up and larger units
+  const baseBottom = isMech ? 95 : 110; // Larger units sit lower to stay grounded
   const selfDestructYOffset = isSelfDestructing ? (unit.y - 120) : 0; // unit.y tracks actual Y during self-destruct
   
   return (
