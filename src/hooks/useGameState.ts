@@ -845,21 +845,26 @@ export const useGameState = () => {
           break;
 
         case 'emp_grenade' as GiftAction:
-          // Hero THROWS an EMP grenade - launches from TOP of hero
+          // Hero THROWS an EMP grenade HIGH into the sky - Metal Slug / Contra style arc
           const grenade: EMPGrenade = {
             id: `emp-${Date.now()}`,
             x: prev.player.x + PLAYER_WIDTH / 2,
             y: prev.player.y + PLAYER_HEIGHT + 30, // From TOP of hero (above head)
-            velocityX: 300,
-            velocityY: 350, // Higher arc since starting from top
-            timer: 1.2, // Explodes after 1.2 seconds
+            velocityX: 180, // Slower horizontal - goes more UP than forward
+            velocityY: 650, // MUCH higher launch - shoots to the sky!
+            timer: 1.8, // Longer air time for bigger arc
           };
           newState.empGrenades = [...prev.empGrenades, grenade];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x + PLAYER_WIDTH / 2, prev.player.y + PLAYER_HEIGHT + 30, 12, 'spark', '#00ffff')];
+          // Throw particles going UP
+          newState.particles = [
+            ...prev.particles, 
+            ...createParticles(prev.player.x + PLAYER_WIDTH / 2, prev.player.y + PLAYER_HEIGHT + 50, 15, 'spark', '#00ffff'),
+            ...createParticles(prev.player.x + PLAYER_WIDTH / 2, prev.player.y + PLAYER_HEIGHT + 80, 8, 'magic', '#ffff00'),
+          ];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 300);
           newState.score += 100;
-          showSpeechBubble("⚡ EMP OUT! YEET! ⚡", 'excited');
+          showSpeechBubble("⚡ GRENADE UP! ⚡", 'excited');
           break;
 
         case 'summon_support' as GiftAction:
@@ -1366,7 +1371,7 @@ export const useGameState = () => {
             ...g,
             x: g.x + g.velocityX * delta,
             y: g.y + g.velocityY * delta,
-            velocityY: g.velocityY - 600 * delta, // Gravity pulls down (negative = up on screen)
+            velocityY: g.velocityY - 450 * delta, // Slower gravity for higher arc
             timer: g.timer - delta,
           }))
           .filter(g => g.timer > 0);
@@ -1857,52 +1862,56 @@ export const useGameState = () => {
             newUnit.y = GROUND_Y; // Stay on ground
             
             // Attack nearby enemies (only if not landing or self-destructing)
-            // ATTACKS ALL ENEMIES INCLUDING DRONES AND BOSS!
+            // ATTACKS ALL ENEMIES - Like Metal Slug allies - rapid fire at everything!
             if (newUnit.attackCooldown <= 0 && !unit.isLanding && !unit.isSelfDestructing) {
-              // Find nearest enemy - check all enemies INCLUDING flying drones and boss
-              const nearestEnemy = newState.enemies
-                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x && e.x < unit.x + 500)
-                .sort((a, b) => {
-                  // Calculate 2D distance for proper drone targeting
-                  const distA = Math.sqrt(Math.pow(a.x - unit.x, 2) + Math.pow((a.y || GROUND_Y) - GROUND_Y, 2));
-                  const distB = Math.sqrt(Math.pow(b.x - unit.x, 2) + Math.pow((b.y || GROUND_Y) - GROUND_Y, 2));
-                  return distA - distB;
-                })[0];
+              // Find all enemies in range - prioritize closest
+              const enemiesInRange = newState.enemies
+                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x - 50 && e.x < unit.x + 600)
+                .sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+              
+              const nearestEnemy = enemiesInRange[0];
               
               if (nearestEnemy) {
-                newUnit.attackCooldown = unit.type === 'mech' ? 0.6 : 0.3; // MUCH FASTER attack rate - continuous fire
+                newUnit.attackCooldown = unit.type === 'mech' ? 0.4 : 0.2; // Even faster - like Contra turrets
                 
-                // Calculate target Y for projectile - use enemy's ACTUAL position
+                // Get enemy center - screen coordinates style (higher Y = higher on screen)
                 const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
-                const enemyCenterY = isFlying 
-                  ? (nearestEnemy.y || GROUND_Y) + nearestEnemy.height / 2
-                  : GROUND_Y + nearestEnemy.height / 2;
+                const enemyGameY = nearestEnemy.y || GROUND_Y;
+                const enemyCenterX = nearestEnemy.x + nearestEnemy.width / 2;
+                const enemyCenterY = enemyGameY + nearestEnemy.height / 2;
                 
-                // Ally fires from higher up to reach drones
-                const startY = GROUND_Y + (unit.type === 'mech' ? 70 : 50); // Higher firing position
-                const dx = nearestEnemy.x - unit.x;
+                // Ally fires from chest level
+                const startY = GROUND_Y + 45;
+                const startX = unit.x + unit.width + 5;
+                
+                // Calculate angle to enemy
+                const dx = enemyCenterX - startX;
                 const dy = enemyCenterY - startY;
-                const angle = Math.atan2(dy, dx);
+                const distance = Math.sqrt(dx * dx + dy * dy);
                 
-                // Create projectile aimed at enemy - faster for drones
-                const projSpeed = isFlying ? 800 : (unit.type === 'mech' ? 500 : 700);
+                // Normalize and set speed - faster projectiles for reliable hits
+                const projSpeed = 1200; // Very fast like arcade shooters
+                const velocityX = (dx / distance) * projSpeed;
+                const velocityY = (dy / distance) * projSpeed;
+                
                 const proj: Projectile = {
-                  id: `support-proj-${Date.now()}-${Math.random()}`,
-                  x: unit.x + unit.width,
+                  id: `ally-${unit.type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                  x: startX,
                   y: startY,
-                  velocityX: Math.cos(angle) * projSpeed,
-                  velocityY: Math.sin(angle) * projSpeed,
+                  velocityX: velocityX,
+                  velocityY: velocityY,
                   damage: 15, // Quarter of hero's 60 damage
                   type: unit.type === 'mech' ? 'ultra' : 'mega',
-                  isAllyProjectile: true, // Mark as ally projectile to bypass EMP-only check
+                  isAllyProjectile: true,
                 };
                 newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                 
-                // Enhanced muzzle flash effect
+                // Muzzle flash and tracer
+                const muzzleColor = unit.type === 'mech' ? '#ff6600' : '#00ff88';
                 newState.particles = [
                   ...newState.particles,
-                  ...createParticles(unit.x + unit.width, startY, 12, 'muzzle', unit.type === 'mech' ? '#ff8800' : '#00ff88'),
-                  ...createParticles(unit.x + unit.width + 10, startY, 6, 'spark', '#ffff00'),
+                  ...createParticles(startX, startY, 8, 'muzzle', muzzleColor),
+                  ...createParticles(startX + 15, startY, 4, 'spark', '#ffffff'),
                 ];
               }
             }
