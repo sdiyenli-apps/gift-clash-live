@@ -1870,7 +1870,7 @@ export const useGameState = () => {
                 })[0];
               
               if (nearestEnemy) {
-                newUnit.attackCooldown = unit.type === 'mech' ? 1.0 : 0.5; // Faster attack rate
+                newUnit.attackCooldown = unit.type === 'mech' ? 0.6 : 0.3; // MUCH FASTER attack rate - continuous fire
                 
                 // Calculate target Y for projectile - use enemy's ACTUAL position
                 const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';

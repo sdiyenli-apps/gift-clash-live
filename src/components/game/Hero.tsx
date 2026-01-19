@@ -280,53 +280,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           </>
         )}
         
-        {/* Laser beam - FROM GUN */}
-        {player.isShooting && (
-          <motion.div
-            initial={{ scaleX: 0, opacity: 1 }}
-            animate={{ scaleX: 1, opacity: 0.95 }}
-            transition={{ duration: 0.1 }}
-            className="absolute"
-            style={{ 
-              left: heroWidth - 5,
-              top: '35%',
-              transform: 'translateY(-50%) rotate(3deg)',
-              width: 300,
-              height: 10,
-              background: player.isMagicDashing
-                ? 'linear-gradient(90deg, #fff 0%, #ff00ff 15%, #00ffff 50%, rgba(0,255,255,0.3) 85%, transparent 100%)'
-                : 'linear-gradient(90deg, #fff 0%, #00ffff 15%, #0088ff 50%, rgba(0,136,255,0.3) 85%, transparent 100%)',
-              transformOrigin: 'left center',
-              boxShadow: player.isMagicDashing 
-                ? '0 0 25px #ff00ff, 0 0 40px #00ffff' 
-                : '0 0 20px #00ffff, 0 0 30px #0088ff',
-              borderRadius: '0 50% 50% 0',
-            }}
-          />
-        )}
-        
-        {/* Secondary laser glow */}
-        {player.isShooting && (
-          <motion.div
-            initial={{ scaleX: 0, opacity: 0.6 }}
-            animate={{ scaleX: 1, opacity: 0.35 }}
-            transition={{ duration: 0.12 }}
-            className="absolute"
-            style={{ 
-              left: heroWidth - 5,
-              top: '35%',
-              transform: 'translateY(-50%) rotate(3deg)',
-              width: 250,
-              height: 20,
-              background: player.isMagicDashing
-                ? 'linear-gradient(90deg, rgba(255,0,255,0.6), rgba(0,255,255,0.3), transparent)'
-                : 'linear-gradient(90deg, rgba(0,255,255,0.6), rgba(0,136,255,0.3), transparent)',
-              transformOrigin: 'left center',
-              filter: 'blur(6px)',
-              borderRadius: '0 50% 50% 0',
-            }}
-          />
-        )}
+        {/* REMOVED LASER BEAM LINE - Now only projectiles show */}
         
         {/* Magic dash trail */}
         {player.isMagicDashing && (
