@@ -2001,12 +2001,15 @@ export const useGameState = () => {
                   health: newState.enemies[enemyIdx].health - proj.damage,
                 };
                 
-                newState.particles = [...newState.particles, ...createParticles(
-                  proj.x, proj.y, proj.type === 'ultra' ? 15 : 8, 'spark', 
-                  proj.type === 'ultra' ? '#ff00ff' : '#ffff00'
-                )];
+                // ENHANCED IMPACT FX - more particles and screen feedback
+                newState.particles = [
+                  ...newState.particles, 
+                  ...createParticles(proj.x, proj.y, proj.type === 'ultra' ? 18 : 12, 'impact', 
+                    proj.type === 'ultra' ? '#ff00ff' : '#00ffff'),
+                  ...createParticles(enemy.x + enemy.width/2, enemy.y + enemy.height/2, 8, 'spark', '#ffff00'),
+                ];
                 
-                newState.screenShake = Math.max(newState.screenShake, 0.1);
+                newState.screenShake = Math.max(newState.screenShake, proj.type === 'ultra' ? 0.2 : 0.1);
                 
                 if (newState.enemies[enemyIdx].health <= 0) {
                   newState.enemies[enemyIdx].isDying = true;
@@ -2584,8 +2587,42 @@ export const useGameState = () => {
             };
           }
 
+          // SENTINEL LASER ATTACK - powerful ground mech with screen flash!
+          if (enemy.type === 'sentinel' && canRangedAttack && enemy.attackCooldown <= 0 && Math.random() > 0.5) {
+            // Sentinel fires POWERFUL laser with screen flash effect!
+            const sentinelLaser: Projectile = {
+              id: `sentinel-laser-${Date.now()}-${Math.random()}`,
+              x: enemy.x - 10,
+              y: currentY + enemy.height * 0.4,
+              velocityX: -600,
+              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - currentY - enemy.height * 0.4) * 0.3,
+              damage: 18,
+              type: 'ultra',
+            };
+            newState.enemyLasers = [...newState.enemyLasers, sentinelLaser];
+            
+            // SCREEN FLASH when sentinel fires!
+            newState.redFlash = 0.4;
+            newState.screenShake = 0.35;
+            
+            // Hot pink laser muzzle flash particles
+            newState.particles = [
+              ...newState.particles, 
+              ...createParticles(enemy.x - 5, currentY + enemy.height * 0.4, 15, 'laser', '#ff0066'),
+              ...createParticles(enemy.x - 5, currentY + enemy.height * 0.4, 10, 'muzzle', '#ff00ff'),
+            ];
+            
+            return { 
+              ...enemy, 
+              y: currentY, 
+              attackCooldown: 1.8, // Slower attack but more powerful
+              animationPhase: newAnimPhase,
+              isSlashing: false,
+            };
+          }
+
           // ROCKET/RANGED ATTACK - when further from hero
-          if (canRangedAttack && enemy.attackCooldown <= 0 && Math.random() > 0.6) {
+          if (canRangedAttack && enemy.attackCooldown <= 0 && Math.random() > 0.6 && enemy.type !== 'sentinel') {
             // Different projectile based on enemy type
             const isHeavy = enemy.type === 'mech' || enemy.type === 'tank';
             const rocketSpeed = isHeavy ? -380 : -450;
