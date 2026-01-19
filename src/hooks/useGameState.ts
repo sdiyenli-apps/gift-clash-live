@@ -1918,46 +1918,53 @@ export const useGameState = () => {
               const nearestEnemy = enemiesInRange[0];
               
               if (nearestEnemy) {
-                newUnit.attackCooldown = unit.type === 'mech' ? 0.6 : 0.4; // Slower fire rate for performance
+                newUnit.attackCooldown = unit.type === 'mech' ? 0.6 : 0.4;
                 
-                // Get enemy center - screen coordinates style (higher Y = higher on screen)
+                // Get enemy position - ground enemies are AT ground level, flying enemies have Y offset
                 const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
-                const enemyGameY = nearestEnemy.y || GROUND_Y;
-                const enemyCenterX = nearestEnemy.x + nearestEnemy.width / 2;
-                const enemyCenterY = enemyGameY + nearestEnemy.height / 2;
                 
-                // Ally fires from chest level
-                const startY = GROUND_Y + 45;
+                // For ground enemies, they stand ON the ground - their feet are at GROUND_Y
+                // So their center is at GROUND_Y + height/2
+                // For flying enemies, their Y is already set above ground
+                const enemyCenterX = nearestEnemy.x + nearestEnemy.width / 2;
+                const enemyCenterY = isFlying 
+                  ? (nearestEnemy.y || GROUND_Y) + nearestEnemy.height / 2
+                  : GROUND_Y + nearestEnemy.height / 2;
+                
+                // Ally fires from slightly above ground (chest level of ally unit)
+                const startY = GROUND_Y + 35; // Lower firing position to hit ground enemies better
                 const startX = unit.x + unit.width + 5;
                 
-                // Calculate angle to enemy
+                // Calculate direction to enemy center
                 const dx = enemyCenterX - startX;
                 const dy = enemyCenterY - startY;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+                const dist = Math.sqrt(dx * dx + dy * dy);
                 
-                // Normalize and set speed - faster projectiles for reliable hits
-                const projSpeed = 1200; // Very fast like arcade shooters
-                const velocityX = (dx / distance) * projSpeed;
-                const velocityY = (dy / distance) * projSpeed;
-                
-                const proj: Projectile = {
-                  id: `ally-${unit.type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
-                  x: startX,
-                  y: startY,
-                  velocityX: velocityX,
-                  velocityY: velocityY,
-                  damage: 15, // Quarter of hero's 60 damage
-                  type: unit.type === 'mech' ? 'ultra' : 'mega',
-                  isAllyProjectile: true,
-                };
-                newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
-                
-                // Minimal muzzle flash for performance
-                const muzzleColor = unit.type === 'mech' ? '#ff6600' : '#00ff88';
-                newState.particles = [
-                  ...newState.particles,
-                  ...createParticles(startX, startY, 3, 'muzzle', muzzleColor),
-                ];
+                // Prevent division by zero
+                if (dist > 0) {
+                  const projSpeed = 1000;
+                  const velocityX = (dx / dist) * projSpeed;
+                  const velocityY = (dy / dist) * projSpeed;
+                  
+                  const proj: Projectile = {
+                    id: `ally-${unit.type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
+                    x: startX,
+                    y: startY,
+                    velocityX: velocityX,
+                    velocityY: velocityY,
+                    damage: 15,
+                    type: unit.type === 'mech' ? 'ultra' : 'mega',
+                    isAllyProjectile: true,
+                  };
+                  newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
+                  
+                  // Muzzle flash
+                  const muzzleColor = unit.type === 'mech' ? '#ff6600' : '#00ff88';
+                  newState.particles = [
+                    ...newState.particles,
+                    ...createParticles(startX, startY, 2, 'muzzle', muzzleColor),
+                  ];
+                }
               }
             }
             
