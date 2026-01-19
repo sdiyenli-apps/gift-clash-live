@@ -18,7 +18,7 @@ export interface GiftEvent {
   action: GiftAction;
 }
 
-// 7 Core actions
+// 8 Core actions
 export type GiftAction = 
   | 'move_forward'
   | 'shoot'
@@ -26,7 +26,8 @@ export type GiftAction =
   | 'heal'
   | 'magic_dash'
   | 'spawn_enemies'
-  | 'emp_grenade';
+  | 'emp_grenade'
+  | 'summon_support';
 
 export interface GiftActionConfig {
   action: GiftAction;
@@ -44,6 +45,24 @@ export interface Projectile {
   velocityY: number;
   damage: number;
   type: 'normal' | 'mega' | 'ultra';
+}
+
+// Support unit that fights alongside the hero
+export interface SupportUnit {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  health: number;
+  maxHealth: number;
+  shield: number;
+  maxShield: number;
+  type: 'mech' | 'walker';
+  timer: number; // Seconds remaining
+  attackCooldown: number;
+  isLanding?: boolean;
+  landingTimer?: number;
 }
 
 export interface Enemy {
@@ -237,7 +256,7 @@ export interface Gifter {
   giftCount: number;
 }
 
-// 7 CORE GIFTS - Simple and clear!
+// 8 CORE GIFTS - Simple and clear!
 export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   // MOVE FORWARD
   rose: { id: 'rose', name: 'Rose', tier: 'small', diamonds: 1, emoji: '🌹', action: 'move_forward' },
@@ -259,6 +278,9 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   
   // EMP GRENADE - Kills ALL flying enemies (drones, bombers, flyers)!
   lightning: { id: 'lightning', name: 'EMP Grenade', tier: 'medium', diamonds: 75, emoji: '⚡', action: 'emp_grenade' },
+  
+  // SUMMON SUPPORT UNITS - Mech & Walker allies fight for 10 seconds!
+  robot: { id: 'robot', name: 'Robot Army', tier: 'large', diamonds: 500, emoji: '🤖', action: 'summon_support' },
 };
 
 // Gift action descriptions for UI
@@ -270,6 +292,7 @@ export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: s
   magic_dash: { name: '✨ MAGIC DASH', description: '6s auto-attack!', effect: 'help' },
   spawn_enemies: { name: '💀 DANGER', description: 'Spawns enemies!', effect: 'chaos' },
   emp_grenade: { name: '⚡ EMP', description: 'Kills ALL flying enemies!', effect: 'help' },
+  summon_support: { name: '🤖 SUPPORT', description: '2 allies for 10s!', effect: 'help' },
 };
 
 // Bro-style hero quips - MEGA EXPANDED with taunts and gift requests!

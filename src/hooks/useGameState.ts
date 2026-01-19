@@ -3,7 +3,7 @@ import {
   GameState, Player, Enemy, Projectile, Particle, GiftEvent, GiftAction, 
   Gifter, Obstacle, HERO_QUIPS, SpeechBubble, HELP_REQUESTS, BOSS_TAUNTS,
   FlyingRobot, NeonLight, Explosion, Chicken, GiftBlock, TIKTOK_GIFTS,
-  ENEMY_TAUNTS, GIFT_REQUESTS, getBossName, Bomb
+  ENEMY_TAUNTS, GIFT_REQUESTS, getBossName, Bomb, SupportUnit
 } from '@/types/game';
 
 const GRAVITY = 0;
@@ -159,6 +159,10 @@ interface ExtendedGameState extends GameState {
   bossTransformFlash: number;
   // Neon beams from jet robots
   neonBeams: NeonBeam[];
+  // Support units that fight alongside the hero
+  supportUnits: SupportUnit[];
+  // Support unit projectiles
+  supportProjectiles: Projectile[];
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -216,13 +220,15 @@ const INITIAL_STATE: ExtendedGameState = {
   bossTransformFlash: 0,
   // Neon beams from jet robots
   neonBeams: [],
+  // Support units
+  supportUnits: [],
+  supportProjectiles: [],
 };
 
-// 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel
+// 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
 const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant', 'bomber', 'sentinel'] as const;
-const GIANT_CHANCE = 0.04; // 4% chance for giant enemies (reduced)
-const BOMBER_CHANCE = 0.06; // 6% chance for bomber enemies (reduced)
-const SENTINEL_CHANCE = 0.12; // 12% chance for sentinel - new large ground unit with laser
+// Each enemy type gets roughly equal chance (12.5% each for 8 types)
+const EQUAL_SPAWN_CHANCE = 1 / 8; // ~12.5% each
 
 const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[], levelLength: number } => {
   const enemies: Enemy[] = [];
@@ -234,39 +240,46 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const densityReduction = Math.min(wave * 8, 120); // Reduces spacing as wave increases
   const enemyDensity = Math.max(80, baseDensity - densityReduction);
   
-  // REDUCED DRONES - more ground units now!
-  const droneChance = Math.min(0.15 + wave * 0.01, 0.25); // 15% base, up to 25% (was 35-55%)
-  const ninjaChance = Math.min(0.12 + wave * 0.015, 0.25);
-  const tankChance = Math.min(0.08 + wave * 0.015, 0.20); // Increased tanks
-  
+  // EQUAL SPAWN RATES for all 8 enemy types (12.5% each)
   for (let x = 400; x < levelLength - 800; x += enemyDensity + Math.random() * 80) {
     const typeRoll = Math.random();
     const waveBonus = Math.min(wave * 0.15, 3); // Stronger scaling per wave
     let enemyType: Enemy['type'];
     let width: number, height: number, health: number, speed: number, damage: number;
     
-    // Progressive difficulty with more varied enemies - MORE GROUND UNITS!
-    if (typeRoll < tankChance) {
+    // EQUAL spawn chance for all 8 enemy types (~12.5% each)
+    if (typeRoll < 0.125) {
+      // ROBOT - ground unit
+      enemyType = 'robot';
+      width = 50; height = 58; health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
+    } else if (typeRoll < 0.25) {
+      // MECH - ground unit
+      enemyType = 'mech';
+      width = 55; height = 60;
+      health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; damage = 16 + wave;
+    } else if (typeRoll < 0.375) {
+      // TANK - ground unit
       enemyType = 'tank';
       width = 70; height = 65; health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; damage = 22 + wave;
-    } else if (typeRoll < tankChance + SENTINEL_CHANCE) {
-      // SENTINEL - Large ground mech with laser attacks (bigger than hero, more HP)
+    } else if (typeRoll < 0.5) {
+      // SENTINEL - Large ground mech with laser attacks
       enemyType = 'sentinel';
-      width = 75; height = 80; // Larger than hero (32x48)
-      health = 220 * (1 + waveBonus); // More HP than other enemies
+      width = 75; height = 80;
+      health = 220 * (1 + waveBonus);
       speed = 35 + wave * 1.5; 
       damage = 25 + wave;
-    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12) {
-      enemyType = 'mech';
-      width = 55; height = 60; // Slightly bigger than hero
-      health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; damage = 16 + wave;
-    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance) {
+    } else if (typeRoll < 0.625) {
+      // NINJA - ground unit (fast)
       enemyType = 'ninja';
       width = 45; height = 52; health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; damage = 12 + wave;
-    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance + droneChance) {
-      // DRONES - flying enemies (REDUCED spawn rate)
+    } else if (typeRoll < 0.75) {
+      // GIANT - large ground unit
+      enemyType = 'giant';
+      width = 90; height = 100; health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
+    } else if (typeRoll < 0.875) {
+      // DRONE - flying enemy
       enemyType = 'drone';
-      width = 50; height = 50; // Slightly bigger than hero
+      width = 50; height = 50;
       health = 32 * (1 + waveBonus * 0.5); 
       speed = 90 + wave * 3; 
       damage = 7 + Math.floor(wave / 2);
@@ -274,7 +287,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       const droneEnemy = {
         id: `enemy-${x}-${Math.random()}`,
         x,
-        y: GROUND_Y + 60 + Math.random() * 50, // Flying height
+        y: GROUND_Y + 60 + Math.random() * 50,
         width,
         height,
         health,
@@ -293,12 +306,8 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       };
       enemies.push(droneEnemy);
       continue;
-    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance + droneChance + GIANT_CHANCE) {
-      // GIANT enemies - large and tough
-      enemyType = 'giant';
-      width = 90; height = 100; health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
-    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance + droneChance + GIANT_CHANCE + BOMBER_CHANCE) {
-      // BOMBER - flying enemy that drops bombs (REDUCED)
+    } else {
+      // BOMBER - flying enemy that drops bombs
       enemyType = 'bomber';
       width = 55; height = 50; 
       health = 50 * (1 + waveBonus * 0.6); 
@@ -308,7 +317,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       const bomberEnemy = {
         id: `bomber-${x}-${Math.random()}`,
         x,
-        y: GROUND_Y + 220 + Math.random() * 60, // MUCH higher flying
+        y: GROUND_Y + 220 + Math.random() * 60,
         width,
         height,
         health,
@@ -328,13 +337,6 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       };
       enemies.push(bomberEnemy);
       continue;
-    } else if (typeRoll < tankChance + SENTINEL_CHANCE + 0.12 + ninjaChance + droneChance + GIANT_CHANCE + BOMBER_CHANCE + 0.03) {
-      enemyType = 'flyer';
-      width = 50; height = 46; health = 40 * (1 + waveBonus * 0.5); speed = 75 + wave * 3; damage = 9 + wave;
-    } else {
-      // ROBOT - ground unit, most common
-      enemyType = 'robot';
-      width = 50; height = 58; health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
     }
     
     enemies.push({
@@ -677,6 +679,52 @@ export const useGameState = () => {
     return newEnemies;
   };
 
+  // Create support units - mech and walker allies that fight alongside hero
+  const createSupportUnits = (playerX: number, playerY: number, playerMaxHealth: number, playerShield: number): SupportUnit[] => {
+    const supportUnits: SupportUnit[] = [];
+    // Half of hero's stats
+    const halfMaxHealth = Math.floor(playerMaxHealth / 2);
+    const halfShield = Math.floor(playerShield / 2);
+    
+    // Mech unit - heavier, shoots bombs
+    supportUnits.push({
+      id: `support-mech-${Date.now()}`,
+      x: playerX - 50,
+      y: playerY,
+      width: 55,
+      height: 60,
+      health: halfMaxHealth,
+      maxHealth: halfMaxHealth,
+      shield: halfShield,
+      maxShield: halfShield,
+      type: 'mech',
+      timer: 10, // 10 seconds
+      attackCooldown: 0,
+      isLanding: true,
+      landingTimer: 1.0,
+    });
+    
+    // Walker unit - lighter, shoots lasers
+    supportUnits.push({
+      id: `support-walker-${Date.now()}`,
+      x: playerX - 100,
+      y: playerY,
+      width: 50,
+      height: 55,
+      health: halfMaxHealth,
+      maxHealth: halfMaxHealth,
+      shield: halfShield,
+      maxShield: halfShield,
+      type: 'walker',
+      timer: 10, // 10 seconds
+      attackCooldown: 0,
+      isLanding: true,
+      landingTimer: 1.2,
+    });
+    
+    return supportUnits;
+  };
+
   // Process gift actions
   const processGiftAction = useCallback((action: GiftAction, username: string) => {
     setGameState(prev => {
@@ -808,6 +856,20 @@ export const useGameState = () => {
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 300);
           newState.score += 100;
           showSpeechBubble("⚡ EMP OUT! YEET! ⚡", 'excited');
+          break;
+
+        case 'summon_support' as GiftAction:
+          // Summon 2 support units that fight alongside the hero for 10 seconds
+          const newSupportUnits = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield);
+          newState.supportUnits = [...prev.supportUnits, ...newSupportUnits];
+          newState.particles = [
+            ...prev.particles, 
+            ...createParticles(prev.player.x - 50, 400, 20, 'magic', '#00ff88'),
+            ...createParticles(prev.player.x - 100, 400, 20, 'magic', '#ffaa00'),
+          ];
+          newState.screenShake = 0.5;
+          newState.score += 200;
+          showSpeechBubble("🤖 REINFORCEMENTS INCOMING! 🤖", 'excited');
           break;
       }
       
@@ -1653,6 +1715,101 @@ export const useGameState = () => {
             return newChicken;
           })
           .filter(c => c.state !== 'gone');
+        
+        // UPDATE SUPPORT UNITS - move with hero, shoot enemies, count down timer
+        newState.supportUnits = (prev.supportUnits || [])
+          .map(unit => {
+            let newUnit = { 
+              ...unit, 
+              timer: unit.timer - delta,
+              attackCooldown: Math.max(0, unit.attackCooldown - delta),
+            };
+            
+            // Handle landing animation
+            if (unit.isLanding && unit.landingTimer !== undefined) {
+              newUnit.landingTimer = (unit.landingTimer || 1) - delta;
+              if (newUnit.landingTimer <= 0) {
+                newUnit.isLanding = false;
+              }
+            }
+            
+            // Follow hero - stay slightly behind
+            const targetX = prev.player.x - (unit.type === 'mech' ? 60 : 110);
+            newUnit.x = unit.x + (targetX - unit.x) * 0.08;
+            newUnit.y = GROUND_Y; // Stay on ground
+            
+            // Attack nearby enemies
+            if (newUnit.attackCooldown <= 0 && !unit.isLanding) {
+              const nearestEnemy = newState.enemies.find(e => 
+                !e.isDying && !e.isSpawning && 
+                e.x > unit.x && e.x < unit.x + 400 &&
+                e.type !== 'boss' // Don't target boss
+              );
+              
+              if (nearestEnemy) {
+                newUnit.attackCooldown = unit.type === 'mech' ? 1.5 : 0.8; // Mech slower but bombs, walker faster lasers
+                
+                // Create projectile
+                const projType = unit.type === 'mech' ? 'ultra' : 'mega'; // Mech shoots bombs (ultra), walker shoots lasers (mega)
+                const proj: Projectile = {
+                  id: `support-proj-${Date.now()}-${Math.random()}`,
+                  x: unit.x + unit.width,
+                  y: unit.y + unit.height * 0.5,
+                  velocityX: unit.type === 'mech' ? 400 : 600,
+                  velocityY: unit.type === 'mech' ? 80 : 0, // Mech bombs arc slightly
+                  damage: unit.type === 'mech' ? 80 : 40,
+                  type: projType,
+                };
+                newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
+                
+                // Muzzle flash
+                newState.particles = [
+                  ...newState.particles,
+                  ...createParticles(unit.x + unit.width, unit.y + unit.height * 0.5, 8, 'muzzle', unit.type === 'mech' ? '#ff8800' : '#00ff88'),
+                ];
+              }
+            }
+            
+            return newUnit;
+          })
+          .filter(unit => unit.timer > 0);
+        
+        // Update support projectiles
+        newState.supportProjectiles = (prev.supportProjectiles || [])
+          .map(p => ({
+            ...p,
+            x: p.x + p.velocityX * delta,
+            y: p.y + (p.velocityY || 0) * delta,
+          }))
+          .filter(p => p.x < prev.cameraX + 1000);
+        
+        // Support projectile-enemy collision
+        (newState.supportProjectiles || []).forEach(proj => {
+          newState.enemies.forEach((enemy, idx) => {
+            if (enemy.isDying || enemy.isSpawning) return;
+            
+            if (
+              proj.x > enemy.x - 10 && proj.x < enemy.x + enemy.width + 10 &&
+              proj.y > enemy.y - 10 && proj.y < enemy.y + enemy.height + 10
+            ) {
+              newState.enemies[idx] = {
+                ...newState.enemies[idx],
+                health: newState.enemies[idx].health - proj.damage,
+              };
+              newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 10, 'impact', '#00ff88')];
+              newState.supportProjectiles = (newState.supportProjectiles || []).filter(p => p.id !== proj.id);
+              
+              if (newState.enemies[idx].health <= 0) {
+                newState.enemies[idx].isDying = true;
+                newState.enemies[idx].deathTimer = 0.4;
+                const scoreMap: Record<string, number> = { tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 400, bomber: 120 };
+                newState.score += scoreMap[enemy.type] || 60;
+                newState.combo++;
+                newState.killStreak++;
+              }
+            }
+          });
+        });
         
         // UPDATE NEON LASERS - BOUNCE OFF WALLS!
         const ARENA_TOP = 50;
