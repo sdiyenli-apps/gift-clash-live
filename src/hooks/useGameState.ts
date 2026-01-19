@@ -687,9 +687,10 @@ export const useGameState = () => {
     const halfShield = Math.floor(playerShield / 2);
     
     // Mech unit - heavier, shoots bombs
+    // Mech unit - heavier, shoots bombs - positioned IN FRONT of hero
     supportUnits.push({
       id: `support-mech-${Date.now()}`,
-      x: playerX - 50,
+      x: playerX + 80,
       y: playerY,
       width: 55,
       height: 60,
@@ -704,10 +705,10 @@ export const useGameState = () => {
       landingTimer: 1.0,
     });
     
-    // Walker unit - lighter, shoots lasers
+    // Walker unit - lighter, shoots lasers - positioned IN FRONT of hero (further)
     supportUnits.push({
       id: `support-walker-${Date.now()}`,
-      x: playerX - 100,
+      x: playerX + 140,
       y: playerY,
       width: 50,
       height: 55,
@@ -1734,7 +1735,8 @@ export const useGameState = () => {
             }
             
             // Follow hero - stay slightly behind
-            const targetX = prev.player.x - (unit.type === 'mech' ? 60 : 110);
+            // Follow hero - stay IN FRONT of hero (between hero and enemies)
+            const targetX = prev.player.x + (unit.type === 'mech' ? 80 : 140);
             newUnit.x = unit.x + (targetX - unit.x) * 0.08;
             newUnit.y = GROUND_Y; // Stay on ground
             
@@ -2093,7 +2095,52 @@ export const useGameState = () => {
           const distToHero = Math.abs(enemy.x - prev.player.x);
           const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'flyer' || enemy.type === 'bomber' || enemy.type === 'jetrobot';
           
-          // Enemy is close enough to attack and not on cooldown
+          // PRIORITY TARGETING: Attack support units first!
+          // Find the closest alive support unit in front of the enemy
+          let targetSupport: SupportUnit | null = null;
+          let closestSupportDist = Infinity;
+          
+          for (const unit of newState.supportUnits) {
+            if (unit.health <= 0) continue;
+            const distToUnit = Math.abs(enemy.x - unit.x);
+            if (distToUnit < closestSupportDist && distToUnit < ENEMY_ATTACK_RANGE * 1.5) {
+              closestSupportDist = distToUnit;
+              targetSupport = unit;
+            }
+          }
+          
+          // Enemy attacks support unit first if one is in range
+          if (targetSupport && closestSupportDist < ENEMY_ATTACK_RANGE && (enemy.attackCooldown || 0) <= 0 && !enemy.isRetreating) {
+            const damage = enemy.damage * 0.5;
+            
+            // Damage the support unit (shield first, then health)
+            if (targetSupport.shield > 0) {
+              targetSupport.shield = Math.max(0, targetSupport.shield - damage);
+              newState.particles = [...newState.particles, ...createParticles(targetSupport.x + targetSupport.width/2, targetSupport.y + targetSupport.height/2, 10, 'spark', '#00ffff')];
+            } else {
+              targetSupport.health -= damage;
+              newState.particles = [...newState.particles, ...createParticles(targetSupport.x + targetSupport.width/2, targetSupport.y + targetSupport.height/2, 8, 'spark', '#ff8800')];
+            }
+            
+            // Attack particles on enemy
+            newState.particles = [...newState.particles, ...createParticles(
+              enemy.x + enemy.width/2, enemy.y + enemy.height/2, 8, 'spark', '#ff4400'
+            )];
+            
+            // Set enemy to retreat
+            const retreatX = enemy.originalX ?? (enemy.x + 150 + Math.random() * 100);
+            const retreatY = enemy.originalY ?? enemy.y;
+            
+            return { 
+              ...enemy, 
+              isRetreating: true,
+              originalX: retreatX,
+              originalY: retreatY,
+              attackCooldown: 1.5 + Math.random() * 0.5,
+            };
+          }
+          
+          // No support unit to attack - attack hero if in range
           if (distToHero < ENEMY_ATTACK_RANGE && (enemy.attackCooldown || 0) <= 0 && !enemy.isRetreating) {
             // Enemy hits the player!
             const damage = enemy.damage * 0.5;
