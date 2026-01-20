@@ -514,79 +514,87 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           );
         })}
         
-        {enemies.map(enemy => (
-          <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} />
-        ))}
+        {/* === UNIFIED GAME LAYER (z-25) - All entities on same level for proper interaction === */}
+        <div className="absolute inset-0 z-25">
+          {/* Enemies rendered first (back) */}
+          {enemies.map(enemy => (
+            <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} />
+          ))}
+          
+          {/* Support Units - friendly mech and walker allies */}
+          {supportUnits.map(unit => (
+            <SupportUnitSprite key={unit.id} unit={unit} cameraX={cameraX} />
+          ))}
+          
+          {/* Hero - rendered in same layer */}
+          <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
+        </div>
         
-        {/* Support Units - friendly mech and walker allies */}
-        {supportUnits.map(unit => (
-          <SupportUnitSprite key={unit.id} unit={unit} cameraX={cameraX} />
-        ))}
-        
-        {/* Support Unit Projectiles - SMALL VISIBLE ALLY ATTACKS */}
-        {supportProjectiles.map(proj => {
-          const screenX = proj.x - cameraX;
-          const isMech = proj.type === 'ultra';
-          const width = isMech ? 10 : 8;
-          const height = isMech ? 5 : 4;
+        {/* Projectiles Layer (z-30) - Above entities for visibility */}
+        <div className="absolute inset-0 z-30 pointer-events-none">
+          {/* Support Unit Projectiles - SMALL VISIBLE ALLY ATTACKS */}
+          {supportProjectiles.map(proj => {
+            const screenX = proj.x - cameraX;
+            const isMech = proj.type === 'ultra';
+            const width = isMech ? 12 : 10;
+            const height = isMech ? 6 : 5;
 
-          if (screenX < -20 || screenX > 700) return null;
+            if (screenX < -20 || screenX > 700) return null;
 
-          return (
-            <motion.div
-              key={proj.id}
-              className="absolute pointer-events-none z-35"
-              style={{
-                left: screenX,
-                bottom: 280 - proj.y - height / 2,
-                width,
-                height,
-              }}
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: [0.7, 1, 0.7], scale: [1, 1.05, 1] }}
-              transition={{ duration: 0.12, repeat: Infinity }}
-            >
-              {/* Trail */}
-              <div
-                className="absolute right-full top-1/2 -translate-y-1/2"
-                style={{
-                  width: isMech ? 28 : 22,
-                  height: Math.max(2, height - 1),
-                  background: isMech
-                    ? 'linear-gradient(90deg, transparent, rgba(255,170,0,0.9))'
-                    : 'linear-gradient(90deg, transparent, rgba(0,255,136,0.9))',
-                  filter: 'blur(0.5px)',
-                }}
-              />
-
-              {/* Core */}
-              <div
-                className="w-full h-full rounded-full"
-                style={{
-                  background: isMech ? '#ffaa00' : '#00ff88',
-                  boxShadow: isMech
-                    ? '0 0 6px #ff8800, 0 0 14px #ff6600'
-                    : '0 0 6px #00ff88, 0 0 14px #00ffaa',
-                }}
-              />
-
-              {/* Tiny spark */}
+            return (
               <motion.div
-                className="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full"
+                key={proj.id}
+                className="absolute"
                 style={{
-                  background: isMech
-                    ? 'radial-gradient(circle, #fff, #ffaa00, transparent)'
-                    : 'radial-gradient(circle, #fff, #00ff88, transparent)',
-                  filter: 'blur(0.5px)',
+                  left: screenX,
+                  bottom: 280 - proj.y - height / 2,
+                  width,
+                  height,
                 }}
-                animate={{ scale: [0.8, 1.2, 0.8], opacity: [0.6, 1, 0.6] }}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: [0.8, 1, 0.8], scale: [1, 1.1, 1] }}
                 transition={{ duration: 0.1, repeat: Infinity }}
-              />
-            </motion.div>
-          );
-        })}
-        
-        <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
+              >
+                {/* Trail effect */}
+                <div
+                  className="absolute right-full top-1/2 -translate-y-1/2"
+                  style={{
+                    width: isMech ? 35 : 28,
+                    height: Math.max(3, height - 1),
+                    background: isMech
+                      ? 'linear-gradient(90deg, transparent, rgba(255,170,0,0.95))'
+                      : 'linear-gradient(90deg, transparent, rgba(0,255,136,0.95))',
+                    filter: 'blur(1px)',
+                  }}
+                />
+
+                {/* Core projectile */}
+                <div
+                  className="w-full h-full rounded-full"
+                  style={{
+                    background: isMech ? '#ffaa00' : '#00ff88',
+                    boxShadow: isMech
+                      ? '0 0 8px #ff8800, 0 0 16px #ff6600'
+                      : '0 0 8px #00ff88, 0 0 16px #00ffaa',
+                  }}
+                />
+
+                {/* Muzzle flash spark */}
+                <motion.div
+                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full"
+                  style={{
+                    background: isMech
+                      ? 'radial-gradient(circle, #fff, #ffaa00, transparent)'
+                      : 'radial-gradient(circle, #fff, #00ff88, transparent)',
+                    filter: 'blur(1px)',
+                  }}
+                  animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 0.08, repeat: Infinity }}
+                />
+              </motion.div>
+            );
+          })}
+        </div>
         
         {/* Floor Assets - dustbins, rats, debris */}
         <FloorAssets cameraX={cameraX} levelLength={levelLength} />

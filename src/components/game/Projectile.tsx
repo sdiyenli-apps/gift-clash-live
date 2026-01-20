@@ -47,7 +47,7 @@ export const ProjectileSprite = ({ projectile, cameraX }: ProjectileProps) => {
   
   return (
     <motion.div
-      className="absolute rounded-full"
+      className="absolute rounded-full z-30"
       style={{
         left: screenX,
         bottom: 280 - projectile.y - style.height / 2,
@@ -138,7 +138,7 @@ export const EnemyLaserSprite = forwardRef<HTMLDivElement, EnemyLaserProps>(
       return (
         <motion.div
           ref={ref}
-          className="absolute z-25"
+          className="absolute z-30"
           style={{
             left: screenX,
             bottom: 280 - projectile.y - 10,
@@ -218,7 +218,7 @@ export const EnemyLaserSprite = forwardRef<HTMLDivElement, EnemyLaserProps>(
     return (
       <motion.div
         ref={ref}
-        className="absolute z-25"
+        className="absolute z-30"
         style={{
           left: screenX,
           bottom: 280 - projectile.y - 12,

@@ -2744,39 +2744,53 @@ export const useGameState = () => {
             };
           }
           
-          // BOMBER - Flying enemy that drops bombs!
+          // BOMBER - Flying enemy that PURSUES HERO and drops bombs from above!
           if (enemy.type === 'bomber') {
-            const verticalSpeed = 1.5; // Slower vertical movement than drones
-            const maxHeight = 200;
-            const minHeight = 100;
+            const verticalSpeed = 1.5;
+            const maxHeight = 280; // Higher flight ceiling
+            const minHeight = 180; // Higher minimum to stay above hero
             
-            // Calculate Y position - bombers fly higher
+            // PURSUIT BEHAVIOR - Bombers fly toward position ABOVE the hero
+            const heroScreenX = prev.player.x;
+            const targetAboveHeroX = heroScreenX + 40; // Position slightly ahead of hero
+            const targetAboveHeroY = GROUND_Y + 220; // High above the hero
+            
+            // Calculate direction to target position above hero
+            const dxToTarget = targetAboveHeroX - enemy.x;
+            const dyToTarget = targetAboveHeroY - enemy.y;
+            const distToTarget = Math.sqrt(dxToTarget * dxToTarget + dyToTarget * dyToTarget);
+            
+            // Calculate Y position with vertical oscillation
             const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
-            const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
+            const baseTargetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
             
-            // RETREAT BEHAVIOR - zoom back HALFWAY then attack again!
-            const RETREAT_DISTANCE = 130;
+            // PURSUIT MODE - When far from hero, aggressively pursue
+            const PURSUIT_SPEED = 180;
+            const BOMB_DROP_RANGE = 80; // Must be above hero to drop bomb
+            const isAboveHero = Math.abs(enemy.x - heroScreenX) < BOMB_DROP_RANGE;
+            
+            // RETREAT BEHAVIOR after dropping bomb
+            const RETREAT_DISTANCE = 100;
             const RETREAT_SPEED = 350;
             
             if (enemy.isRetreating) {
               const origX = enemy.originalX ?? enemy.x + 250;
-              const origY = enemy.originalY ?? targetY;
-              const halfwayX = prev.player.x + (origX - prev.player.x) * 0.5;
-              const halfwayY = (enemy.y + origY) / 2;
+              const origY = enemy.originalY ?? baseTargetY;
+              const halfwayX = prev.player.x + (origX - prev.player.x) * 0.6;
+              const halfwayY = maxHeight + GROUND_Y;
               
               const dxToHalfway = halfwayX - enemy.x;
               const dyToHalfway = halfwayY - enemy.y;
               const distToHalfway = Math.sqrt(dxToHalfway * dxToHalfway + dyToHalfway * dyToHalfway);
               
-              if (distToHalfway < 40) {
+              if (distToHalfway < 50) {
                 return { 
                   ...enemy, 
                   x: halfwayX, 
                   y: halfwayY, 
                   isRetreating: false,
                   animationPhase: newAnimPhase,
-                  attackCooldown: 0.6,
-                  bombCooldown: 0.8,
+                  bombCooldown: 1.5,
                 };
               }
               
@@ -2791,47 +2805,55 @@ export const useGameState = () => {
               };
             }
             
-            // Horizontal movement - bombers fly across the screen
-            const horizontalMove = direction * enemy.speed * delta * 0.3;
-            
-            // Attack first when close, then retreat!
+            // DROP BOMB when directly above hero
             const bombCooldown = (enemy.bombCooldown || 0) - delta;
-            const isCloseToHero = distToHero < RETREAT_DISTANCE && distToHero > 0;
             
-            if (isCloseToHero && bombCooldown <= 0 && isOnScreen) {
+            if (isAboveHero && bombCooldown <= 0 && isOnScreen) {
               // Drop a bomb then retreat!
               const newBomb: Bomb = {
                 id: `bomb-${Date.now()}-${Math.random()}`,
                 x: enemy.x + enemy.width / 2,
-                y: targetY,
-                velocityY: -150,
+                y: enemy.y,
+                velocityY: -180, // Falls down
                 damage: enemy.damage,
                 timer: 5,
               };
               newState.bombs = [...(newState.bombs || []), newBomb];
               
+              // Bomb drop visual
               newState.particles = [
                 ...newState.particles,
-                ...createParticles(enemy.x + enemy.width / 2, targetY - 10, 8, 'spark', '#ff8800'),
+                ...createParticles(enemy.x + enemy.width / 2, enemy.y - 10, 12, 'spark', '#ff8800'),
+                ...createParticles(enemy.x + enemy.width / 2, enemy.y, 6, 'muzzle', '#ffaa00'),
               ];
               
-              // Now retreat halfway!
+              // Now retreat after bombing!
               return {
                 ...enemy,
-                y: targetY,
                 isRetreating: true,
                 animationPhase: newAnimPhase,
-                bombCooldown: 2.0,
-                originalX: enemy.originalX ?? enemy.x + 180,
-                originalY: enemy.originalY ?? targetY,
+                bombCooldown: 2.5,
+                originalX: enemy.x + 200,
+                originalY: maxHeight + GROUND_Y,
               };
             }
             
-            // Continue flying
+            // PURSUE - Move toward position above hero
+            let moveX = 0;
+            let moveY = 0;
+            
+            if (distToTarget > 30) {
+              moveX = (dxToTarget / distToTarget) * PURSUIT_SPEED * delta;
+              moveY = (dyToTarget / distToTarget) * PURSUIT_SPEED * delta * 0.8;
+            }
+            
+            // Add some vertical oscillation while pursuing
+            const oscillationY = Math.sin(newAnimPhase * 3) * 20 * delta;
+            
             return {
               ...enemy,
-              y: targetY,
-              x: enemy.x + horizontalMove,
+              x: enemy.x + moveX,
+              y: Math.max(minHeight + GROUND_Y, Math.min(maxHeight + GROUND_Y, enemy.y + moveY + oscillationY)),
               animationPhase: newAnimPhase,
               bombCooldown: Math.max(0, bombCooldown),
             };
