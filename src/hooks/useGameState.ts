@@ -788,8 +788,90 @@ export const useGameState = () => {
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
+          // ALLIES ALSO ATTACK when fire gift is pressed!
+          // Each ally immediately fires at their target
+          const activeAllyUnits = prev.supportUnits.filter(u => !u.isLanding && !u.isSelfDestructing && u.health > 0);
+          activeAllyUnits.forEach((unit, idx) => {
+            // Find targets - prioritize flying enemies for laser beam, ground for projectiles
+            const flyingEnemies = prev.enemies.filter(e => 
+              !e.isDying && !e.isSpawning && 
+              (e.isFlying || e.type === 'drone' || e.type === 'bomber' || e.type === 'jetrobot' || e.type === 'flyer') &&
+              e.x > unit.x && e.x < unit.x + 600
+            ).sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+            
+            const groundEnemies = prev.enemies.filter(e => 
+              !e.isDying && !e.isSpawning && 
+              !e.isFlying && e.type !== 'drone' && e.type !== 'bomber' && e.type !== 'jetrobot' && e.type !== 'flyer' &&
+              e.x > unit.x - 50 && e.x < unit.x + 500
+            ).sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+            
+            const startX = unit.x + unit.width + 5;
+            const startY = GROUND_Y + 35;
+            
+            // Fire at flying enemy with LASER BEAM (continuous damage type)
+            if (flyingEnemies.length > 0) {
+              const target = flyingEnemies[0];
+              const targetX = target.x + target.width / 2;
+              const targetY = (target.y || GROUND_Y) + target.height / 2;
+              
+              // Create a laser beam for flying enemies
+              const beamProj: Projectile = {
+                id: `ally-beam-${unit.id}-${Date.now()}-${idx}`,
+                x: startX,
+                y: startY,
+                velocityX: (targetX - startX) * 3, // Fast beam
+                velocityY: (targetY - startY) * 3,
+                damage: 8, // Smaller constant damage
+                type: 'ultra',
+                isAllyProjectile: true,
+              };
+              newState.supportProjectiles = [...(newState.supportProjectiles || []), beamProj];
+              
+              // Laser beam muzzle flash
+              newState.particles = [...newState.particles, 
+                ...createParticles(startX, startY, 5, 'muzzle', unit.type === 'mech' ? '#ff6600' : '#00ff88'),
+              ];
+            }
+            
+            // Fire at ground enemy with PROJECTILE
+            if (groundEnemies.length > 0) {
+              const target = groundEnemies[0];
+              const targetX = target.x + target.width / 2;
+              const targetY = GROUND_Y + target.height / 2;
+              
+              const dx = targetX - startX;
+              const dy = targetY - startY;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              
+              if (dist > 0) {
+                const projSpeed = 1000;
+                const proj: Projectile = {
+                  id: `ally-shot-${unit.id}-${Date.now()}-${idx}`,
+                  x: startX,
+                  y: startY,
+                  velocityX: (dx / dist) * projSpeed,
+                  velocityY: (dy / dist) * projSpeed,
+                  damage: 20,
+                  type: unit.type === 'mech' ? 'ultra' : 'mega',
+                  isAllyProjectile: true,
+                };
+                newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
+                
+                // Projectile muzzle flash
+                newState.particles = [...newState.particles, 
+                  ...createParticles(startX, startY, 4, 'spark', unit.type === 'mech' ? '#ffaa00' : '#00ffaa'),
+                ];
+              }
+            }
+          });
+          
           if (Math.random() > 0.7) {
-            showSpeechBubble(HERO_QUIPS[Math.floor(Math.random() * HERO_QUIPS.length)], 'excited');
+            const allyCount = activeAllyUnits.length;
+            if (allyCount > 0) {
+              showSpeechBubble(`SQUAD ATTACK! 🔥🤖`, 'excited');
+            } else {
+              showSpeechBubble(HERO_QUIPS[Math.floor(Math.random() * HERO_QUIPS.length)], 'excited');
+            }
           }
           break;
           
