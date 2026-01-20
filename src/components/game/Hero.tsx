@@ -26,11 +26,12 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
 
   return (
     <motion.div
-      className="absolute z-30"
+      className="absolute"
       style={{
         left: screenX,
         width: heroWidth,
         height: heroHeight,
+        zIndex: 27, // Hero above enemies/allies
       }}
       animate={{
         bottom: flyingHeight, // Animate flying position

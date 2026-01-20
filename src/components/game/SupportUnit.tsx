@@ -40,12 +40,13 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   
   return (
     <motion.div
-      className="absolute z-20"
+      className="absolute"
       style={{
         left: screenX,
         bottom: isLanding ? baseBottom + 300 * (1 - landProgress) : baseBottom + selfDestructYOffset,
         width: displayWidth,
         height: displayHeight,
+        zIndex: 24, // Allies on same layer as enemies
       }}
       initial={{ opacity: 0, y: -200 }}
       animate={{ 

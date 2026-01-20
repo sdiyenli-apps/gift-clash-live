@@ -124,12 +124,13 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   
   return (
     <motion.div
-      className="absolute z-25"
+      className="absolute"
       style={{
         left: screenX,
         bottom: isDropping ? currentDropY : baseBottom, // Ground units on ground, flying units above
         width: displayWidth,
         height: displayHeight,
+        zIndex: isBoss ? 26 : 25, // Boss slightly above other enemies
       }}
       initial={isSpawning ? { scale: 0, opacity: 0 } : isDropping ? { y: -300 } : {}}
       animate={enemy.isDying ? {
