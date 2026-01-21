@@ -665,11 +665,11 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
         {/* Floor Assets - dustbins, rats, debris */}
         <FloorAssets cameraX={cameraX} levelLength={levelLength} />
         
-        {/* Floor - Adjusted for zoomed out view */}
+        {/* Floor - Adjusted for TikTok Live view */}
         <div 
           className="absolute bottom-0 left-0 right-0 z-5"
           style={{
-            height: 120, // Lowered ground for zoom out
+            height: 160, // TikTok optimized ground level
           }}
         >
           {/* Concrete base texture */}

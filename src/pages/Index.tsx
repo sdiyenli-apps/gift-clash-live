@@ -134,13 +134,13 @@ const Index = () => {
       className="h-[100dvh] w-screen flex flex-col overflow-hidden touch-none select-none"
       style={{
         background: 'linear-gradient(180deg, #0a0a12 0%, #12081c 100%)',
-        // TikTok-optimized: 9:16 aspect ratio focus
+        // TikTok Live optimized - full vertical screen
         maxWidth: '100vw',
       }}
     >
-      {/* TikTok-style Header - Minimal and sleek */}
-      <header className="absolute top-2 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
-        {/* Left side - Compact Logo */}
+      {/* TikTok Live-style Header - Positioned to avoid TikTok UI elements */}
+      <header className="absolute top-14 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
+        {/* Left side - Compact Logo - Moved down to avoid TikTok profile area */}
         <div className="flex items-center pointer-events-auto">
           <div 
             className="flex items-center gap-1 px-2 py-1 rounded-full"
@@ -166,7 +166,7 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Right side - Score, Wave, Audio */}
+        {/* Right side - Score, Wave, Audio - Positioned to avoid TikTok follow button */}
         <div className="flex items-center gap-1 pointer-events-auto">
           {gameState.phase === 'playing' && (
             <>
@@ -223,16 +223,16 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Game Content - TikTok 9:16 optimized */}
-      <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-8 pb-0">
-        {/* Game Arena - Full TikTok vertical view with zoom out */}
+      {/* Main Game Content - TikTok Live 9:16 optimized with space for TikTok UI */}
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-16 pb-0">
+        {/* Game Arena - Full TikTok vertical view with camera optimization */}
         <div 
           className="flex-1 min-h-0 relative overflow-hidden mx-auto w-full"
           style={{ 
-            maxHeight: 'calc(100dvh - 110px)', 
+            maxHeight: 'calc(100dvh - 180px)', // Leave space for TikTok bottom UI
             maxWidth: '100%',
-            // Zoom out effect for better POV
-            transform: 'scale(0.92)',
+            // Optimized zoom for TikTok Live - better view of action
+            transform: 'scale(0.88)',
             transformOrigin: 'center top',
           }}
         >
@@ -257,18 +257,18 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - TikTok-style controls at bottom */}
+        {/* Bottom HUD - TikTok Live-style controls positioned above TikTok comment section */}
         {gameState.phase === 'playing' && (
           <div 
-            className="absolute bottom-0 left-0 right-0 z-20 p-2 space-y-2 safe-area-inset-bottom"
+            className="absolute bottom-28 left-0 right-0 z-20 p-2 space-y-2"
             style={{
-              background: 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 60%, transparent 100%)',
-              paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
+              background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 70%, transparent 100%)',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 12px)',
             }}
           >
             {/* Health bar - Full width TikTok style */}
             <div 
-              className="px-3 py-2 rounded-2xl mx-auto w-full max-w-lg"
+              className="px-3 py-2 rounded-2xl mx-auto w-full max-w-md"
               style={{
                 background: 'rgba(0,0,0,0.9)',
                 border: '1px solid rgba(255,0,255,0.3)',
@@ -283,7 +283,7 @@ const Index = () => {
             </div>
             
             {/* Gift buttons - TikTok large touch targets */}
-            <div className="w-full max-w-lg mx-auto">
+            <div className="w-full max-w-md mx-auto">
               <GiftPanel 
                 onTriggerGift={handleTriggerGift}
                 disabled={gameState.phase !== 'playing'}
