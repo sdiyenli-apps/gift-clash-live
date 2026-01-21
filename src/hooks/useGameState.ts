@@ -7,7 +7,7 @@ import {
 } from '@/types/game';
 
 const GRAVITY = 0;
-const GROUND_Y = 120; // Lowered ground for zoomed out view
+const GROUND_Y = 160; // TikTok optimized ground level
 const PLAYER_WIDTH = 32; // Slightly larger hitbox
 const PLAYER_HEIGHT = 48; // Taller for run-and-gun style
 const BASE_LEVEL_LENGTH = 12000; // Longer levels
@@ -21,7 +21,9 @@ const ROCKET_ATTACK_RANGE = 350; // Ranged attack distance
 const BOSS_FIREBALL_INTERVAL = 4; // Faster boss attacks
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
 const BOSS_KEEP_DISTANCE = 400; // Boss combat distance
-const HERO_FIXED_SCREEN_X = 50; // Hero position on screen
+const HERO_FIXED_SCREEN_X = 35; // Hero position on screen - moved left for TikTok
+const ENEMY_ATTACK_DELAY = 2; // Enemies wait 2 seconds before attacking
+const PARTICLE_LIFETIME = 3; // Particles reset after 3 seconds
 
 // Boss attack types
 type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield';
@@ -160,6 +162,10 @@ interface ExtendedGameState extends GameState {
   empCharges: number; // Current EMP charges (max 2)
   allyCooldown: number; // Seconds until next ally allowed
   allyCharges: number; // Current ally charges (max 2)
+  // Game start time for attack delay
+  gameStartTime: number;
+  // Particle reset timer
+  particleResetTimer: number;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -225,6 +231,8 @@ const INITIAL_STATE: ExtendedGameState = {
   empCharges: 2,
   allyCooldown: 0,
   allyCharges: 2,
+  gameStartTime: Date.now(),
+  particleResetTimer: PARTICLE_LIFETIME,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -232,7 +240,20 @@ const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant', 'bomber
 // Each enemy type gets roughly equal chance (12.5% each for 8 types)
 const EQUAL_SPAWN_CHANCE = 1 / 8; // ~12.5% each
 
-const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[], levelLength: number } => {
+// Enemy size multipliers for variety
+const ENEMY_SIZE_MULTIPLIERS: Record<string, number> = {
+  robot: 0.9 + Math.random() * 0.3,    // 0.9-1.2x
+  drone: 0.8 + Math.random() * 0.3,    // 0.8-1.1x
+  mech: 1.0 + Math.random() * 0.4,     // 1.0-1.4x
+  ninja: 0.85 + Math.random() * 0.2,   // 0.85-1.05x
+  tank: 1.1 + Math.random() * 0.4,     // 1.1-1.5x
+  giant: 1.3 + Math.random() * 0.5,    // 1.3-1.8x
+  bomber: 0.9 + Math.random() * 0.25,  // 0.9-1.15x - ONLY BOMBER USES BOMBS
+  sentinel: 1.0 + Math.random() * 0.35, // 1.0-1.35x
+};
+
+const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[], levelLength: number, gameStartTime: number } => {
+  const gameStartTime = Date.now(); // Track when game started for attack delay
   const enemies: Enemy[] = [];
   const obstacles: Obstacle[] = [];
   
@@ -253,35 +274,42 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     if (typeRoll < 0.125) {
       // ROBOT - ground unit
       enemyType = 'robot';
-      width = 50; height = 58; health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
+      const robotSize = 0.9 + Math.random() * 0.3;
+      width = Math.floor(50 * robotSize); height = Math.floor(58 * robotSize); health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
     } else if (typeRoll < 0.25) {
       // MECH - ground unit
       enemyType = 'mech';
-      width = 55; height = 60;
+      const mechSize = 1.0 + Math.random() * 0.4;
+      width = Math.floor(55 * mechSize); height = Math.floor(60 * mechSize);
       health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; damage = 16 + wave;
     } else if (typeRoll < 0.375) {
       // TANK - ground unit
       enemyType = 'tank';
-      width = 70; height = 65; health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; damage = 22 + wave;
+      const tankSize = 1.1 + Math.random() * 0.4;
+      width = Math.floor(70 * tankSize); height = Math.floor(65 * tankSize); health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; damage = 22 + wave;
     } else if (typeRoll < 0.5) {
-      // SENTINEL - Large ground mech with laser attacks
+      // SENTINEL - Large ground mech - uses projectiles now
       enemyType = 'sentinel';
-      width = 75; height = 80;
+      const sentinelSize = 1.0 + Math.random() * 0.35;
+      width = Math.floor(75 * sentinelSize); height = Math.floor(80 * sentinelSize);
       health = 220 * (1 + waveBonus);
       speed = 35 + wave * 1.5; 
       damage = 25 + wave;
     } else if (typeRoll < 0.625) {
       // NINJA - ground unit (fast)
       enemyType = 'ninja';
-      width = 45; height = 52; health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; damage = 12 + wave;
+      const ninjaSize = 0.85 + Math.random() * 0.2;
+      width = Math.floor(45 * ninjaSize); height = Math.floor(52 * ninjaSize); health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; damage = 12 + wave;
     } else if (typeRoll < 0.75) {
       // GIANT - large ground unit
       enemyType = 'giant';
-      width = 90; height = 100; health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
+      const giantSize = 1.3 + Math.random() * 0.5;
+      width = Math.floor(90 * giantSize); height = Math.floor(100 * giantSize); health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
     } else if (typeRoll < 0.875) {
-      // DRONE - flying enemy
+      // DRONE - flying enemy - uses projectiles (NOT bombs)
       enemyType = 'drone';
-      width = 50; height = 50;
+      const droneSize = 0.8 + Math.random() * 0.3;
+      width = Math.floor(50 * droneSize); height = Math.floor(50 * droneSize);
       health = 32 * (1 + waveBonus * 0.5); 
       speed = 90 + wave * 3; 
       damage = 7 + Math.floor(wave / 2);
@@ -317,9 +345,10 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       enemies.push(droneEnemy);
       continue;
     } else {
-      // BOMBER - flying enemy that drops bombs
+      // BOMBER - ONLY enemy type that drops bombs!
       enemyType = 'bomber';
-      width = 55; height = 50; 
+      const bomberSize = 0.9 + Math.random() * 0.25;
+      width = Math.floor(55 * bomberSize); height = Math.floor(50 * bomberSize); 
       health = 50 * (1 + waveBonus * 0.6); 
       speed = 60 + wave * 2; 
       damage = 15 + wave;
@@ -515,7 +544,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     }
   }
   
-  return { enemies, obstacles, levelLength };
+  return { enemies, obstacles, levelLength, gameStartTime };
 };
 
 export const useGameState = () => {
@@ -572,7 +601,7 @@ export const useGameState = () => {
   }, [showSpeechBubble]);
 
   const startGame = useCallback((wave: number = 1) => {
-    const { enemies, obstacles, levelLength } = generateLevel(wave);
+    const { enemies, obstacles, levelLength, gameStartTime } = generateLevel(wave);
     setGameState({
       ...INITIAL_STATE,
       phase: 'playing',
@@ -581,6 +610,8 @@ export const useGameState = () => {
       levelLength,
       lastGiftTime: Date.now(),
       currentWave: wave,
+      gameStartTime,
+      particleResetTimer: PARTICLE_LIFETIME,
     });
     setGiftEvents([]);
     lastUpdateRef.current = Date.now();
@@ -590,7 +621,7 @@ export const useGameState = () => {
   const startNextWave = useCallback(() => {
     const nextWave = gameState.currentWave + 1;
     if (nextWave <= MAX_WAVES) {
-      const { enemies, obstacles, levelLength } = generateLevel(nextWave);
+      const { enemies, obstacles, levelLength, gameStartTime } = generateLevel(nextWave);
       setGameState(prev => ({
         ...prev,
         phase: 'playing',
@@ -601,7 +632,7 @@ export const useGameState = () => {
         distance: 0,
         cameraX: 0,
         projectiles: [],
-        particles: [],
+        particles: [], // Reset particles on level end
         isUltraMode: false,
         ultraModeTimer: 0,
         isBossFight: false,
@@ -621,6 +652,9 @@ export const useGameState = () => {
         portalOpen: false,
         portalX: 0,
         heroEnteringPortal: false,
+        // Reset game timing
+        gameStartTime,
+        particleResetTimer: PARTICLE_LIFETIME,
       }));
       showSpeechBubble(`WAVE ${nextWave} BEGINS! 🔥💪`, 'excited');
     }
@@ -1718,6 +1752,13 @@ export const useGameState = () => {
           newState.bossTransformFlash = Math.max(0, prev.bossTransformFlash - delta * 3);
         }
         
+        // PARTICLE RESET TIMER - Reset all particles every 3 seconds
+        newState.particleResetTimer = prev.particleResetTimer - delta;
+        if (newState.particleResetTimer <= 0) {
+          newState.particles = [];
+          newState.particleResetTimer = PARTICLE_LIFETIME;
+        }
+        
         // EMP and Ally cooldown recharge - 10 second cooldown to restore charges
         if (prev.empCooldown > 0) {
           newState.empCooldown = prev.empCooldown - delta;
@@ -1733,6 +1774,8 @@ export const useGameState = () => {
             newState.allyCooldown = prev.allyCharges < 1 ? 10 : 0; // If still needs charge, reset timer
           }
         }
+        
+        // Time since game start for attack delay check (used later in enemy attack section)
         // Magic Dash auto-actions - NUKE ALL ENEMIES ON SCREEN
         if (prev.player.isMagicDashing) {
           newState.player = {
@@ -2449,11 +2492,22 @@ export const useGameState = () => {
           .filter(e => !e.isDying || e.deathTimer > 0);
         
         // ENEMIES HIT ONCE THEN JUMP BACK - No auto-kill, enemies attack then retreat
+        // Enemies only start attacking after 2 seconds from game start
         const ENEMY_ATTACK_RANGE = 70;
         const attackCooldownDecrement = delta;
+        const timeSinceGameStart = (Date.now() - prev.gameStartTime) / 1000;
+        const canEnemiesAttack = timeSinceGameStart >= ENEMY_ATTACK_DELAY;
         
         newState.enemies = newState.enemies.map(enemy => {
           if (enemy.isDying || enemy.type === 'boss' || enemy.isSpawning) return enemy;
+          
+          // If enemies can't attack yet (within 2 seconds of game start), just decrease cooldown
+          if (!canEnemiesAttack) {
+            return { 
+              ...enemy, 
+              attackCooldown: Math.max(0, (enemy.attackCooldown || 0) - attackCooldownDecrement),
+            };
+          }
           
           const distToHero = Math.abs(enemy.x - prev.player.x);
           const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'flyer' || enemy.type === 'bomber' || enemy.type === 'jetrobot';
