@@ -3618,22 +3618,8 @@ export const useGameState = () => {
           }))
           .filter(p => p.life > 0);
         
-        // Flying robots - reduced spawn rate
-        newState.flyingRobots = prev.flyingRobots
-          .map(robot => ({ ...robot, x: robot.x + robot.speed * delta }))
-          .filter(robot => robot.x - prev.cameraX < 800)
-          .slice(0, 3);
-        
-        if (Math.random() > 0.998) {
-          const robotTypes: FlyingRobot['type'][] = ['ufo', 'jet', 'satellite'];
-          newState.flyingRobots = [...newState.flyingRobots, {
-            id: `flybot-${Date.now()}`,
-            x: prev.cameraX - 60,
-            y: 15 + Math.random() * 50,
-            speed: 80 + Math.random() * 80,
-            type: robotTypes[Math.floor(Math.random() * robotTypes.length)],
-          }];
-        }
+        // Flying robots removed - replaced with war silhouettes in parallax
+        newState.flyingRobots = [];
         
         // Neon lights - reduced
         newState.neonLights = prev.neonLights.filter(light => light.x - prev.cameraX < 800).slice(0, 4);
