@@ -620,11 +620,11 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
         {/* Floor Assets - dustbins, rats, debris */}
         <FloorAssets cameraX={cameraX} levelLength={levelLength} />
         
-        {/* Floor - Movement zone floor level */}
+        {/* Floor - Original size */}
         <div 
           className="absolute bottom-0 left-0 right-0 z-5"
           style={{
-            height: 80, // Matches MOVEMENT_ZONE.minY - ground floor level
+            height: 160, // Original floor height
           }}
         >
           {/* Concrete base texture */}

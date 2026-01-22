@@ -107,14 +107,12 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const isGroundUnit = !isFlying && enemy.type !== 'boss';
   const flyOffset = isFlying ? (enemy.flyHeight || 50) : 0;
   
-  // MOVEMENT ZONE: Ground units positioned between Y 80-150 (bottom of screen)
-  // Ground Y comes from enemy.groundY which is set during spawn (80, 115, or 150)
-  // Flying units hover above the movement zone
-  const groundFloor = 78; // Bottom of movement zone aligned with floor
-  const enemyGroundY = enemy.groundY || 115; // Default to middle of movement zone
+  // Ground units positioned lower on screen (within movement area)
+  // Enemy groundY values: 80 (bottom), 115 (middle), 150 (top) - map to lower screen positions
+  const enemyGroundY = enemy.groundY || 115;
   const baseBottom = isFlying 
-    ? 150 + flyOffset  // Flying units above movement zone
-    : groundFloor + (enemyGroundY - 80); // Ground units within movement zone (80-150 range becomes 78-148 bottom)
+    ? 150 + flyOffset  // Flying units above ground
+    : 78 + (enemyGroundY - 80) * 0.5; // Ground units spread lower (78-113 range)
   
   // Portal spawn animation OR drop-from-top animation for jet robots
   const isSpawning = enemy.isSpawning && (enemy.spawnTimer ?? 0) > 0;

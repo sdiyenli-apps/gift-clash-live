@@ -7,7 +7,7 @@ import {
 } from '@/types/game';
 
 const GRAVITY = 0;
-const GROUND_Y = 100; // Bottom of movement zone (ground floor)
+const GROUND_Y = 160; // Original ground level
 const PLAYER_WIDTH = 32;
 const PLAYER_HEIGHT = 48;
 const BASE_LEVEL_LENGTH = 12000;
@@ -28,19 +28,10 @@ const EVASION_CHANCE = 1 / 15;
 const ARMOR_ACTIVATION_THRESHOLD = 0.2;
 const ARMOR_DURATION = 3;
 
-// MOVEMENT ZONE - Green rectangle area where ground units can move
-// Zone spans from left edge to right edge, bottom ~20% of screen
-const MOVEMENT_ZONE = {
-  minX: 0,           // Left boundary of arena
-  maxX: 580,         // Right boundary of arena (screen width)
-  minY: 80,          // Bottom of zone (ground floor)
-  maxY: 150,         // Top of zone (max height for ground units)
-};
-
-// Ground Y positions spread within the movement zone
-const GROUND_Y_TOP = MOVEMENT_ZONE.maxY;      // Top of movement zone
-const GROUND_Y_MIDDLE = (MOVEMENT_ZONE.minY + MOVEMENT_ZONE.maxY) / 2; // Middle
-const GROUND_Y_BOTTOM = MOVEMENT_ZONE.minY;   // Bottom of movement zone (hero position)
+// Ground Y positions for entity movement (lower positions)
+const GROUND_Y_TOP = GROUND_Y + 30;     // Top movement lane
+const GROUND_Y_MIDDLE = GROUND_Y;        // Middle movement lane (hero)
+const GROUND_Y_BOTTOM = GROUND_Y - 25;   // Bottom movement lane
 
 // Boss attack types
 type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield';
