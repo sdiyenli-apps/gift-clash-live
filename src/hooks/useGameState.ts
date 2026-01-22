@@ -3303,24 +3303,35 @@ export const useGameState = () => {
             const isCloseToHero = distToHero < RETREAT_DISTANCE && distToHero > 0;
             
             if (isCloseToHero && attackCooldown <= 0 && isOnScreen) {
-              // Fire PROJECTILE from CENTER OF BODY then retreat!
+              // Fire IMPROVED PROJECTILE from CENTER OF BODY then retreat!
               const centerX = enemy.x + enemy.width / 2;
               const centerY = targetY + enemy.height / 2;
+              
+              // Calculate accurate trajectory to hero center
+              const targetHeroX = prev.player.x + PLAYER_WIDTH / 2;
+              const targetHeroY = prev.player.y + PLAYER_HEIGHT / 2;
+              const dx = targetHeroX - centerX;
+              const dy = targetHeroY - centerY;
+              const distance = Math.sqrt(dx * dx + dy * dy);
+              const speed = 750; // Faster projectile
               
               const jetProjectile: Projectile = {
                 id: `jetrobot-proj-${Date.now()}-${Math.random()}`,
                 x: centerX, // Center of body
                 y: centerY, // Center of body
-                velocityX: -650,
-                velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - centerY) * 0.4,
-                damage: 10,
+                velocityX: (dx / distance) * speed,
+                velocityY: (dy / distance) * speed,
+                damage: 12,
                 type: 'mega',
+                originX: centerX,
+                originY: centerY,
               };
               newState.enemyLasers = [...newState.enemyLasers, jetProjectile];
               
+              // Enhanced muzzle flash particles
               newState.particles = [
                 ...newState.particles,
-                ...createParticles(centerX, centerY, 12, 'spark', '#00ffff'),
+                ...createParticles(centerX, centerY, 8, 'muzzle', '#00ffff'),
               ];
               
               // Now retreat halfway!
@@ -3329,7 +3340,7 @@ export const useGameState = () => {
                 y: targetY,
                 isRetreating: true,
                 animationPhase: newAnimPhase,
-                attackCooldown: 1.5,
+                attackCooldown: 1.2, // Faster attack cycle
                 originalX: enemy.originalX ?? enemy.x + 150,
                 originalY: enemy.originalY ?? targetY,
               };

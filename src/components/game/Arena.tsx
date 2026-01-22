@@ -548,7 +548,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
         <div className="absolute inset-0 z-25">
           {/* Enemies rendered first (back) */}
           {enemies.map(enemy => (
-            <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} isTankActive={isTankActive} />
+            <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} isTankActive={isTankActive} currentWave={currentWave} />
           ))}
           
           {/* Floating Powerups - dropped by elite enemies */}

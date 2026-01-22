@@ -10,10 +10,23 @@ import enemyDroneV4 from '@/assets/enemy-drone-v4.png';
 import enemyMech from '@/assets/enemy-mech.png';
 import enemyJetRobot from '@/assets/enemy-jet-robot.png';
 import enemySentinel from '@/assets/enemy-sentinel.png';
-// Boss animated GIFs for different states
-import bossIdle from '@/assets/boss-idle.gif';
-import bossAttack from '@/assets/boss-attack.gif';
-import bossAttackAlt from '@/assets/boss-attack-alt.gif';
+// Boss sprites for each level (1-10)
+import bossLevel1 from '@/assets/boss-level-1.png';
+import bossLevel2 from '@/assets/boss-level-2.png';
+import bossLevel3 from '@/assets/boss-level-3.png';
+import bossLevel4 from '@/assets/boss-level-4.png';
+import bossLevel5 from '@/assets/boss-level-5.png';
+import bossLevel6 from '@/assets/boss-level-6.png';
+import bossLevel7 from '@/assets/boss-level-7.png';
+import bossLevel8 from '@/assets/boss-level-8.png';
+import bossLevel9 from '@/assets/boss-level-9.png';
+import bossLevel10 from '@/assets/boss-level-10.png';
+
+// Level-specific boss sprites array
+const BOSS_SPRITES_BY_LEVEL = [
+  bossLevel1, bossLevel2, bossLevel3, bossLevel4, bossLevel5,
+  bossLevel6, bossLevel7, bossLevel8, bossLevel9, bossLevel10,
+];
 
 // Get random drone variant sprite
 const getDroneSprite = (variant?: number) => {
@@ -25,22 +38,20 @@ interface EnemyProps {
   enemy: EnemyType;
   cameraX: number;
   isTankActive?: boolean;
+  currentWave?: number;
 }
 
-// Get boss sprite based on attack state - uses animated GIFs
-const getBossSprite = (isAttacking: boolean, attackVariant: number = 0) => {
-  if (isAttacking) {
-    // Alternate between attack with breath and without breath
-    return attackVariant % 2 === 0 ? bossAttack : bossAttackAlt;
-  }
-  return bossIdle; // Idle animation when not attacking
+// Get boss sprite based on current wave/level (1-10)
+const getBossSprite = (wave: number = 1) => {
+  const levelIndex = Math.max(0, Math.min(wave - 1, 9)); // Clamp to 0-9
+  return BOSS_SPRITES_BY_LEVEL[levelIndex];
 };
 
 const ENEMY_SPRITES: Record<string, string> = {
   robot: enemyRobot,
   drone: enemyDrone, // Will be overridden by getDroneSprite
   mech: enemyMech,
-  boss: bossIdle, // Default idle, will be overridden by getBossSprite
+  boss: bossLevel1, // Default, will be overridden by getBossSprite with level-specific
   ninja: enemyRobot,
   tank: enemyMech,
   flyer: enemyDrone, // Will be overridden by getDroneSprite
@@ -65,7 +76,7 @@ const ENEMY_COLORS: Record<string, string> = {
   sentinel: '#ff0066', // Sentinel has hot pink/red laser glow
 };
 
-export const EnemySprite = ({ enemy, cameraX, isTankActive = false }: EnemyProps) => {
+export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave = 1 }: EnemyProps) => {
   const screenX = enemy.x - cameraX;
   const [deathSound, setDeathSound] = useState('');
   
@@ -80,14 +91,13 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false }: EnemyProps
   const color = ENEMY_COLORS[enemy.type] || '#ff4444';
   const healthPercent = (enemy.health / enemy.maxHealth) * 100;
   
-  // Get sprite - for boss, use attack state GIF; for drones, use variant
+  // Get sprite - for boss, use level-specific sprite; for drones, use variant
   const isBoss = enemy.type === 'boss';
   const bossPhase = enemy.bossPhase || 1;
   const isDrone = enemy.type === 'drone' || enemy.type === 'flyer' || enemy.type === 'bomber';
-  // Boss is "attacking" when attackCooldown is active (just fired)
-  const isAttacking = enemy.attackCooldown !== undefined && enemy.attackCooldown > 0 && enemy.attackCooldown <= 1.5;
+  const isJetRobot = enemy.type === 'jetrobot';
   const sprite = isBoss 
-    ? getBossSprite(isAttacking, bossPhase) // Use attack GIF when attacking, idle otherwise
+    ? getBossSprite(currentWave) // Use level-specific boss sprite
     : isDrone 
       ? getDroneSprite(enemy.droneVariant)
       : ENEMY_SPRITES[enemy.type];
