@@ -257,7 +257,7 @@ const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant', 'bomber
 // Base sizes are designed so smallest fits ~8% of height, largest ~25% of height
 const ENEMY_BASE_SIZES: Record<string, { width: number; height: number }> = {
   robot: { width: 45, height: 52 },     // Small ground unit
-  drone: { width: 38, height: 38 },     // Small flying unit  
+  drone: { width: 90, height: 95 },     // Same size as hero (90x95)
   mech: { width: 55, height: 60 },      // Medium ground unit
   ninja: { width: 40, height: 48 },     // Small fast unit
   tank: { width: 70, height: 65 },      // Large slow unit
@@ -293,54 +293,54 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const densityReduction = Math.min(wave * 8, 120); // Reduces spacing as wave increases
   const enemyDensity = Math.max(80, baseDensity - densityReduction);
   
-  // EQUAL SPAWN RATES for all 8 enemy types (12.5% each)
+  // ADJUSTED SPAWN RATES - More sentinel than robot, drone same size as hero
   for (let x = 400; x < levelLength - 800; x += enemyDensity + Math.random() * 80) {
     const typeRoll = Math.random();
     const waveBonus = Math.min(wave * 0.15, 3); // Stronger scaling per wave
     let enemyType: Enemy['type'];
     let width: number, height: number, health: number, speed: number, damage: number;
     
-    // EQUAL spawn chance for all 8 enemy types (~12.5% each)
-    if (typeRoll < 0.125) {
-      // ROBOT - ground unit
+    // SENTINEL gets 25% spawn rate, robot gets 5% (more sentinel than robot)
+    if (typeRoll < 0.05) {
+      // ROBOT - ground unit (reduced to 5%)
       enemyType = 'robot';
       const size = getEnemySize('robot', wave);
       width = size.width; height = size.height;
       health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
-    } else if (typeRoll < 0.25) {
+    } else if (typeRoll < 0.15) {
       // MECH - ground unit
       enemyType = 'mech';
       const size = getEnemySize('mech', wave);
       width = size.width; height = size.height;
       health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; damage = 16 + wave;
-    } else if (typeRoll < 0.375) {
+    } else if (typeRoll < 0.25) {
       // TANK - ground unit
       enemyType = 'tank';
       const size = getEnemySize('tank', wave);
       width = size.width; height = size.height;
       health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; damage = 22 + wave;
-    } else if (typeRoll < 0.5) {
-      // SENTINEL - Large ground mech - uses projectiles now
+    } else if (typeRoll < 0.50) {
+      // SENTINEL - Large ground mech (25% spawn rate - MORE than robot)
       enemyType = 'sentinel';
       const size = getEnemySize('sentinel', wave);
       width = size.width; height = size.height;
       health = 220 * (1 + waveBonus);
       speed = 35 + wave * 1.5; 
       damage = 25 + wave;
-    } else if (typeRoll < 0.625) {
+    } else if (typeRoll < 0.60) {
       // NINJA - ground unit (fast)
       enemyType = 'ninja';
       const size = getEnemySize('ninja', wave);
       width = size.width; height = size.height;
       health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; damage = 12 + wave;
-    } else if (typeRoll < 0.75) {
+    } else if (typeRoll < 0.70) {
       // GIANT - large ground unit
       enemyType = 'giant';
       const size = getEnemySize('giant', wave);
       width = size.width; height = size.height;
       health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
-    } else if (typeRoll < 0.875) {
-      // DRONE - flying enemy - uses BOMBS ONLY (no projectiles)
+    } else if (typeRoll < 0.85) {
+      // DRONE - flying enemy - uses BOMBS ONLY (no projectiles) - SAME SIZE AS HERO (90x95)
       enemyType = 'drone';
       const size = getEnemySize('drone', wave);
       width = size.width; height = size.height;
@@ -352,16 +352,16 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       const isSpiralDrone = Math.random() < 0.25;
       const spiralCenterY = GROUND_Y + 120 + Math.random() * 80;
       
-      // Observer drones are slightly bigger (55x55)
-      const droneWidth = 55;
-      const droneHeight = 55;
+      // All drones now same size as hero (90x95)
+      const droneWidth = 90;
+      const droneHeight = 95;
       
       const droneEnemy = {
         id: `enemy-${x}-${Math.random()}`,
         x,
         y: isSpiralDrone ? spiralCenterY : (GROUND_Y + 60 + Math.random() * 50),
         width: droneWidth,
-        height,
+        height: droneHeight,
         health,
         maxHealth: health,
         speed,
@@ -3008,57 +3008,78 @@ export const useGameState = () => {
             const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
             const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
             
-            // RETREAT BEHAVIOR - zoom OFF SCREEN when within 2 pixels of hero, then come back!
-            const RETREAT_TRIGGER_DISTANCE = 80; // Distance at which flying enemies retreat (close to hero)
-            const RETREAT_SPEED = 600; // How fast they zoom back OFF SCREEN
+            // RETREAT BEHAVIOR - zoom UP then RIGHT off screen, then slowly come back!
+            const RETREAT_TRIGGER_DISTANCE = 60; // Distance at which drones trigger retreat
+            const RETREAT_SPEED_VERTICAL = 800; // Fast zoom UP
+            const RETREAT_SPEED_HORIZONTAL = 600; // Then zoom RIGHT
+            const RETURN_SPEED = 80; // SLOW return to attack
             const BOMB_AOE_RANGE = 120; // AOE range for bombs
-            const OFF_SCREEN_X = prev.cameraX + 700; // Off right side of screen
+            const OFF_SCREEN_X = prev.cameraX + 800; // Off right side of screen
+            const OFF_SCREEN_Y = GROUND_Y - 200; // High above screen
             
             if (enemy.isRetreating) {
-              // Zoom to OFF SCREEN position (right side)
-              const targetReturnX = OFF_SCREEN_X;
-              const targetReturnY = GROUND_Y + 100 + Math.sin(newAnimPhase) * 40; // Vary Y during retreat
+              // Phase 1: Zoom UP first, then RIGHT
+              const hasReachedTop = enemy.y < GROUND_Y - 100;
               
-              const dxToTarget = targetReturnX - enemy.x;
-              const dyToTarget = targetReturnY - enemy.y;
-              const distToTarget = Math.sqrt(dxToTarget * dxToTarget + dyToTarget * dyToTarget);
-              
-              if (distToTarget < 30 || enemy.x > prev.cameraX + 650) {
-                // Reached off-screen position - now come back with new attack pattern
-                // Mark as returning (coming back toward hero)
-                return { 
-                  ...enemy, 
-                  x: OFF_SCREEN_X,
-                  y: GROUND_Y + 80 + Math.random() * 80, // Random height for return
-                  isRetreating: false,
+              if (!hasReachedTop) {
+                // Phase 1: Zoom directly UP
+                const newY = enemy.y - RETREAT_SPEED_VERTICAL * delta;
+                return {
+                  ...enemy,
+                  y: newY,
                   animationPhase: newAnimPhase,
-                  bombCooldown: 0.5 + Math.random() * 0.5, // Quick cooldown to attack again
-                  originalX: OFF_SCREEN_X, // Reset original position
-                  originalY: GROUND_Y + 100,
+                };
+              } else {
+                // Phase 2: Zoom RIGHT off screen
+                const newX = enemy.x + RETREAT_SPEED_HORIZONTAL * delta;
+                
+                if (newX > prev.cameraX + 700) {
+                  // Reached off-screen - now slowly come back
+                  return { 
+                    ...enemy, 
+                    x: OFF_SCREEN_X,
+                    y: GROUND_Y + 80 + Math.random() * 80,
+                    isRetreating: false,
+                    animationPhase: newAnimPhase,
+                    bombCooldown: 0.5 + Math.random() * 0.5,
+                    originalX: OFF_SCREEN_X,
+                    originalY: GROUND_Y + 100,
+                  };
+                }
+                
+                return {
+                  ...enemy,
+                  x: newX,
+                  y: OFF_SCREEN_Y,
+                  animationPhase: newAnimPhase,
                 };
               }
-              
-              // Move toward off-screen position FAST
-              const moveX = (dxToTarget / distToTarget) * RETREAT_SPEED * delta;
-              const moveY = (dyToTarget / distToTarget) * (RETREAT_SPEED * 0.5) * delta;
-              
-              return {
-                ...enemy,
-                x: enemy.x + moveX,
-                y: enemy.y + moveY,
-                animationPhase: newAnimPhase,
-              };
             }
             
-            // Check if VERY CLOSE to hero (within 2 pixels effective distance) - trigger retreat!
+            // Check if touching hero - trigger zoom UP then RIGHT retreat!
             if (distToHero < RETREAT_TRIGGER_DISTANCE && !enemy.isRetreating) {
-              // Too close! Zoom away immediately
+              // Touched hero! Zoom UP then RIGHT immediately
               return {
                 ...enemy,
                 y: targetY,
                 isRetreating: true,
                 animationPhase: newAnimPhase,
                 bombCooldown: 2.0, // Reset bomb cooldown
+              };
+            }
+            
+            // SLOW RETURN - drones returning from retreat move slowly toward hero
+            const isReturning = enemy.x > prev.cameraX + 500 && !enemy.isRetreating;
+            if (isReturning) {
+              // Move slowly toward hero (RETURN_SPEED = 80)
+              const moveX = -RETURN_SPEED * delta;
+              return {
+                ...enemy,
+                x: enemy.x + moveX,
+                y: targetY,
+                animationPhase: newAnimPhase,
+                attackCooldown: Math.max(0, enemy.attackCooldown - delta),
+                bombCooldown: Math.max(0, (enemy.bombCooldown || 0) - delta),
               };
             }
             
