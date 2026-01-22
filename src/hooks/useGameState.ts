@@ -125,10 +125,17 @@ interface EMPGrenade {
   y: number;
   velocityX: number;
   velocityY: number;
-  timer: number; // Time until explosion
+  timer: number;
 }
 
-// REMOVED: NeonBeam interface - All attacks are now projectiles only
+// Powerup dropped by elite enemies
+interface Powerup {
+  id: string;
+  x: number;
+  y: number;
+  type: 'ally' | 'ult';
+  timer: number; // Time before despawn
+}
 
 interface ExtendedGameState extends GameState {
   fireballs: Fireball[];
@@ -153,20 +160,20 @@ interface ExtendedGameState extends GameState {
   portalX: number;
   heroEnteringPortal: boolean;
   bossTransformFlash: number;
-  // REMOVED: neonBeams - All attacks are now projectiles only
   supportUnits: SupportUnit[];
   supportProjectiles: Projectile[];
-  // Cooldown timers for limited abilities (10 second cooldowns)
-  empCooldown: number; // Seconds until next EMP allowed
-  empCharges: number; // Current EMP charges (max 2)
-  allyCooldown: number; // Seconds until next ally allowed
-  allyCharges: number; // Current ally charges (max 2)
-  // Game start time for attack delay
+  empCooldown: number;
+  empCharges: number;
+  allyCooldown: number;
+  allyCharges: number;
   gameStartTime: number;
-  // Particle reset timer
   particleResetTimer: number;
-  // Evasion popup system
   evasionPopup: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
+  // Powerup system - elites drop ally/ult powerups
+  powerups: Powerup[];
+  collectedAllyPowerups: number; // Collected this wave
+  collectedUltPowerups: number; // Collected this wave
+  elitesSpawnedThisWave: number; // Track elite spawns (max 4 per wave)
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -226,14 +233,19 @@ const INITIAL_STATE: ExtendedGameState = {
   // Support units
   supportUnits: [],
   supportProjectiles: [],
-  // Cooldowns - start ready (0 = ready, charges start at max)
+  // Cooldowns - start ready (0 = ready, charges start at 0 - must collect powerups)
   empCooldown: 0,
   empCharges: 2,
   allyCooldown: 0,
-  allyCharges: 2,
+  allyCharges: 0, // Start with 0 - must collect from elites
   gameStartTime: Date.now(),
   particleResetTimer: PARTICLE_LIFETIME,
   evasionPopup: null,
+  // Powerup system
+  powerups: [],
+  collectedAllyPowerups: 0,
+  collectedUltPowerups: 0,
+  elitesSpawnedThisWave: 0,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -384,16 +396,32 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     const groundLevels = [GROUND_Y_TOP, GROUND_Y_MIDDLE, GROUND_Y_BOTTOM];
     const enemyGroundY = groundLevels[Math.floor(Math.random() * groundLevels.length)];
     
+    // Check if this should be an ELITE enemy (4 per wave max - 2 ally drops, 2 ult drops)
+    const currentEliteCount = enemies.filter(e => e.isElite).length;
+    const shouldBeElite = currentEliteCount < 4 && Math.random() < 0.08; // ~8% chance, capped at 4
+    let eliteDropType: 'ally' | 'ult' | undefined = undefined;
+    
+    if (shouldBeElite) {
+      // Alternate between ally and ult drops
+      const allyElites = enemies.filter(e => e.isElite && e.eliteDropType === 'ally').length;
+      const ultElites = enemies.filter(e => e.isElite && e.eliteDropType === 'ult').length;
+      if (allyElites < 2) {
+        eliteDropType = 'ally';
+      } else if (ultElites < 2) {
+        eliteDropType = 'ult';
+      }
+    }
+    
     enemies.push({
       id: `enemy-${x}-${Math.random()}`,
       x,
       y: enemyGroundY,
-      width,
-      height,
-      health,
-      maxHealth: health,
-      speed,
-      damage,
+      width: shouldBeElite ? Math.floor(width * 1.3) : width,
+      height: shouldBeElite ? Math.floor(height * 1.3) : height,
+      health: shouldBeElite ? health * 2.5 : health,
+      maxHealth: shouldBeElite ? health * 2.5 : health,
+      speed: shouldBeElite ? speed * 0.7 : speed, // Elites are slower but tougher
+      damage: shouldBeElite ? damage * 1.5 : damage,
       type: enemyType,
       isDying: false,
       deathTimer: 0,
@@ -401,7 +429,9 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       animationPhase: Math.random() * Math.PI * 2,
       isSpawning: true,
       spawnTimer: 0.8,
-      groundY: enemyGroundY, // Store assigned ground level
+      groundY: enemyGroundY,
+      isElite: shouldBeElite && !!eliteDropType,
+      eliteDropType: eliteDropType,
     });
   }
   
@@ -805,26 +835,30 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero fires BULLET FROM CENTER OF BODY - middle of sprite
-          const heroScreenX = HERO_FIXED_SCREEN_X; // Hero's fixed screen position (center)
-          const heroWorldX = prev.cameraX + heroScreenX + PLAYER_WIDTH / 2; // Center of hero
-          // Bullet comes from CENTER of body (middle of sprite)
-          const bodyMiddleY = prev.player.y + PLAYER_HEIGHT * 0.5; // Center of body
+          // Hero fires BULLET - position changes based on spaceship mode
+          const heroScreenX = HERO_FIXED_SCREEN_X;
+          const heroWorldX = prev.cameraX + heroScreenX + PLAYER_WIDTH / 2;
+          // In spaceship mode, fire from spaceship height (200), else from ground torso
+          const isSpaceshipMode = prev.player.isMagicDashing;
+          const spaceshipY = 200; // Spaceship flying height
+          const groundTorsoY = prev.player.y + PLAYER_HEIGHT * 0.5;
+          const bulletY = isSpaceshipMode ? spaceshipY + 30 : groundTorsoY; // Spaceship center is +30 from bottom
+          
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
-            x: heroWorldX, // Start from center
-            y: bodyMiddleY, // Body center height
-            velocityX: 800, // Fast bullet
-            velocityY: 0, // Straight horizontal shot
-            damage: prev.player.isMagicDashing ? 150 : 60,
-            type: prev.player.isMagicDashing ? 'ultra' : 'mega',
+            x: heroWorldX + (isSpaceshipMode ? 50 : 0), // Spaceship fires from front
+            y: bulletY,
+            velocityX: isSpaceshipMode ? 1000 : 800, // Faster in spaceship
+            velocityY: 0,
+            damage: isSpaceshipMode ? 150 : 60,
+            type: isSpaceshipMode ? 'ultra' : 'mega',
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          // Muzzle flash particles at body center - cyan glow
+          // Particles from correct position
           newState.particles = [...prev.particles, 
-            ...createParticles(heroWorldX, bodyMiddleY, 15, 'muzzle', '#00ffff'),
-            ...createParticles(heroWorldX + 5, bodyMiddleY, 6, 'spark', '#ffffff'),
+            ...createParticles(heroWorldX + (isSpaceshipMode ? 50 : 0), bulletY, 15, 'muzzle', isSpaceshipMode ? '#ff00ff' : '#00ffff'),
+            ...createParticles(heroWorldX + (isSpaceshipMode ? 55 : 5), bulletY, 6, 'spark', '#ffffff'),
           ];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
@@ -1678,12 +1712,34 @@ export const useGameState = () => {
           newState.particleResetTimer = PARTICLE_LIFETIME;
         }
         
-        // EMP and Ally cooldown recharge - 10 second cooldown to restore charges
+        // POWERUP COLLECTION - Hero collects powerups when near them
+        const heroWorldX = prev.cameraX + HERO_FIXED_SCREEN_X + PLAYER_WIDTH / 2;
+        newState.powerups = (prev.powerups || []).filter(powerup => {
+          const dist = Math.abs(powerup.x - heroWorldX);
+          if (dist < 80) {
+            // Collected!
+            if (powerup.type === 'ally') {
+              newState.collectedAllyPowerups = (prev.collectedAllyPowerups || 0) + 1;
+              newState.allyCharges = Math.min(2, (prev.allyCharges || 0) + 1);
+              showSpeechBubble("🤖 ALLY POWERUP! 🤖", 'excited');
+            } else {
+              newState.collectedUltPowerups = (prev.collectedUltPowerups || 0) + 1;
+              showSpeechBubble("🚀 ULT POWERUP! 🚀", 'excited');
+            }
+            newState.particles = [...newState.particles, ...createParticles(powerup.x, powerup.y, 20, 'magic', powerup.type === 'ally' ? '#00ff88' : '#ff00ff')];
+            return false;
+          }
+          // Despawn timer
+          if (powerup.timer <= 0) return false;
+          return true;
+        }).map(p => ({ ...p, timer: p.timer - delta }));
+        
+        // EMP and Ally cooldown recharge
         if (prev.empCooldown > 0) {
           newState.empCooldown = prev.empCooldown - delta;
           if (newState.empCooldown <= 0 && prev.empCharges < 2) {
             newState.empCharges = Math.min(2, prev.empCharges + 1);
-            newState.empCooldown = prev.empCharges < 1 ? 10 : 0; // If still needs charge, reset timer
+            newState.empCooldown = prev.empCharges < 1 ? 10 : 0;
           }
         }
         if (prev.allyCooldown > 0) {
@@ -2361,23 +2417,36 @@ export const useGameState = () => {
                   newState.enemies[enemyIdx].isDying = true;
                   newState.enemies[enemyIdx].deathTimer = 0.5;
                   
-                  const scoreMap: Record<string, number> = { boss: 2500, tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70 };
-                  newState.score += scoreMap[enemy.type] || 60;
+                  const scoreMap: Record<string, number> = { boss: 2500, tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 350 };
+                  newState.score += (enemy.isElite ? 2 : 1) * (scoreMap[enemy.type] || 60);
                   newState.combo++;
                   newState.comboTimer = 2;
                   newState.killStreak++;
                   
                   newState.particles = [...newState.particles, ...createParticles(
                     enemy.x + enemy.width/2, enemy.y + enemy.height/2, 
-                    enemy.type === 'boss' ? 40 : 20, 'death', '#ff4400'
+                    enemy.type === 'boss' ? 40 : enemy.isElite ? 30 : 20, 'death', enemy.isElite ? '#ffff00' : '#ff4400'
                   )];
                   
-                  newState.screenShake = enemy.type === 'boss' ? 1.5 : 0.25;
+                  newState.screenShake = enemy.type === 'boss' ? 1.5 : enemy.isElite ? 0.4 : 0.25;
+                  
+                  // ELITE KILLED - Drop powerup!
+                  if (enemy.isElite && enemy.eliteDropType) {
+                    const powerup: Powerup = {
+                      id: `powerup-${Date.now()}-${Math.random()}`,
+                      x: enemy.x + enemy.width / 2,
+                      y: enemy.y + enemy.height / 2,
+                      type: enemy.eliteDropType,
+                      timer: 15, // 15 seconds to collect
+                    };
+                    newState.powerups = [...(newState.powerups || []), powerup];
+                    showSpeechBubble(`💎 ${enemy.eliteDropType.toUpperCase()} POWERUP DROPPED! 💎`, 'excited');
+                  }
                   
                   // BOSS KILLED - Open the portal!
                   if (enemy.type === 'boss') {
                     newState.portalOpen = true;
-                    newState.portalX = enemy.x + enemy.width / 2; // Portal spawns where boss died
+                    newState.portalX = enemy.x + enemy.width / 2;
                     showSpeechBubble("BOSS DOWN! PORTAL OPENED! 🌀", 'excited');
                   }
                   
