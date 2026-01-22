@@ -34,16 +34,7 @@ interface EMPGrenade {
   timer: number;
 }
 
-// Neon beam from jet robots
-interface NeonBeam {
-  id: string;
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  life: number;
-  damageTimer: number;
-}
+// REMOVED: NeonBeam interface - All attacks are now projectiles only
 
 interface ExtendedGameState extends GameState {
   fireballs?: { id: string; x: number; y: number; velocityX: number; velocityY: number; damage: number }[];
@@ -61,7 +52,6 @@ interface ExtendedGameState extends GameState {
   portalX?: number;
   heroEnteringPortal?: boolean;
   bossTransformFlash?: number;
-  neonBeams?: NeonBeam[];
   supportUnits?: SupportUnit[];
   supportProjectiles?: Projectile[];
 }
@@ -82,7 +72,7 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
     damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
     empGrenades = [], bombs = [],
     portalOpen = false, portalX = 0, heroEnteringPortal = false,
-    bossTransformFlash = 0, neonBeams = [],
+    bossTransformFlash = 0,
     supportUnits = [], supportProjectiles = []
   } = gameState;
   
@@ -258,77 +248,7 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           );
         })}
         
-        {/* NEON BEAMS - Fired by jet robots, damage over time */}
-        {neonBeams.map(beam => {
-          const startX = beam.x - cameraX;
-          const endX = beam.targetX - cameraX;
-          const startY = beam.y;
-          const endY = beam.targetY;
-          
-          // Calculate beam angle and length
-          const dx = endX - startX;
-          const dy = endY - startY;
-          const angle = Math.atan2(dy, dx);
-          const length = Math.sqrt(dx * dx + dy * dy);
-          
-          return (
-            <motion.div
-              key={beam.id}
-              className="absolute pointer-events-none z-45"
-              style={{
-                left: startX,
-                bottom: startY,
-                width: length,
-                height: 6,
-                background: `linear-gradient(90deg, 
-                  rgba(0,255,255,0.9), 
-                  rgba(255,0,255,1), 
-                  rgba(0,255,255,0.9)
-                )`,
-                boxShadow: `
-                  0 0 10px #00ffff, 
-                  0 0 20px #ff00ff, 
-                  0 0 30px #00ffff,
-                  0 0 40px rgba(255,0,255,0.5)
-                `,
-                transformOrigin: 'left center',
-                transform: `rotate(${-angle * 180 / Math.PI}deg)`,
-                borderRadius: '3px',
-              }}
-              initial={{ opacity: 0, scaleX: 0 }}
-              animate={{ 
-                opacity: beam.life > 0.3 ? 1 : beam.life * 3,
-                scaleX: 1,
-              }}
-              transition={{ duration: 0.1 }}
-            >
-              {/* Inner bright core */}
-              <motion.div
-                className="absolute inset-0"
-                style={{
-                  background: 'linear-gradient(90deg, white, rgba(0,255,255,1), white)',
-                  filter: 'blur(1px)',
-                }}
-                animate={{ 
-                  opacity: [0.8, 1, 0.8],
-                }}
-                transition={{ duration: 0.1, repeat: Infinity }}
-              />
-              
-              {/* Pulse effect */}
-              <motion.div
-                className="absolute inset-0"
-                style={{
-                  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)',
-                }}
-                animate={{ 
-                  x: ['-100%', '100%'],
-                }}
-                transition={{ duration: 0.3, repeat: Infinity, ease: 'linear' }}
-              />
-            </motion.div>
-          );
-        })}
+        {/* REMOVED: Neon beams - All attacks are now projectiles only */}
         
         {/* EMP Grenades - THROWN HIGH into the sky - Metal Slug style arc */}
         {empGrenades.map(grenade => {

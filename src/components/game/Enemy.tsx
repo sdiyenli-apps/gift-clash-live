@@ -91,13 +91,14 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
       ? getDroneSprite(enemy.droneVariant)
       : ENEMY_SPRITES[enemy.type];
   
-  // Scale enemies - scaled for mobile
+  // Scale enemies SMALLER for wider FOV - Metal Slug style proportions
   const isGiant = enemy.type === 'giant' || enemy.isGiant;
   
-  // Boss grows bigger with each phase, giants are 1.5x larger
-  const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.25) : 1; // More dramatic scaling
-  const giantScale = isGiant ? 1.5 : 1;
-  const scaleFactor = (isBoss ? 1.0 : 1.0) * bossPhaseScale * giantScale; // Boss no longer reduced
+  // Boss grows bigger with each phase, giants are 1.3x larger (reduced from 1.5x)
+  const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.2) : 1; // Reduced scaling
+  const giantScale = isGiant ? 1.3 : 1;
+  const baseScale = 0.7; // All enemies scaled down 30% for wider FOV
+  const scaleFactor = baseScale * bossPhaseScale * giantScale;
   const displayWidth = enemy.width * scaleFactor;
   const displayHeight = enemy.height * scaleFactor;
   

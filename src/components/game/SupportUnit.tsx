@@ -18,10 +18,11 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   const healthPercent = (unit.health / unit.maxHealth) * 100;
   const shieldPercent = unit.maxShield > 0 ? (unit.shield / unit.maxShield) * 100 : 0;
   
-  // Mech is double size
+  // Allies scaled SMALLER for wider FOV - Metal Slug style proportions
   const isMech = unit.type === 'mech';
-  const displayWidth = isMech ? unit.width : unit.width;
-  const displayHeight = isMech ? unit.height : unit.height;
+  const baseScale = 0.65; // All allies scaled down 35% for wider FOV
+  const displayWidth = unit.width * baseScale;
+  const displayHeight = unit.height * baseScale;
   
   // Landing animation - starts from top of screen
   const isLanding = unit.isLanding && (unit.landingTimer || 0) > 0;
@@ -165,25 +166,25 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             transition={{ duration: 0.12 }}
           />
           
-          {/* VISIBLE projectile launch beam */}
+          {/* PROJECTILE muzzle flash - NO BEAM, just bullet effect */}
           <motion.div
             className="absolute"
             style={{
-              right: isMech ? -80 : -100,
+              right: isMech ? -20 : -18,
               top: '38%',
-              width: isMech ? 60 : 90,
-              height: isMech ? 16 : 10,
+              width: isMech ? 12 : 10,
+              height: isMech ? 12 : 10,
               background: isMech
-                ? 'linear-gradient(90deg, #ff6600, #ffaa00, #ffff00, #fff)'
-                : 'linear-gradient(90deg, #00aa66, #00ff88, #00ffcc, #fff)',
-              borderRadius: isMech ? 8 : 5,
+                ? 'radial-gradient(circle, #fff, #ffaa00, #ff6600)'
+                : 'radial-gradient(circle, #fff, #00ff88, #00aa55)',
+              borderRadius: '50%',
               boxShadow: isMech
-                ? '0 0 20px #ff8800, 0 0 40px #ff4400'
-                : '0 0 15px #00ff88, 0 0 30px #00ffaa',
+                ? '0 0 15px #ff8800, 0 0 25px #ff4400'
+                : '0 0 12px #00ff88, 0 0 20px #00ffaa',
             }}
-            initial={{ scaleX: 0, opacity: 0 }}
-            animate={{ scaleX: [0, 1.2, 0.8], opacity: [0, 1, 0] }}
-            transition={{ duration: 0.15 }}
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: [0, 1.5, 0.8], opacity: [0, 1, 0] }}
+            transition={{ duration: 0.12 }}
           />
           
           {/* Energy rings from muzzle */}
@@ -205,26 +206,26 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             />
           ))}
           
-          {/* Sparks flying out */}
-          {[...Array(6)].map((_, i) => (
+          {/* Small sparks for bullet fire - reduced from 6 to 3 */}
+          {[...Array(3)].map((_, i) => (
             <motion.div
               key={`attack-spark-${i}`}
               className="absolute rounded-full"
               style={{
-                right: -20,
-                top: `${30 + i * 7}%`,
-                width: 5,
-                height: 5,
+                right: -15,
+                top: `${35 + i * 10}%`,
+                width: 4,
+                height: 4,
                 background: isMech ? '#ffff00' : '#00ffff',
-                boxShadow: `0 0 6px ${isMech ? '#ff8800' : '#00ff88'}`,
+                boxShadow: `0 0 5px ${isMech ? '#ff8800' : '#00ff88'}`,
               }}
               animate={{
-                x: [0, 50 + Math.random() * 40],
-                y: [(i - 2.5) * 8, (i - 2.5) * 20],
+                x: [0, 30 + Math.random() * 20],
+                y: [(i - 1) * 6, (i - 1) * 12],
                 opacity: [1, 0],
                 scale: [1, 0.3],
               }}
-              transition={{ duration: 0.25, delay: i * 0.02 }}
+              transition={{ duration: 0.18, delay: i * 0.02 }}
             />
           ))}
           
