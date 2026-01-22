@@ -21,7 +21,7 @@ const ROCKET_ATTACK_RANGE = 350;
 const BOSS_FIREBALL_INTERVAL = 4;
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
 const BOSS_KEEP_DISTANCE = 400;
-const HERO_FIXED_SCREEN_X = 60; // Hero on LEFT side of screen
+const HERO_FIXED_SCREEN_X = 50; // Hero on LEFT side of screen (moved slightly left)
 const ENEMY_ATTACK_DELAY = 2;
 const PARTICLE_LIFETIME = 3;
 const EVASION_CHANCE = 1 / 15;
@@ -352,11 +352,15 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       const isSpiralDrone = Math.random() < 0.25;
       const spiralCenterY = GROUND_Y + 120 + Math.random() * 80;
       
+      // Observer drones are slightly bigger (55x55)
+      const droneWidth = 55;
+      const droneHeight = 55;
+      
       const droneEnemy = {
         id: `enemy-${x}-${Math.random()}`,
         x,
         y: isSpiralDrone ? spiralCenterY : (GROUND_Y + 60 + Math.random() * 50),
-        width,
+        width: droneWidth,
         height,
         health,
         maxHealth: health,
@@ -849,12 +853,12 @@ export const useGameState = () => {
       shield: 0,
       maxShield: 0,
       type: 'tank',
-      timer: 15, // 15 seconds duration
+      timer: 25, // 25 seconds duration
       attackCooldown: 0,
       isLanding: true,
       landingTimer: 0.8,
       hasArmor: true, // Starts with armor
-      armorTimer: 5, // 5 seconds of armor
+      armorTimer: 10, // 10 seconds of armor
     };
   };
 

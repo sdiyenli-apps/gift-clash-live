@@ -11,8 +11,8 @@ interface HeroProps {
 }
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
-  // Fixed screen position - hero on LEFT side
-  const screenX = 60;
+  // Fixed screen position - hero on LEFT side (moved slightly left)
+  const screenX = 50;
   const isEmpowered = isUltraMode || player.isMagicDashing;
   const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
   const isWalking = player.animationState === 'run' || player.animationState === 'dash';
@@ -21,9 +21,9 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
   // Check if hero is in spaceship mode (during magic dash/ULT)
   const isSpaceshipMode = player.isMagicDashing;
 
-  // Hero sized LARGER for visibility - Metal Slug style proportions
-  const heroWidth = isSpaceshipMode ? 100 : 80;
-  const heroHeight = isSpaceshipMode ? 60 : 85;
+  // Hero sized LARGER for visibility - Metal Slug style proportions (slightly bigger)
+  const heroWidth = isSpaceshipMode ? 110 : 90;
+  const heroHeight = isSpaceshipMode ? 70 : 95;
   
   // Hero positioned lower on ground (reduced to 85), flies high in spaceship mode
   const flyingHeight = isSpaceshipMode ? 200 : 85;

@@ -229,35 +229,6 @@ const Index = () => {
               >
                 W{gameState.currentWave}
               </div>
-              {gameState.player.isMagicDashing && (
-                <motion.div
-                  className="px-2 py-0.5 rounded-full font-bold text-[10px]"
-                  style={{
-                    background: 'rgba(255,0,255,0.3)',
-                    border: '1px solid rgba(255,0,255,0.5)',
-                    color: '#ff66ff',
-                  }}
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 0.2, repeat: Infinity }}
-                >
-                  ✨{gameState.player.magicDashTimer.toFixed(0)}
-                </motion.div>
-              )}
-              {/* EMP Cooldown indicator */}
-              {gameState.empCooldown > 0 && (
-                <motion.div
-                  className="px-2 py-0.5 rounded-full font-bold text-[10px]"
-                  style={{
-                    background: 'rgba(0,255,255,0.3)',
-                    border: '1px solid rgba(0,255,255,0.5)',
-                    color: '#00ffff',
-                  }}
-                  animate={{ opacity: [1, 0.7, 1] }}
-                  transition={{ duration: 0.5, repeat: Infinity }}
-                >
-                  ⚡{gameState.empCooldown.toFixed(0)}
-                </motion.div>
-              )}
             </>
           )}
           <motion.button
@@ -318,20 +289,70 @@ const Index = () => {
               paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
             }}
           >
-            {/* Compact Health bar - Full width TikTok style */}
+            {/* Compact Health bar + Data elements row - Full width TikTok style */}
             <div 
-              className="px-2 py-1.5 rounded-xl mx-auto w-full max-w-sm"
+              className="px-2 py-1.5 rounded-xl mx-auto w-full max-w-sm flex items-center gap-2"
               style={{
                 background: 'rgba(0,0,0,0.8)',
                 border: '1px solid rgba(255,0,255,0.25)',
                 boxShadow: '0 0 10px rgba(255,0,255,0.15)',
               }}
             >
-              <HealthBar 
-                health={gameState.player.health}
-                maxHealth={gameState.player.maxHealth}
-                shield={gameState.player.shield}
-              />
+              {/* Health bar (flex-1 to take remaining space) */}
+              <div className="flex-1">
+                <HealthBar 
+                  health={gameState.player.health}
+                  maxHealth={gameState.player.maxHealth}
+                  shield={gameState.player.shield}
+                />
+              </div>
+              
+              {/* Data elements next to health/armor */}
+              <div className="flex items-center gap-1 shrink-0">
+                {/* Wave indicator */}
+                <div 
+                  className="px-1.5 py-0.5 rounded text-[8px] font-bold"
+                  style={{
+                    background: 'rgba(0,255,255,0.2)',
+                    border: '1px solid rgba(0,255,255,0.4)',
+                    color: '#00ffff',
+                  }}
+                >
+                  W{gameState.currentWave}
+                </div>
+                
+                {/* Magic Dash timer */}
+                {gameState.player.isMagicDashing && (
+                  <motion.div
+                    className="px-1.5 py-0.5 rounded text-[8px] font-bold"
+                    style={{
+                      background: 'rgba(255,0,255,0.3)',
+                      border: '1px solid rgba(255,0,255,0.5)',
+                      color: '#ff66ff',
+                    }}
+                    animate={{ opacity: [1, 0.5, 1] }}
+                    transition={{ duration: 0.2, repeat: Infinity }}
+                  >
+                    ✨{gameState.player.magicDashTimer.toFixed(0)}
+                  </motion.div>
+                )}
+                
+                {/* EMP Cooldown */}
+                {gameState.empCooldown > 0 && (
+                  <motion.div
+                    className="px-1.5 py-0.5 rounded text-[8px] font-bold"
+                    style={{
+                      background: 'rgba(0,255,255,0.3)',
+                      border: '1px solid rgba(0,255,255,0.5)',
+                      color: '#00ffff',
+                    }}
+                    animate={{ opacity: [1, 0.7, 1] }}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                  >
+                    ⚡{gameState.empCooldown.toFixed(0)}
+                  </motion.div>
+                )}
+              </div>
             </div>
             
             {/* Compact Gift buttons - TikTok large touch targets */}
