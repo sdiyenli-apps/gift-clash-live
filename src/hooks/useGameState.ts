@@ -240,80 +240,110 @@ const INITIAL_STATE: ExtendedGameState = {
 // Enemy spawn rates - balanced distribution
 const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant', 'bomber', 'sentinel'] as const;
 
-// ============= OPTIMIZED LEVEL GENERATION =============
+// ============= OPTIMIZED LEVEL GENERATION (Streets of Rage Style) =============
 const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[], levelLength: number, gameStartTime: number } => {
   const gameStartTime = Date.now();
   const enemies: Enemy[] = [];
   const obstacles: Obstacle[] = [];
   
   const levelLength = Math.min(BASE_LEVEL_LENGTH * Math.pow(1.3, wave - 1), 50000);
-  const baseDensity = 200;
-  const densityReduction = Math.min(wave * 8, 120);
-  const enemyDensity = Math.max(80, baseDensity - densityReduction);
   
-  // STAGGERED SPAWN - Enemies spawn in waves/formations, not random clusters
-  const formations = [
-    { type: 'line', spacing: 80, count: 3 },
-    { type: 'vShape', spacing: 60, count: 5 },
-    { type: 'single', spacing: 0, count: 1 },
-  ];
+  // ============= STREETS OF RAGE SPACING =============
+  // Ground enemies spread horizontally with clear lanes
+  // Flying enemies hover above, not blocking ground
+  const GROUND_LANE_Y = GROUND_Y; // All ground enemies at same Y
+  const MIN_HORIZONTAL_SPACING = 120; // Minimum gap between enemies
+  const WAVE_SPACING = 300; // Gap between enemy waves/formations
   
   let currentX = 400;
   let formationIndex = 0;
   
   while (currentX < levelLength - 800) {
-    const formation = formations[formationIndex % formations.length];
     const waveBonus = Math.min(wave * 0.15, 3);
     
-    // Random enemy type selection
-    const typeRoll = Math.random();
-    let baseType: Enemy['type'];
-    let baseWidth: number, baseHeight: number, baseHealth: number, baseSpeed: number, baseDamage: number;
-    let isFlying = false;
+    // Determine formation type
+    const formationType = formationIndex % 4;
+    let enemiesInFormation: { type: string; offsetX: number; isFlying: boolean }[] = [];
     
-    if (typeRoll < 0.15) {
-      baseType = 'robot';
-      baseWidth = 50; baseHeight = 58; baseHealth = 45 * (1 + waveBonus); baseSpeed = 55 + wave * 2.5; baseDamage = 9 + wave;
-    } else if (typeRoll < 0.28) {
-      baseType = 'mech';
-      baseWidth = 55; baseHeight = 60; baseHealth = 90 * (1 + waveBonus); baseSpeed = 32 + wave * 2.5; baseDamage = 16 + wave;
-    } else if (typeRoll < 0.40) {
-      baseType = 'tank';
-      baseWidth = 70; baseHeight = 65; baseHealth = 180 * (1 + waveBonus); baseSpeed = 18 + wave * 1.5; baseDamage = 22 + wave;
-    } else if (typeRoll < 0.52) {
-      baseType = 'sentinel';
-      baseWidth = 75; baseHeight = 80; baseHealth = 220 * (1 + waveBonus); baseSpeed = 35 + wave * 1.5; baseDamage = 25 + wave;
-    } else if (typeRoll < 0.62) {
-      baseType = 'ninja';
-      baseWidth = 45; baseHeight = 52; baseHealth = 35 * (1 + waveBonus * 0.6); baseSpeed = 150 + wave * 8; baseDamage = 12 + wave;
-    } else if (typeRoll < 0.72) {
-      baseType = 'giant';
-      baseWidth = 90; baseHeight = 100; baseHealth = 300 * (1 + waveBonus); baseSpeed = 25 + wave; baseDamage = 30 + wave * 2;
-    } else if (typeRoll < 0.85) {
-      baseType = 'drone';
-      baseWidth = 50; baseHeight = 50; baseHealth = 32 * (1 + waveBonus * 0.5); baseSpeed = 90 + wave * 3; baseDamage = 7 + Math.floor(wave / 2);
-      isFlying = true;
-    } else {
-      baseType = 'bomber';
-      baseWidth = 55; baseHeight = 50; baseHealth = 50 * (1 + waveBonus * 0.6); baseSpeed = 60 + wave * 2; baseDamage = 15 + wave;
-      isFlying = true;
+    switch (formationType) {
+      case 0: // Single enemy
+        enemiesInFormation = [{ type: 'robot', offsetX: 0, isFlying: false }];
+        break;
+      case 1: // Horizontal line of 3 (Streets of Rage style)
+        enemiesInFormation = [
+          { type: 'robot', offsetX: 0, isFlying: false },
+          { type: 'mech', offsetX: MIN_HORIZONTAL_SPACING, isFlying: false },
+          { type: 'robot', offsetX: MIN_HORIZONTAL_SPACING * 2, isFlying: false },
+        ];
+        break;
+      case 2: // Mixed ground + 1 drone above
+        enemiesInFormation = [
+          { type: 'tank', offsetX: 0, isFlying: false },
+          { type: 'robot', offsetX: MIN_HORIZONTAL_SPACING, isFlying: false },
+          { type: 'drone', offsetX: MIN_HORIZONTAL_SPACING * 0.5, isFlying: true },
+        ];
+        break;
+      case 3: // Heavy formation
+        enemiesInFormation = [
+          { type: 'sentinel', offsetX: 0, isFlying: false },
+          { type: 'mech', offsetX: MIN_HORIZONTAL_SPACING * 1.5, isFlying: false },
+        ];
+        break;
     }
     
-    // Size variation (smaller range for performance)
-    const sizeMultiplier = 0.9 + Math.random() * 0.3;
+    // Random variation in formation
+    if (Math.random() > 0.7) {
+      const extraTypes = ['ninja', 'giant', 'bomber'];
+      const extraType = extraTypes[Math.floor(Math.random() * extraTypes.length)];
+      const isFlying = extraType === 'bomber';
+      enemiesInFormation.push({ 
+        type: extraType, 
+        offsetX: (enemiesInFormation.length) * MIN_HORIZONTAL_SPACING, 
+        isFlying 
+      });
+    }
     
-    // Create formation
-    for (let i = 0; i < formation.count; i++) {
-      const offsetX = formation.type === 'vShape' 
-        ? Math.abs(i - Math.floor(formation.count / 2)) * formation.spacing
-        : i * formation.spacing;
+    // Create enemies from formation
+    for (const entry of enemiesInFormation) {
+      const baseType = entry.type as Enemy['type'];
+      let baseWidth: number, baseHeight: number, baseHealth: number, baseSpeed: number, baseDamage: number;
       
-      const spawnX = currentX + offsetX;
+      switch (baseType) {
+        case 'robot':
+          baseWidth = 50; baseHeight = 58; baseHealth = 45 * (1 + waveBonus); baseSpeed = 55 + wave * 2.5; baseDamage = 9 + wave;
+          break;
+        case 'mech':
+          baseWidth = 55; baseHeight = 60; baseHealth = 90 * (1 + waveBonus); baseSpeed = 32 + wave * 2.5; baseDamage = 16 + wave;
+          break;
+        case 'tank':
+          baseWidth = 70; baseHeight = 65; baseHealth = 180 * (1 + waveBonus); baseSpeed = 18 + wave * 1.5; baseDamage = 22 + wave;
+          break;
+        case 'sentinel':
+          baseWidth = 75; baseHeight = 80; baseHealth = 220 * (1 + waveBonus); baseSpeed = 35 + wave * 1.5; baseDamage = 25 + wave;
+          break;
+        case 'ninja':
+          baseWidth = 45; baseHeight = 52; baseHealth = 35 * (1 + waveBonus * 0.6); baseSpeed = 150 + wave * 8; baseDamage = 12 + wave;
+          break;
+        case 'giant':
+          baseWidth = 90; baseHeight = 100; baseHealth = 300 * (1 + waveBonus); baseSpeed = 25 + wave; baseDamage = 30 + wave * 2;
+          break;
+        case 'drone':
+          baseWidth = 50; baseHeight = 50; baseHealth = 32 * (1 + waveBonus * 0.5); baseSpeed = 90 + wave * 3; baseDamage = 7 + Math.floor(wave / 2);
+          break;
+        case 'bomber':
+          baseWidth = 55; baseHeight = 50; baseHealth = 50 * (1 + waveBonus * 0.6); baseSpeed = 60 + wave * 2; baseDamage = 15 + wave;
+          break;
+        default:
+          baseWidth = 50; baseHeight = 58; baseHealth = 45; baseSpeed = 55; baseDamage = 9;
+      }
+      
+      const sizeMultiplier = 0.9 + Math.random() * 0.2;
+      const spawnX = currentX + entry.offsetX;
       
       enemies.push({
         id: `enemy-${spawnX}-${Math.random().toString(36).substr(2, 5)}`,
         x: spawnX,
-        y: isFlying ? GROUND_Y + 60 + Math.random() * 100 : GROUND_Y,
+        y: entry.isFlying ? GROUND_Y + 60 + Math.random() * 80 : GROUND_LANE_Y, // Ground units ALWAYS at GROUND_Y
         width: Math.floor(baseWidth * sizeMultiplier),
         height: Math.floor(baseHeight * sizeMultiplier),
         health: baseHealth,
@@ -327,14 +357,16 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         animationPhase: Math.random() * Math.PI * 2,
         isSpawning: true,
         spawnTimer: 0.6,
-        isFlying,
-        flyHeight: isFlying ? 60 + Math.random() * 80 : 0,
+        isFlying: entry.isFlying,
+        flyHeight: entry.isFlying ? 60 + Math.random() * 80 : 0,
         bombCooldown: baseType === 'bomber' ? 2 + Math.random() * 2 : undefined,
         droneVariant: Math.floor(Math.random() * 5),
       });
     }
     
-    currentX += formation.count * formation.spacing + enemyDensity + Math.random() * 60;
+    // Move to next formation with proper spacing
+    const formationWidth = enemiesInFormation.length * MIN_HORIZONTAL_SPACING;
+    currentX += formationWidth + WAVE_SPACING + Math.random() * 100;
     formationIndex++;
   }
   
@@ -1489,7 +1521,7 @@ export const useGameState = () => {
           return {
             ...enemy,
             x: newX,
-            y: GROUND_Y,
+            y: GROUND_Y, // ALWAYS force ground units to GROUND_Y
             attackCooldown: Math.max(0, (enemy.attackCooldown || 0) - delta),
             isSlashing: (enemy.attackCooldown || 0) > 1.2,
             animationPhase: (enemy.animationPhase || 0) + delta,

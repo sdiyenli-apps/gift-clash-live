@@ -1,12 +1,11 @@
 import { memo, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { GameState, Projectile, GiftBlock, getBossName, GiftEvent, Bomb, SupportUnit } from '@/types/game';
+import { motion } from 'framer-motion';
+import { GameState, Projectile, GiftEvent, Bomb, SupportUnit } from '@/types/game';
 import { BackgroundVideo } from './BackgroundVideo';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
-import { ProjectileSprite, EnemyLaserSprite, FireballSprite } from './Projectile';
+import { ProjectileSprite, EnemyLaserSprite, FireballSprite, AllyBulletSprite } from './Projectile';
 import { Particles } from './Particles';
-import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
 import { BossHealthBar } from './BossHealthBar';
 import { MiniMap } from './MiniMap';
@@ -14,6 +13,7 @@ import { CyberpunkBuildings } from './CyberpunkBuildings';
 import { FloorAssets } from './FloorAssets';
 import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
+import { getBossName } from '@/types/game';
 
 interface NeonLaser {
   id: string;
@@ -65,6 +65,7 @@ const MemoizedProjectileSprite = memo(ProjectileSprite);
 const MemoizedEnemyLaserSprite = memo(EnemyLaserSprite);
 const MemoizedFireballSprite = memo(FireballSprite);
 const MemoizedSupportUnitSprite = memo(SupportUnitSprite);
+const MemoizedAllyBulletSprite = memo(AllyBulletSprite);
 
 export const Arena = memo(({ gameState, notifications = [] }: ArenaProps) => {
   const { 
@@ -325,34 +326,11 @@ export const Arena = memo(({ gameState, notifications = [] }: ArenaProps) => {
           <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
         </div>
         
-        {/* Support projectiles */}
+        {/* Ally projectiles - GREEN bullets */}
         <div className="absolute inset-0 z-30 pointer-events-none">
-          {(supportProjectiles || []).slice(0, 6).map(proj => {
-            const screenX = proj.x - cameraX;
-            const isMech = proj.type === 'ultra';
-            
-            if (screenX < -20 || screenX > 700) return null;
-
-            return (
-              <div
-                key={proj.id}
-                className="absolute"
-                style={{
-                  left: screenX,
-                  bottom: 280 - proj.y - 4,
-                  width: isMech ? 12 : 10,
-                  height: isMech ? 6 : 5,
-                  background: isMech 
-                    ? 'linear-gradient(90deg, #fff, #ffaa00, #ff6600)'
-                    : 'linear-gradient(90deg, #fff, #00ffaa, #00ff88)',
-                  boxShadow: isMech
-                    ? '0 0 8px #ff8800'
-                    : '0 0 6px #00ff88',
-                  borderRadius: '50%',
-                }}
-              />
-            );
-          })}
+          {(supportProjectiles || []).slice(0, 8).map(proj => (
+            <MemoizedAllyBulletSprite key={proj.id} projectile={proj} cameraX={cameraX} />
+          ))}
         </div>
         
         {/* Portal */}

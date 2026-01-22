@@ -86,108 +86,90 @@ const Index = () => {
         maxWidth: '100vw',
       }}
     >
-      {/* TikTok Live Header - Compact and out of the way */}
-      <header className="absolute top-12 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
-        {/* Logo */}
-        <div className="flex items-center pointer-events-auto">
-          <div 
-            className="flex items-center gap-1 px-2 py-1 rounded-full"
-            style={{
-              background: 'rgba(0,0,0,0.9)',
-              border: '1px solid rgba(255,0,255,0.3)',
-            }}
-          >
-            <span className="text-xs">🔫</span>
-            <span 
-              className="font-black text-[9px]"
+      {/* TikTok Safe Zone Header - Minimal, top-right corner */}
+      <header className="absolute top-12 right-2 z-40 flex items-center gap-1 pointer-events-auto">
+        {gameState.phase === 'playing' && (
+          <>
+            {/* Score - compact gold */}
+            <div 
+              className="px-2 py-0.5 rounded font-black text-[10px]"
               style={{
-                background: 'linear-gradient(90deg, #ff00ff, #00ffff)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
+                background: 'rgba(0,0,0,0.95)',
+                border: '1px solid #FFD700',
+                color: '#FFD700',
+                textShadow: '0 0 4px #FFD700',
               }}
             >
-              RUN & GUN
-            </span>
-          </div>
-        </div>
-
-        {/* Score/Wave/Audio */}
-        <div className="flex items-center gap-1 pointer-events-auto">
-          {gameState.phase === 'playing' && (
-            <>
-              <div 
-                className="px-2 py-0.5 rounded-full font-bold text-[10px]"
+              ⭐{gameState.score.toLocaleString()}
+            </div>
+            {/* Wave */}
+            <div 
+              className="px-1.5 py-0.5 rounded font-bold text-[9px]"
+              style={{
+                background: 'rgba(0,0,0,0.95)',
+                border: '1px solid #00ffff',
+                color: '#00ffff',
+              }}
+            >
+              W{gameState.currentWave}
+            </div>
+            {/* Combo - only show when active */}
+            {gameState.combo > 2 && (
+              <motion.div
+                className="px-1.5 py-0.5 rounded font-black text-[9px]"
                 style={{
-                  background: 'rgba(0,0,0,0.9)',
-                  border: '1px solid rgba(255,255,0,0.3)',
-                  color: '#ffff00',
+                  background: 'rgba(255,68,0,0.3)',
+                  border: '1px solid #FF4400',
+                  color: '#FF8800',
                 }}
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 0.2, repeat: Infinity }}
               >
-                ⭐{gameState.score.toLocaleString()}
-              </div>
-              <div 
-                className="px-2 py-0.5 rounded-full font-bold text-[10px]"
-                style={{
-                  background: 'rgba(0,0,0,0.9)',
-                  border: '1px solid rgba(0,255,255,0.3)',
-                  color: '#00ffff',
-                }}
-              >
-                W{gameState.currentWave}
-              </div>
-              {gameState.combo > 2 && (
-                <motion.div
-                  className="px-2 py-0.5 rounded-full font-bold text-[10px]"
-                  style={{
-                    background: 'rgba(255,100,0,0.3)',
-                    border: '1px solid rgba(255,100,0,0.5)',
-                    color: '#ff8800',
-                  }}
-                  animate={{ scale: [1, 1.1, 1] }}
-                  transition={{ duration: 0.3, repeat: Infinity }}
-                >
-                  🔥{gameState.combo}x
-                </motion.div>
-              )}
-              {gameState.player.isMagicDashing && (
-                <motion.div
-                  className="px-2 py-0.5 rounded-full font-bold text-[9px]"
-                  style={{
-                    background: 'rgba(255,0,255,0.3)',
-                    border: '1px solid rgba(255,0,255,0.5)',
-                    color: '#ff66ff',
-                  }}
-                  animate={{ opacity: [1, 0.5, 1] }}
-                  transition={{ duration: 0.15, repeat: Infinity }}
-                >
-                  ✨{gameState.player.magicDashTimer.toFixed(0)}
-                </motion.div>
-              )}
-            </>
-          )}
-          <motion.button
-            onClick={() => setAudioOn(!audioOn)}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-sm touch-manipulation"
-            style={{
-              background: audioOn ? 'rgba(0,255,255,0.2)' : 'rgba(255,255,255,0.1)',
-              border: audioOn ? '1px solid rgba(0,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
-            }}
-            whileTap={{ scale: 0.9 }}
-          >
-            {audioOn ? '🔊' : '🔇'}
-          </motion.button>
-        </div>
+                🔥{gameState.combo}x
+              </motion.div>
+            )}
+          </>
+        )}
+        {/* Audio toggle */}
+        <motion.button
+          onClick={() => setAudioOn(!audioOn)}
+          className="w-6 h-6 rounded flex items-center justify-center text-xs touch-manipulation"
+          style={{
+            background: audioOn ? 'rgba(0,255,255,0.2)' : 'rgba(0,0,0,0.8)',
+            border: audioOn ? '1px solid #00ffff' : '1px solid #444',
+          }}
+          whileTap={{ scale: 0.9 }}
+        >
+          {audioOn ? '🔊' : '🔇'}
+        </motion.button>
       </header>
 
-      {/* Main Game Content - TikTok 9:16 optimized */}
-      <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-10 pb-0">
-        {/* Game Arena - Wider FOV with smaller characters */}
+      {/* Magic Dash Timer - center top when active */}
+      {gameState.phase === 'playing' && gameState.player.isMagicDashing && (
+        <motion.div
+          className="absolute top-12 left-2 z-40 px-2 py-1 rounded font-black text-xs"
+          style={{
+            background: 'linear-gradient(90deg, rgba(255,0,255,0.4), rgba(0,255,255,0.4))',
+            border: '2px solid #ff00ff',
+            color: '#fff',
+            textShadow: '0 0 8px #ff00ff',
+          }}
+          animate={{ opacity: [1, 0.7, 1] }}
+          transition={{ duration: 0.15, repeat: Infinity }}
+        >
+          ✨ ULTRA: {gameState.player.magicDashTimer.toFixed(1)}s
+        </motion.div>
+      )}
+
+      {/* Main Game Arena - Maximum visibility */}
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0 pt-8 pb-0">
+        {/* Game Arena - Wider FOV, centered */}
         <div 
           className="flex-1 min-h-0 relative overflow-hidden mx-auto w-full"
           style={{ 
-            maxHeight: 'calc(100dvh - 150px)',
-            maxWidth: '600px',
-            transform: 'scale(0.7)',
+            maxHeight: 'calc(100dvh - 140px)',
+            maxWidth: '580px',
+            transform: 'scale(0.72)',
             transformOrigin: 'center top',
           }}
         >
@@ -211,42 +193,59 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - Compact, above TikTok comments */}
+        {/* Bottom HUD - Compact, TikTok safe zone */}
         {gameState.phase === 'playing' && (
           <div 
-            className="absolute bottom-20 left-0 right-0 z-20 px-2 space-y-1"
+            className="absolute bottom-24 left-0 right-0 z-30 px-2"
             style={{
-              background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 70%, transparent 100%)',
-              paddingBottom: 'max(env(safe-area-inset-bottom), 6px)',
+              background: 'linear-gradient(0deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 80%, transparent 100%)',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
             }}
           >
-            {/* Health bar - compact */}
+            {/* Health + Charges Row */}
             <div 
-              className="px-2 py-1 rounded-lg mx-auto w-full max-w-sm"
+              className="px-2 py-1.5 rounded-lg mx-auto w-full max-w-md flex items-center gap-2"
               style={{
-                background: 'rgba(0,0,0,0.85)',
-                border: '1px solid rgba(255,0,255,0.2)',
+                background: 'rgba(10,10,20,0.95)',
+                border: '1px solid rgba(255,255,255,0.1)',
               }}
             >
-              <HealthBar 
-                health={gameState.player.health}
-                maxHealth={gameState.player.maxHealth}
-                shield={gameState.player.shield}
-              />
+              {/* Health Bar - takes most space */}
+              <div className="flex-1">
+                <HealthBar 
+                  health={gameState.player.health}
+                  maxHealth={gameState.player.maxHealth}
+                  shield={gameState.player.shield}
+                />
+              </div>
               
-              {/* Cooldown indicators */}
-              <div className="flex justify-center gap-3 mt-1 text-[8px]">
-                <span style={{ color: (gameState as any).empCharges > 0 ? '#00ffff' : '#666' }}>
-                  ⚡EMP: {(gameState as any).empCharges || 0}/2
-                </span>
-                <span style={{ color: (gameState as any).allyCharges > 0 ? '#00ff88' : '#666' }}>
-                  🤖ALLY: {(gameState as any).allyCharges || 0}/2
-                </span>
+              {/* Charges - compact pills */}
+              <div className="flex gap-1">
+                <div 
+                  className="px-1.5 py-0.5 rounded text-[8px] font-bold"
+                  style={{ 
+                    background: (gameState as any).empCharges > 0 ? 'rgba(0,255,255,0.2)' : 'rgba(50,50,50,0.5)',
+                    border: `1px solid ${(gameState as any).empCharges > 0 ? '#00ffff' : '#333'}`,
+                    color: (gameState as any).empCharges > 0 ? '#00ffff' : '#666',
+                  }}
+                >
+                  ⚡{(gameState as any).empCharges || 0}
+                </div>
+                <div 
+                  className="px-1.5 py-0.5 rounded text-[8px] font-bold"
+                  style={{ 
+                    background: (gameState as any).allyCharges > 0 ? 'rgba(0,255,136,0.2)' : 'rgba(50,50,50,0.5)',
+                    border: `1px solid ${(gameState as any).allyCharges > 0 ? '#00ff88' : '#333'}`,
+                    color: (gameState as any).allyCharges > 0 ? '#00ff88' : '#666',
+                  }}
+                >
+                  🤖{(gameState as any).allyCharges || 0}
+                </div>
               </div>
             </div>
             
-            {/* Gift buttons */}
-            <div className="w-full max-w-sm mx-auto">
+            {/* Gift buttons - below health */}
+            <div className="w-full max-w-md mx-auto mt-1">
               <GiftPanel 
                 onTriggerGift={handleTriggerGift}
                 disabled={gameState.phase !== 'playing'}
