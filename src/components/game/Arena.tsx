@@ -91,6 +91,9 @@ export const Arena = ({ gameState }: ArenaProps) => {
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
   const shakeY = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
   
+  // Check if tank is active - enemies show fear when tank is deployed
+  const isTankActive = supportUnits.some(u => u.type === 'tank' && !u.isSelfDestructing && u.health > 0);
+  
   // Get boss info for HUD
   const bossEnemy = enemies.find(e => e.type === 'boss' && !e.isDying);
   
@@ -544,7 +547,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
         <div className="absolute inset-0 z-25">
           {/* Enemies rendered first (back) */}
           {enemies.map(enemy => (
-            <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} />
+            <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} isTankActive={isTankActive} />
           ))}
           
           {/* Floating Powerups - dropped by elite enemies */}

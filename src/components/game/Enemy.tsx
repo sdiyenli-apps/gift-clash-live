@@ -24,6 +24,7 @@ const getDroneSprite = (variant?: number) => {
 interface EnemyProps {
   enemy: EnemyType;
   cameraX: number;
+  isTankActive?: boolean;
 }
 
 // Get boss sprite based on attack state - uses animated GIFs
@@ -64,7 +65,7 @@ const ENEMY_COLORS: Record<string, string> = {
   sentinel: '#ff0066', // Sentinel has hot pink/red laser glow
 };
 
-export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
+export const EnemySprite = ({ enemy, cameraX, isTankActive = false }: EnemyProps) => {
   const screenX = enemy.x - cameraX;
   const [deathSound, setDeathSound] = useState('');
   
@@ -145,6 +146,8 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const dropStartY = 400;
   const dropEndY = 140 + flyOffset;
   const currentDropY = isDropping ? dropStartY - (dropStartY - dropEndY) * dropProgress : baseBottom;
+  // Fear effect when tank is active (non-boss enemies only)
+  const showFear = isTankActive && !isBoss && !enemy.isDying && !isSpawning;
   
   return (
     <motion.div
@@ -167,12 +170,57 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
       } : isDropping ? {
         y: 0,
         opacity: dropProgress,
+      } : showFear ? {
+        // Trembling/shaking effect when tank is active
+        x: [-2, 2, -2, 2, 0],
+        scale: 0.9, // Shrink slightly in fear
+        opacity: 1,
       } : {
         scale: 1,
         opacity: 1,
       }}
-      transition={{ duration: enemy.isDying ? 0.4 : isDropping ? 0.5 : 0.1 }}
+      transition={{ 
+        duration: enemy.isDying ? 0.4 : isDropping ? 0.5 : showFear ? 0.15 : 0.1,
+        repeat: showFear ? Infinity : 0,
+      }}
     >
+      {/* FEAR INDICATOR - When tank is active */}
+      {showFear && (
+        <>
+          {/* Fear sweat drops */}
+          <motion.div
+            className="absolute -top-4 left-1/4 text-[10px]"
+            animate={{ y: [-2, 2, -2], opacity: [1, 0.6, 1] }}
+            transition={{ duration: 0.3, repeat: Infinity }}
+          >
+            💧
+          </motion.div>
+          <motion.div
+            className="absolute -top-6 right-1/4 text-[10px]"
+            animate={{ y: [0, -3, 0], opacity: [0.8, 1, 0.8] }}
+            transition={{ duration: 0.25, repeat: Infinity, delay: 0.1 }}
+          >
+            💧
+          </motion.div>
+          {/* Fear text */}
+          <motion.div
+            className="absolute -top-10 left-1/2 -translate-x-1/2 text-[8px] font-black whitespace-nowrap px-1 py-0.5 rounded"
+            style={{
+              background: 'rgba(255,100,0,0.8)',
+              color: '#fff',
+              textShadow: '0 0 3px #000',
+            }}
+            animate={{ 
+              scale: [1, 1.1, 1],
+              y: [-1, 1, -1],
+            }}
+            transition={{ duration: 0.2, repeat: Infinity }}
+          >
+            😱 FEAR!
+          </motion.div>
+        </>
+      )}
+      
       {/* Portal spawn effect */}
       {isSpawning && (
         <>
