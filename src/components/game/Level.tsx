@@ -1,4 +1,3 @@
-import { motion, AnimatePresence } from 'framer-motion';
 import { Obstacle } from '@/types/game';
 import { useMemo } from 'react';
 
@@ -38,49 +37,45 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
   const nextZone = ZONES[Math.min(zoneIndex + 1, ZONES.length - 1)];
   const zoneProgress = (distance - currentZone.start) / 1600;
   
-  // Parallax background offset
+  // Parallax background offset - simplified
   const bgParallaxX = -(cameraX * 0.1) % 800;
-  const bgScale = 1 + Math.sin(Date.now() / 2000) * 0.02; // Subtle breathing effect
   
-  // Memoize environmental elements - reduced for performance
+  // PERFORMANCE: Minimal environmental elements - reduced for smoother gameplay
   const environmentalElements = useMemo(() => {
     const elements: JSX.Element[] = [];
     
-    // Foreground structures (parallax fast) - aligned with floor
-    for (let x = 0; x < cameraX + 1500; x += 500) {
+    // Only 3-4 foreground structures for performance
+    for (let x = 0; x < cameraX + 1500; x += 700) {
       const parallaxX = x - (cameraX * 0.9);
-      if (parallaxX >= -200 && parallaxX <= 1200) {
-        const height = 40 + ((x * 7) % 60);
+      if (parallaxX >= -100 && parallaxX <= 1100) {
+        const height = 40 + ((x * 7) % 50);
         elements.push(
-          <motion.div
+          <div
             key={`structure-${x}`}
             className="absolute"
             style={{
               left: parallaxX,
-              bottom: 78, // Original floor level
-              width: 80 + ((x * 3) % 60),
+              bottom: 78,
+              width: 60 + ((x * 3) % 50),
               height,
-              background: `linear-gradient(180deg, ${currentZone.color}22, transparent)`,
-              borderLeft: `2px solid ${currentZone.color}33`,
-              borderRight: `2px solid ${currentZone.color}33`,
+              background: `linear-gradient(180deg, ${currentZone.color}15, transparent)`,
+              borderLeft: `2px solid ${currentZone.color}22`,
             }}
-            animate={isUltraMode ? { opacity: [0.5, 0.8, 0.5] } : {}}
-            transition={{ duration: 0.5, repeat: Infinity }}
           />
         );
       }
     }
     
     return elements;
-  }, [cameraX, currentZone.color, isUltraMode]);
+  }, [cameraX, currentZone.color]);
   
-  // Generate ground tiles with zone-specific styling - optimized
+  // PERFORMANCE: Simplified ground tiles - fewer, no animation
   const groundTiles = useMemo(() => {
     const tiles: JSX.Element[] = [];
-    const startX = Math.floor((cameraX - 100) / 100) * 100;
-    const endX = Math.min(cameraX + 1200, startX + 1400); // Limit tiles
+    const startX = Math.floor((cameraX - 100) / 150) * 150;
+    const endX = Math.min(cameraX + 1200, startX + 1200);
     
-    for (let x = startX; x < endX; x += 100) {
+    for (let x = startX; x < endX; x += 150) {
       const screenX = x - cameraX;
       const tileZone = getZone(x).zone;
       
@@ -91,91 +86,40 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
           style={{
             left: screenX,
             bottom: 0,
-            width: 102,
-            height: 80, // Original ground tile height
+            width: 155,
+            height: 80,
           }}
         >
-          {/* Main ground */}
           <div 
             className={`w-full h-full bg-gradient-to-b ${tileZone.groundColor}`}
             style={{
-              borderTop: `4px solid ${tileZone.color}`,
-              boxShadow: isUltraMode 
-                ? `inset 0 0 30px ${currentZone.color}66, 0 -5px 20px ${currentZone.color}44` 
-                : `inset 0 0 30px rgba(0,0,0,0.5)`,
+              borderTop: `3px solid ${tileZone.color}`,
+              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.4)',
             }}
-          />
-          {/* Cyber grid */}
-          <div 
-            className="absolute inset-0"
-            style={{
-              background: `
-                repeating-linear-gradient(0deg, transparent, transparent 19px, ${tileZone.color}22 20px),
-                repeating-linear-gradient(90deg, transparent, transparent 19px, ${tileZone.color}11 20px)
-              `,
-            }}
-          />
-          {/* Edge glow */}
-          <motion.div
-            className="absolute top-0 left-0 right-0 h-1"
-            style={{ background: tileZone.color }}
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ duration: 2, repeat: Infinity, delay: (x % 400) / 400 }}
           />
         </div>
       );
     }
     return tiles;
-  }, [cameraX, currentZone.color, isUltraMode]);
+  }, [cameraX]);
   
-  // Hazards and decorations - reduced for performance
+  // PERFORMANCE: Minimal decorations - only a few particles, no cables
   const decorations = useMemo(() => {
     const items: JSX.Element[] = [];
     
-    // Energy cables - fewer
-    for (let x = 200; x < cameraX + 1500; x += 800) {
-      const screenX = x - cameraX;
-      if (screenX >= -100 && screenX <= 1100) {
-        items.push(
-          <motion.div
-            key={`cable-${x}`}
-            className="absolute"
-            style={{
-              left: screenX,
-              top: 50,
-              width: 2,
-              height: 200,
-              background: `linear-gradient(180deg, ${currentZone.color}, transparent)`,
-            }}
-            animate={{ opacity: [0.3, 0.7, 0.3] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
-        );
-      }
-    }
-    
-    // Floating particles - fewer
-    for (let i = 0; i < 10; i++) {
-      const x = (cameraX + (i * 73) % 800) - cameraX;
-      const y = 80 + (i * 31) % 150;
+    // Just 5 floating particles for ambiance
+    for (let i = 0; i < 5; i++) {
+      const x = (cameraX + (i * 150) % 700) - cameraX;
+      const y = 100 + (i * 40) % 120;
       items.push(
-        <motion.div
+        <div
           key={`float-particle-${i}`}
-          className="absolute w-1 h-1 rounded-full"
+          className="absolute w-1 h-1 rounded-full opacity-50"
           style={{
             left: x,
             top: y,
             background: currentZone.color,
-            boxShadow: `0 0 6px ${currentZone.color}`,
-          }}
-          animate={{ 
-            y: [0, -20, 0],
-            opacity: [0.3, 0.8, 0.3],
-          }}
-          transition={{ 
-            duration: 2 + (i % 3),
-            repeat: Infinity,
-            delay: i * 0.2,
+            boxShadow: `0 0 4px ${currentZone.color}`,
           }}
         />
       );
@@ -193,12 +137,12 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
       
       if (obstacle.type === 'crate' || obstacle.type === 'barrel') {
         return (
-          <motion.div
+          <div
             key={obstacle.id}
             className="absolute"
             style={{
               left: screenX,
-              bottom: 78, // Original floor level
+              bottom: 78,
               width: obstacle.width,
               height: obstacle.height,
             }}
@@ -210,17 +154,10 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
                   ? 'linear-gradient(135deg, #8B4513, #654321)'
                   : 'linear-gradient(135deg, #8B7355, #6B5344)',
                 border: '2px solid #5a4a3a',
-                boxShadow: 'inset -3px -3px 10px rgba(0,0,0,0.4), inset 3px 3px 10px rgba(255,255,255,0.1)',
+                boxShadow: 'inset -3px -3px 8px rgba(0,0,0,0.3)',
               }}
-            >
-              {obstacle.type === 'barrel' && (
-                <>
-                  <div className="absolute top-2 left-1 right-1 h-1 bg-gray-600 rounded" />
-                  <div className="absolute bottom-2 left-1 right-1 h-1 bg-gray-600 rounded" />
-                </>
-              )}
-            </div>
-          </motion.div>
+            />
+          </div>
         );
       }
       
@@ -230,76 +167,53 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
   
   return (
     <div className="absolute inset-0 overflow-hidden">
-      {/* Background with zone transition - moving and scaling */}
+      {/* Background - static, no breathing effect for performance */}
       <div className="absolute inset-0">
-        <motion.div
+        <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ 
             backgroundImage: `url(${currentZone.bg})`,
             opacity: 1 - Math.min(zoneProgress * 0.5, 0.5),
             backgroundPosition: `${bgParallaxX}px center`,
-            transform: `scale(${bgScale})`,
           }}
         />
         {zoneProgress > 0.5 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: (zoneProgress - 0.5) * 2 }}
+          <div
             className="absolute inset-0 bg-cover bg-center"
             style={{ 
               backgroundImage: `url(${nextZone.bg})`,
+              opacity: (zoneProgress - 0.5) * 2,
               backgroundPosition: `${bgParallaxX}px center`,
             }}
           />
         )}
         
-        {/* Flashing neon overlay */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(ellipse at ${50 + Math.sin(Date.now() / 500) * 20}% ${50 + Math.cos(Date.now() / 700) * 20}%, ${currentZone.color}22, transparent 50%)`,
-          }}
-          animate={{
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{ duration: 0.5, repeat: Infinity }}
-        />
-        
+        {/* Simple overlay gradient */}
         <div 
           className="absolute inset-0"
           style={{
-            background: isUltraMode 
-              ? `linear-gradient(180deg, ${currentZone.color}44 0%, transparent 30%, transparent 70%, ${currentZone.color}66 100%)`
-              : 'linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.5) 100%)',
+            background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, transparent 30%, transparent 70%, rgba(0,0,0,0.4) 100%)',
           }}
         />
       </div>
       
-      {/* Zone name indicator - HALF SIZE, TOP RIGHT CORNER */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentZone.name}
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: 20 }}
-          className="absolute top-2 right-2 z-20"
+      {/* Zone name indicator - small, simple */}
+      <div className="absolute top-2 right-2 z-20">
+        <div 
+          className="px-2 py-0.5 rounded backdrop-blur-sm border"
+          style={{
+            background: `${currentZone.color}22`,
+            borderColor: `${currentZone.color}66`,
+          }}
         >
-          <div 
-            className="px-2 py-0.5 rounded backdrop-blur-sm border"
-            style={{
-              background: `${currentZone.color}22`,
-              borderColor: `${currentZone.color}66`,
-            }}
+          <span 
+            className="font-bold text-[8px] tracking-wide"
+            style={{ color: currentZone.color }}
           >
-            <span 
-              className="font-bold text-[8px] tracking-wide"
-              style={{ color: currentZone.color }}
-            >
-              Z{zoneIndex + 1}: {currentZone.name}
-            </span>
-          </div>
-        </motion.div>
-      </AnimatePresence>
+            Z{zoneIndex + 1}: {currentZone.name}
+          </span>
+        </div>
+      </div>
       
       {/* Environmental elements */}
       {environmentalElements}
