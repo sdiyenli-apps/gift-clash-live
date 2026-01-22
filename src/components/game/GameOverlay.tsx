@@ -39,8 +39,21 @@ export const GameOverlay = ({ phase, score, distance, currentWave, maxWaves, onS
                   textShadow: '0 0 30px rgba(255,0,255,0.3)',
                 }}
               >
-                RUN & GUN
+                CAPTAIN SQUIRBERT
               </motion.h1>
+              <motion.p
+                className="text-sm sm:text-base font-bold tracking-widest"
+                style={{
+                  background: 'linear-gradient(135deg, #ffff00, #ff00ff)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.3 }}
+              >
+                COMMUNITY HERO
+              </motion.p>
               
               <p className="text-xs sm:text-sm text-gray-300">
                 🎁 Each gift = One action!<br />
