@@ -231,8 +231,8 @@ const Index = () => {
           style={{ 
             maxHeight: 'calc(100dvh - 180px)', // Leave space for TikTok bottom UI
             maxWidth: '100%',
-            // Optimized zoom for TikTok Live - better view of action
-            transform: 'scale(0.88)',
+            // Zoomed out for TikTok Live - wider view of arena
+            transform: 'scale(0.78)',
             transformOrigin: 'center top',
           }}
         >

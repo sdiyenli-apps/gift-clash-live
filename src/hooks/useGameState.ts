@@ -798,17 +798,17 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero fires LASER FROM ARMOR - shoots from chest/armor area toward ground enemies
+          // Hero fires BULLET FROM ARMOR - shoots from chest/armor area toward ground enemies
           const heroScreenX = 60; // Hero's fixed screen position
-          const heroWorldX = prev.cameraX + heroScreenX + 28; // Start from hero's armor/chest
-          // Laser comes from ARMOR position (mid-chest area) - targets ground level
-          const laserY = prev.player.y + PLAYER_HEIGHT * 0.4; // From armor/chest area
+          const heroWorldX = prev.cameraX + heroScreenX + 45; // Start from hero's armor/chest center
+          // Bullet comes from ARMOR position (mid-chest area) - targets ground level
+          const armorY = prev.player.y + PLAYER_HEIGHT * 0.5; // From armor/chest area (center)
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
             x: heroWorldX, // Start from armor
-            y: laserY, // Armor height
-            velocityX: 700, // Fast laser
-            velocityY: 15, // Slight downward angle to hit ground enemies
+            y: armorY, // Armor height
+            velocityX: 800, // Fast bullet
+            velocityY: -8, // Slight downward angle to hit ground enemies
             damage: prev.player.isMagicDashing ? 150 : 60,
             type: prev.player.isMagicDashing ? 'ultra' : 'mega',
           };
@@ -816,84 +816,52 @@ export const useGameState = () => {
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
           // Muzzle flash particles at armor origin - cyan glow
           newState.particles = [...prev.particles, 
-            ...createParticles(heroWorldX, laserY, 18, 'muzzle', '#00ffff'),
-            ...createParticles(heroWorldX - 5, laserY, 8, 'spark', '#ffffff'),
+            ...createParticles(heroWorldX, armorY, 15, 'muzzle', '#00ffff'),
+            ...createParticles(heroWorldX + 5, armorY, 6, 'spark', '#ffffff'),
           ];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
-          // ALLIES ALSO ATTACK when fire gift is pressed!
-          // Each ally immediately fires at their target
+          // ALLIES ALSO ATTACK when fire gift is pressed - BULLETS ONLY!
+          // Each ally fires bullet projectiles at nearest enemy (any type)
           const activeAllyUnits = prev.supportUnits.filter(u => !u.isLanding && !u.isSelfDestructing && u.health > 0);
           activeAllyUnits.forEach((unit, idx) => {
-            // Find targets - prioritize flying enemies for laser beam, ground for projectiles
-            const flyingEnemies = prev.enemies.filter(e => 
+            // Find ALL enemies in range - allies use bullets for everything
+            const allEnemies = prev.enemies.filter(e => 
               !e.isDying && !e.isSpawning && 
-              (e.isFlying || e.type === 'drone' || e.type === 'bomber' || e.type === 'jetrobot' || e.type === 'flyer') &&
-              e.x > unit.x && e.x < unit.x + 600
-            ).sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
-            
-            const groundEnemies = prev.enemies.filter(e => 
-              !e.isDying && !e.isSpawning && 
-              !e.isFlying && e.type !== 'drone' && e.type !== 'bomber' && e.type !== 'jetrobot' && e.type !== 'flyer' &&
-              e.x > unit.x - 50 && e.x < unit.x + 500
+              e.x > unit.x - 50 && e.x < unit.x + 600
             ).sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
             
             const startX = unit.x + unit.width + 5;
-            const startY = GROUND_Y + 35;
+            const startY = GROUND_Y + 40;
             
-            // Fire at flying enemy with LASER BEAM (continuous damage type)
-            if (flyingEnemies.length > 0) {
-              const target = flyingEnemies[0];
+            // Fire BULLET at nearest enemy
+            if (allEnemies.length > 0) {
+              const target = allEnemies[0];
               const targetX = target.x + target.width / 2;
               const targetY = (target.y || GROUND_Y) + target.height / 2;
-              
-              // Create a laser beam for flying enemies
-              const beamProj: Projectile = {
-                id: `ally-beam-${unit.id}-${Date.now()}-${idx}`,
-                x: startX,
-                y: startY,
-                velocityX: (targetX - startX) * 3, // Fast beam
-                velocityY: (targetY - startY) * 3,
-                damage: 8, // Smaller constant damage
-                type: 'ultra',
-                isAllyProjectile: true,
-              };
-              newState.supportProjectiles = [...(newState.supportProjectiles || []), beamProj];
-              
-              // Laser beam muzzle flash
-              newState.particles = [...newState.particles, 
-                ...createParticles(startX, startY, 5, 'muzzle', unit.type === 'mech' ? '#ff6600' : '#00ff88'),
-              ];
-            }
-            
-            // Fire at ground enemy with PROJECTILE
-            if (groundEnemies.length > 0) {
-              const target = groundEnemies[0];
-              const targetX = target.x + target.width / 2;
-              const targetY = GROUND_Y + target.height / 2;
               
               const dx = targetX - startX;
               const dy = targetY - startY;
               const dist = Math.sqrt(dx * dx + dy * dy);
               
               if (dist > 0) {
-                const projSpeed = 1000;
+                const projSpeed = 1100; // Fast bullet
                 const proj: Projectile = {
-                  id: `ally-shot-${unit.id}-${Date.now()}-${idx}`,
+                  id: `ally-bullet-${unit.id}-${Date.now()}-${idx}`,
                   x: startX,
                   y: startY,
                   velocityX: (dx / dist) * projSpeed,
                   velocityY: (dy / dist) * projSpeed,
-                  damage: 20,
+                  damage: unit.type === 'mech' ? 25 : 18, // Mech does more damage
                   type: unit.type === 'mech' ? 'ultra' : 'mega',
                   isAllyProjectile: true,
                 };
                 newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                 
-                // Projectile muzzle flash
+                // Bullet muzzle flash
                 newState.particles = [...newState.particles, 
-                  ...createParticles(startX, startY, 4, 'spark', unit.type === 'mech' ? '#ffaa00' : '#00ffaa'),
+                  ...createParticles(startX, startY, 3, 'spark', unit.type === 'mech' ? '#ffaa00' : '#00ffaa'),
                 ];
               }
             }
