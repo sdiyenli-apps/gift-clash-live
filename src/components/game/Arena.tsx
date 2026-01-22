@@ -1,4 +1,3 @@
-import { memo, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Projectile, GiftBlock, getBossName, GiftEvent, Bomb, SupportUnit } from '@/types/game';
 import { BackgroundVideo } from './BackgroundVideo';
@@ -6,6 +5,7 @@ import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
 import { ProjectileSprite, EnemyLaserSprite, FireballSprite } from './Projectile';
 import { Particles } from './Particles';
+import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
 import { BossHealthBar } from './BossHealthBar';
@@ -34,9 +34,12 @@ interface EMPGrenade {
   timer: number;
 }
 
+// REMOVED: NeonBeam interface - All attacks are now projectiles only
+
 interface ExtendedGameState extends GameState {
   fireballs?: { id: string; x: number; y: number; velocityX: number; velocityY: number; damage: number }[];
   redFlash?: number;
+  armorTimer?: number;
   enemyLasers?: Projectile[];
   magicFlash?: number;
   bossTaunt?: string | null;
@@ -51,7 +54,6 @@ interface ExtendedGameState extends GameState {
   bossTransformFlash?: number;
   supportUnits?: SupportUnit[];
   supportProjectiles?: Projectile[];
-  performanceMode?: 'normal' | 'reduced' | 'minimal';
 }
 
 interface ArenaProps {
@@ -59,89 +61,52 @@ interface ArenaProps {
   notifications?: GiftEvent[];
 }
 
-// Memoized components for performance
-const MemoizedEnemySprite = memo(EnemySprite);
-const MemoizedProjectileSprite = memo(ProjectileSprite);
-const MemoizedEnemyLaserSprite = memo(EnemyLaserSprite);
-const MemoizedFireballSprite = memo(FireballSprite);
-const MemoizedSupportUnitSprite = memo(SupportUnitSprite);
-
-export const Arena = memo(({ gameState, notifications = [] }: ArenaProps) => {
+export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
   const { 
     player, enemies, projectiles, particles, obstacles,
     cameraX, distance, levelLength, isUltraMode, speechBubble,
     combo, comboTimer, isFrozen, isBossFight, screenShake,
     flyingRobots, chickens, neonLights, explosions, giftBlocks = [],
-    fireballs = [], redFlash = 0, enemyLasers = [],
+    fireballs = [], redFlash = 0, armorTimer = 0, enemyLasers = [],
     magicFlash = 0, bossTaunt = null, currentWave,
     damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
     empGrenades = [], bombs = [],
     portalOpen = false, portalX = 0, heroEnteringPortal = false,
     bossTransformFlash = 0,
-    supportUnits = [], supportProjectiles = [],
-    performanceMode = 'normal'
+    supportUnits = [], supportProjectiles = []
   } = gameState;
   
-  // Memoize shake values
-  const shakeX = useMemo(() => screenShake ? (Math.random() - 0.5) * screenShake * 6 : 0, [screenShake]);
-  const shakeY = useMemo(() => screenShake ? (Math.random() - 0.5) * screenShake * 6 : 0, [screenShake]);
+  const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
+  const shakeY = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
   
-  // Memoize boss info
-  const bossEnemy = useMemo(() => enemies.find(e => e.type === 'boss' && !e.isDying), [enemies]);
+  // Get boss info for HUD
+  const bossEnemy = enemies.find(e => e.type === 'boss' && !e.isDying);
   
-  // Limit rendered entities for performance
-  const visibleEnemies = useMemo(() => 
-    enemies.filter(e => e.x > cameraX - 100 && e.x < cameraX + 700).slice(0, 12),
-    [enemies, cameraX]
-  );
-  
-  const visibleProjectiles = useMemo(() => 
-    projectiles.filter(p => p.x > cameraX - 50 && p.x < cameraX + 800).slice(0, 10),
-    [projectiles, cameraX]
-  );
-  
-  const visibleEnemyLasers = useMemo(() => 
-    enemyLasers.filter(l => l.x > cameraX - 50 && l.x < cameraX + 800).slice(0, 8),
-    [enemyLasers, cameraX]
-  );
-  
-  const visibleFireballs = useMemo(() => 
-    fireballs.filter(f => f.x > cameraX - 50 && f.x < cameraX + 800).slice(0, 6),
-    [fireballs, cameraX]
-  );
-  
-  const visibleBombs = useMemo(() => 
-    bombs.filter(b => b.x > cameraX - 50 && b.x < cameraX + 700).slice(0, 4),
-    [bombs, cameraX]
-  );
-
-  const reducedEffects = performanceMode !== 'normal';
-
   return (
     <div 
       className="w-full h-full rounded-lg overflow-hidden relative"
       style={{
         boxShadow: isBossFight 
-          ? '0 0 15px rgba(255,0,0,0.4)' 
+          ? '0 0 20px rgba(255,0,0,0.5), inset 0 0 30px rgba(255,0,0,0.15)' 
           : player.isMagicDashing 
-            ? '0 0 12px rgba(255,0,255,0.3)' 
-            : 'inset 0 0 15px rgba(0, 255, 255, 0.05)',
+            ? '0 0 15px rgba(255,0,255,0.4), inset 0 0 25px rgba(255,0,255,0.15)' 
+            : 'inset 0 0 20px rgba(0, 255, 255, 0.08)',
         transform: `translate(${shakeX}px, ${shakeY}px)`,
         background: '#0a0a15',
       }}
     >
-      {/* Mini-map */}
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 z-50">
+      {/* Mini-map - positioned at top for visibility */}
+      <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50">
         <MiniMap 
           player={player}
-          enemies={visibleEnemies}
+          enemies={enemies}
           levelLength={levelLength}
           princessX={levelLength - 100}
           cameraX={cameraX}
         />
       </div>
       
-      {/* Boss HUD */}
+      {/* Boss HUD - shows taunts at top */}
       {bossEnemy && isBossFight && bossTaunt && (
         <BossHUD 
           bossHealth={bossEnemy.health}
@@ -153,66 +118,84 @@ export const Arena = memo(({ gameState, notifications = [] }: ArenaProps) => {
         />
       )}
       
-      {/* Boss health bar */}
+      {/* Boss health bar above boss head */}
       {bossEnemy && isBossFight && (
         <BossHealthBar boss={bossEnemy} cameraX={cameraX} />
       )}
       
-      {/* Screen flashes - simplified */}
-      {redFlash > 0 && !reducedEffects && (
-        <div
+      {/* Red flash for boss mega attack */}
+      {redFlash > 0 && (
+        <motion.div
           className="absolute inset-0 z-40 pointer-events-none"
-          style={{ background: `rgba(255,0,0,${Math.min(0.5, redFlash * 0.3)})` }}
+          style={{ background: 'rgba(255,0,0,0.7)' }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: redFlash > 1 ? 1 : redFlash }}
         />
       )}
       
-      {magicFlash > 0 && !reducedEffects && (
-        <div
+      {/* Magic flash */}
+      {magicFlash > 0 && (
+        <motion.div
           className="absolute inset-0 z-40 pointer-events-none"
-          style={{ background: `rgba(255,0,255,${Math.min(0.4, magicFlash * 0.25)})` }}
+          style={{ background: 'rgba(255,0,255,0.5)' }}
+          animate={{ opacity: magicFlash }}
         />
       )}
       
+      {/* DAMAGE FLASH - red screen flash when hero takes damage */}
       {damageFlash > 0 && (
-        <div
+        <motion.div
           className="absolute inset-0 z-50 pointer-events-none"
           style={{ 
-            background: `radial-gradient(circle, rgba(255,0,0,${Math.min(0.5, damageFlash * 0.3)}), rgba(255,0,0,${Math.min(0.6, damageFlash * 0.35)}))`,
+            background: 'radial-gradient(circle, rgba(255,0,0,0.6), rgba(255,0,0,0.8))',
+            boxShadow: 'inset 0 0 100px rgba(255,0,0,0.9)',
           }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: damageFlash }}
         />
       )}
       
+      {/* SHIELD BLOCK FLASH - cyan/blue flash when shield blocks attack */}
       {shieldBlockFlash > 0 && (
-        <div
+        <motion.div
           className="absolute inset-0 z-50 pointer-events-none"
           style={{ 
-            background: `radial-gradient(circle, rgba(0,255,255,${Math.min(0.3, shieldBlockFlash * 0.2)}), rgba(0,150,255,${Math.min(0.35, shieldBlockFlash * 0.25)}))`,
+            background: 'radial-gradient(circle, rgba(0,255,255,0.4), rgba(0,150,255,0.5))',
+            boxShadow: 'inset 0 0 80px rgba(0,255,255,0.8)',
           }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: shieldBlockFlash }}
         />
       )}
       
-      {bossTransformFlash > 0 && !reducedEffects && (
+      {/* BOSS TRANSFORMATION FLASH - white/purple flash when boss transforms */}
+      {bossTransformFlash > 0 && (
         <motion.div
           className="absolute inset-0 z-60 pointer-events-none"
           style={{ 
-            background: `radial-gradient(circle, rgba(255,255,255,${Math.min(0.7, bossTransformFlash * 0.4)}), rgba(255,0,255,${Math.min(0.4, bossTransformFlash * 0.25)}))`,
+            background: 'radial-gradient(circle, rgba(255,255,255,0.9), rgba(255,0,255,0.6), rgba(255,0,0,0.4))',
+            boxShadow: 'inset 0 0 150px rgba(255,255,255,1)',
           }}
-          animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.6 }}
+          initial={{ opacity: 1 }}
+          animate={{ opacity: [1, 0.5, 0.8, 0.3, 0] }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
         />
       )}
       
-      {/* Zone info - tiny */}
-      <div className="absolute top-1 right-1 z-30 text-[7px] opacity-50">
+      {/* Zone/Level info - smaller and out of way */}
+      <div className="absolute top-1 right-1 z-30 text-[8px] opacity-60">
         <span className="text-cyan-400">W{currentWave}</span>
       </div>
       
       <div 
         className="absolute inset-0"
-        style={{ filter: player.isMagicDashing ? 'saturate(1.2)' : 'none' }}
+        style={{ filter: player.isMagicDashing ? 'saturate(1.3) contrast(1.05)' : 'none' }}
       >
-        {/* Background */}
+        {/* Cyberpunk buildings in background */}
         <CyberpunkBuildings cameraX={cameraX} />
+        
+        
+        {/* Video-like background */}
         <BackgroundVideo 
           distance={distance}
           cameraX={cameraX}
@@ -222,154 +205,513 @@ export const Arena = memo(({ gameState, notifications = [] }: ArenaProps) => {
         />
         
         {/* Player projectiles */}
-        {visibleProjectiles.map(proj => (
-          <MemoizedProjectileSprite key={proj.id} projectile={proj} cameraX={cameraX} />
+        {projectiles.map(proj => (
+          <ProjectileSprite key={proj.id} projectile={proj} cameraX={cameraX} />
         ))}
         
         {/* Enemy lasers */}
-        {visibleEnemyLasers.map(laser => (
-          <MemoizedEnemyLaserSprite key={laser.id} projectile={laser} cameraX={cameraX} />
+        {enemyLasers.map(laser => (
+          <EnemyLaserSprite key={laser.id} projectile={laser} cameraX={cameraX} />
         ))}
         
-        {/* Fireballs */}
-        {visibleFireballs.map(fireball => (
-          <MemoizedFireballSprite key={fireball.id} fireball={fireball} cameraX={cameraX} />
+        {/* Boss fireballs */}
+        {fireballs.map(fireball => (
+          <FireballSprite key={fireball.id} fireball={fireball} cameraX={cameraX} />
         ))}
         
-        {/* Neon lasers - limited */}
-        {!reducedEffects && neonLasers.slice(0, 3).map(laser => {
+        {/* NEON LASERS - bouncing wall lasers! */}
+        {neonLasers.map(laser => {
           const screenX = laser.x - cameraX;
-          const colors = ['#ff00ff', '#00ffff', '#ffff00'];
-          const color = colors[Math.floor(Math.abs(laser.x) % colors.length)];
+          const neonColors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
+          const color = neonColors[Math.floor(Math.abs(laser.x + laser.y) % neonColors.length)];
           return (
-            <div
+            <motion.div
               key={laser.id}
               className="absolute pointer-events-none z-40"
               style={{
                 left: screenX,
                 bottom: laser.y,
-                width: 16,
+                width: 20,
                 height: 4,
                 background: `linear-gradient(90deg, ${color}, white, ${color})`,
-                boxShadow: `0 0 10px ${color}`,
+                boxShadow: `0 0 15px ${color}, 0 0 30px ${color}, 0 0 45px ${color}`,
                 borderRadius: '50%',
+                transform: `rotate(${Math.atan2(laser.velocityY, laser.velocityX) * 180 / Math.PI}deg)`,
+              }}
+              initial={{ scale: 1 }}
+              animate={{ 
+                scale: [1, 1.3, 1],
                 opacity: laser.life > 0.5 ? 1 : laser.life * 2,
               }}
+              transition={{ duration: 0.2, repeat: Infinity }}
             />
           );
         })}
         
-        {/* EMP Grenades - limited */}
-        {empGrenades.slice(0, 2).map(grenade => {
+        {/* REMOVED: Neon beams - All attacks are now projectiles only */}
+        
+        {/* EMP Grenades - THROWN HIGH into the sky - Metal Slug style arc */}
+        {empGrenades.map(grenade => {
           const screenX = grenade.x - cameraX;
-          const screenY = Math.min(400, Math.max(60, grenade.y - 80));
+          // Grenade goes HIGH into the sky - y value maps to screen bottom position
+          // Higher Y = higher on screen (further from ground)
+          const screenY = Math.min(500, Math.max(60, grenade.y - 80));
           const isAboutToExplode = grenade.timer < 0.5;
+          const isRising = grenade.velocityY > 0;
           
           return (
-            <div
+            <motion.div
               key={grenade.id}
               className="absolute pointer-events-none z-40"
-              style={{ left: screenX, bottom: screenY, width: 28, height: 28 }}
+              style={{
+                left: screenX,
+                bottom: screenY,
+                width: 36,
+                height: 36,
+              }}
             >
-              <div
-                className="w-full h-full rounded-lg"
+              {/* Grenade body - LARGER and more visible */}
+              <motion.div
+                className="w-full h-full rounded-lg relative"
                 style={{
-                  background: 'linear-gradient(135deg, #222, #111)',
-                  border: `2px solid ${isAboutToExplode ? '#ff0000' : '#00ffff'}`,
-                  boxShadow: `0 0 ${isAboutToExplode ? 20 : 12}px ${isAboutToExplode ? '#ff0000' : '#00ffff'}`,
-                  animation: 'spin 0.3s linear infinite',
+                  background: 'linear-gradient(135deg, #222 0%, #111 50%, #333 100%)',
+                  border: '3px solid #00ffff',
+                  boxShadow: isAboutToExplode 
+                    ? '0 0 25px #ff0000, 0 0 50px rgba(255,0,0,0.8)' 
+                    : '0 0 20px #00ffff, 0 0 40px rgba(0,255,255,0.6)',
+                  borderColor: isAboutToExplode ? '#ff0000' : '#00ffff',
+                }}
+                animate={{ 
+                  rotate: [0, 360],
+                  scale: isAboutToExplode ? [1, 1.2, 1] : 1,
+                }}
+                transition={{ 
+                  rotate: { duration: 0.25, repeat: Infinity, ease: 'linear' },
+                  scale: { duration: 0.1, repeat: Infinity },
                 }}
               >
-                <div className="absolute inset-0 flex items-center justify-center text-sm">⚡</div>
-              </div>
-            </div>
+                {/* EMP lightning symbol - LARGER */}
+                <div 
+                  className="absolute inset-0 flex items-center justify-center text-base font-black"
+                  style={{ 
+                    color: isAboutToExplode ? '#ff4400' : '#00ffff', 
+                    textShadow: `0 0 8px ${isAboutToExplode ? '#ff4400' : '#00ffff'}` 
+                  }}
+                >
+                  ⚡
+                </div>
+                
+                {/* Pin on top */}
+                <div
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 w-2 h-3"
+                  style={{
+                    background: '#666',
+                    borderRadius: '2px 2px 0 0',
+                    border: '1px solid #888',
+                  }}
+                />
+              </motion.div>
+              
+              {/* Arc trail effect - shows throwing trajectory */}
+              <motion.div
+                className="absolute -z-10"
+                style={{
+                  left: -30,
+                  top: '50%',
+                  transform: 'translateY(-50%) rotate(-20deg)',
+                  width: 45,
+                  height: 12,
+                  background: 'linear-gradient(90deg, transparent, #00ffff, #00ffff)',
+                  filter: 'blur(4px)',
+                  opacity: 0.8,
+                  borderRadius: '50%',
+                }}
+              />
+              
+              {/* Spinning arc particles */}
+              {[0, 1, 2].map(i => (
+                <motion.div
+                  key={`trail-${i}`}
+                  className="absolute rounded-full"
+                  style={{
+                    width: 6,
+                    height: 6,
+                    background: isAboutToExplode ? '#ff4400' : '#00ffff',
+                    boxShadow: `0 0 6px ${isAboutToExplode ? '#ff4400' : '#00ffff'}`,
+                    left: -10 - i * 12,
+                    top: '50%',
+                  }}
+                  animate={{ 
+                    opacity: [1, 0.3, 0],
+                    scale: [1, 0.5, 0],
+                  }}
+                  transition={{ duration: 0.2, delay: i * 0.05, repeat: Infinity }}
+                />
+              ))}
+              
+              {/* Warning flash as it's about to explode */}
+              {isAboutToExplode && (
+                <motion.div
+                  className="absolute -inset-6 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(255,68,0,0.8) 0%, rgba(255,0,0,0.4) 50%, transparent 70%)',
+                  }}
+                  animate={{ scale: [1, 2.5, 1], opacity: [1, 0.4, 1] }}
+                  transition={{ duration: 0.08, repeat: Infinity }}
+                />
+              )}
+            </motion.div>
           );
         })}
         
-        {/* Bombs - limited */}
-        {visibleBombs.map(bomb => {
+        {/* BOMBS - Dropped by bomber enemies */}
+        {bombs.map(bomb => {
           const screenX = bomb.x - cameraX;
+          if (screenX < -50 || screenX > 800) return null;
+          
           return (
-            <div
+            <motion.div
               key={bomb.id}
               className="absolute pointer-events-none z-35"
-              style={{ left: screenX, bottom: bomb.y, width: 18, height: 22 }}
+              style={{
+                left: screenX,
+                bottom: bomb.y,
+                width: 20,
+                height: 24,
+              }}
             >
-              <div
-                className="w-full h-full rounded-b-full rounded-t-lg"
-                style={{
-                  background: 'linear-gradient(135deg, #333, #111)',
-                  border: '2px solid #ff6600',
-                  boxShadow: '0 0 10px #ff6600',
-                }}
+              {/* Bomb body */}
+              <motion.div
+                className="w-full h-full relative"
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 0.3, repeat: Infinity }}
               >
-                <div className="absolute inset-0 flex items-center justify-center text-xs">💣</div>
-              </div>
-            </div>
+                {/* Bomb casing */}
+                <div
+                  className="w-full h-full rounded-b-full rounded-t-lg"
+                  style={{
+                    background: 'linear-gradient(135deg, #333 0%, #111 50%, #222 100%)',
+                    border: '2px solid #ff6600',
+                    boxShadow: '0 0 12px #ff6600, inset 0 2px 4px rgba(255,255,255,0.2)',
+                  }}
+                />
+                {/* Fuse */}
+                <div
+                  className="absolute -top-2 left-1/2 -translate-x-1/2 w-1 h-3"
+                  style={{
+                    background: '#666',
+                    borderRadius: '2px',
+                  }}
+                />
+                {/* Spark on fuse */}
+                <motion.div
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, #fff, #ff8800, #ff4400)',
+                    boxShadow: '0 0 8px #ff8800, 0 0 15px #ff4400',
+                  }}
+                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.7, 1] }}
+                  transition={{ duration: 0.15, repeat: Infinity }}
+                />
+                {/* Warning icon */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center text-xs font-bold"
+                  style={{ color: '#ff6600', textShadow: '0 0 4px #ff6600' }}
+                >
+                  💣
+                </div>
+              </motion.div>
+              
+              {/* Trail effect */}
+              <motion.div
+                className="absolute -top-4 left-1/2 -translate-x-1/2 w-3 h-8"
+                style={{
+                  background: 'linear-gradient(180deg, transparent, rgba(255,100,0,0.5), rgba(255,200,0,0.3))',
+                  filter: 'blur(2px)',
+                }}
+              />
+            </motion.div>
           );
         })}
         
-        {/* Game entities layer */}
+        {/* === UNIFIED GAME LAYER (z-25) - All entities on same level for proper interaction === */}
         <div className="absolute inset-0 z-25">
-          {/* Enemies */}
-          {visibleEnemies.map(enemy => (
-            <MemoizedEnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} />
+          {/* Enemies rendered first (back) */}
+          {enemies.map(enemy => (
+            <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} />
           ))}
           
-          {/* Support Units */}
-          {supportUnits.slice(0, 4).map(unit => (
-            <MemoizedSupportUnitSprite key={unit.id} unit={unit} cameraX={cameraX} />
+          {/* Support Units - friendly mech and walker allies */}
+          {supportUnits.map(unit => (
+            <SupportUnitSprite key={unit.id} unit={unit} cameraX={cameraX} />
           ))}
           
-          {/* Hero */}
+          {/* Hero - rendered in same layer */}
           <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
         </div>
         
-        {/* Support projectiles */}
+        {/* Projectiles Layer (z-30) - Above entities for visibility */}
         <div className="absolute inset-0 z-30 pointer-events-none">
-          {(supportProjectiles || []).slice(0, 6).map(proj => {
+          {/* Support Unit Projectiles - Different rendering for beam vs projectile */}
+          {supportProjectiles.map(proj => {
             const screenX = proj.x - cameraX;
             const isMech = proj.type === 'ultra';
             
-            if (screenX < -20 || screenX > 700) return null;
+            if (screenX < -20 || screenX > 800) return null;
 
+            // ALL ally attacks are BULLETS (no laser beams)
+            // PROJECTILE - for ground targets
+            const width = isMech ? 14 : 12;
+            const height = isMech ? 7 : 6;
+            
             return (
-              <div
+              <motion.div
                 key={proj.id}
                 className="absolute"
                 style={{
                   left: screenX,
-                  bottom: 280 - proj.y - 4,
-                  width: isMech ? 12 : 10,
-                  height: isMech ? 6 : 5,
-                  background: isMech 
-                    ? 'linear-gradient(90deg, #fff, #ffaa00, #ff6600)'
-                    : 'linear-gradient(90deg, #fff, #00ffaa, #00ff88)',
-                  boxShadow: isMech
-                    ? '0 0 8px #ff8800'
-                    : '0 0 6px #00ff88',
-                  borderRadius: '50%',
+                  bottom: 280 - proj.y - height / 2,
+                  width,
+                  height,
                 }}
-              />
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: [0.8, 1, 0.8], scale: [1, 1.1, 1] }}
+                transition={{ duration: 0.1, repeat: Infinity }}
+              >
+                {/* Trail effect */}
+                <div
+                  className="absolute right-full top-1/2 -translate-y-1/2"
+                  style={{
+                    width: isMech ? 40 : 32,
+                    height: Math.max(4, height - 1),
+                    background: isMech
+                      ? 'linear-gradient(90deg, transparent, rgba(255,170,0,0.95))'
+                      : 'linear-gradient(90deg, transparent, rgba(0,255,136,0.95))',
+                    filter: 'blur(1px)',
+                  }}
+                />
+
+                {/* Core projectile */}
+                <div
+                  className="w-full h-full rounded-full"
+                  style={{
+                    background: isMech ? '#ffaa00' : '#00ff88',
+                    boxShadow: isMech
+                      ? '0 0 10px #ff8800, 0 0 20px #ff6600'
+                      : '0 0 10px #00ff88, 0 0 20px #00ffaa',
+                  }}
+                />
+
+                {/* Muzzle flash spark */}
+                <motion.div
+                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full"
+                  style={{
+                    background: isMech
+                      ? 'radial-gradient(circle, #fff, #ffaa00, transparent)'
+                      : 'radial-gradient(circle, #fff, #00ff88, transparent)',
+                    filter: 'blur(1px)',
+                  }}
+                  animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: 0.08, repeat: Infinity }}
+                />
+              </motion.div>
             );
           })}
         </div>
         
-        {/* Portal */}
-        {portalOpen && (
-          <Portal x={portalX} cameraX={cameraX} isOpen={portalOpen} isEntering={heroEnteringPortal} />
-        )}
-        
-        {/* Floor */}
+        {/* Floor Assets - dustbins, rats, debris */}
         <FloorAssets cameraX={cameraX} levelLength={levelLength} />
         
-        {/* Particles - limited */}
-        {!reducedEffects && particles.length > 0 && (
-          <Particles particles={particles.slice(-15)} cameraX={cameraX} />
+        {/* Floor - Adjusted for TikTok Live view */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 z-5"
+          style={{
+            height: 160, // TikTok optimized ground level
+          }}
+        >
+          {/* Concrete base texture */}
+          <div 
+            className="absolute inset-0"
+            style={{
+              background: `
+                linear-gradient(180deg, 
+                  rgba(60,55,50,0.95) 0%, 
+                  rgba(45,42,38,1) 20%,
+                  rgba(35,32,28,1) 60%, 
+                  rgba(25,22,18,1) 100%
+                )
+              `,
+              boxShadow: 'inset 0 15px 40px rgba(0,0,0,0.8)',
+            }}
+          />
+          
+          {/* Concrete texture overlay - cracks and grain */}
+          <div 
+            className="absolute inset-0 opacity-35"
+            style={{
+              backgroundImage: `
+                url("data:image/svg+xml,%3Csvg viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.5'/%3E%3C/svg%3E")
+              `,
+              backgroundSize: '150px 150px',
+              transform: `translateX(${-cameraX % 150}px)`,
+            }}
+          />
+          
+          {/* Concrete cracks */}
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: `
+                linear-gradient(45deg, transparent 48%, rgba(0,0,0,0.3) 49%, rgba(0,0,0,0.3) 51%, transparent 52%),
+                linear-gradient(-30deg, transparent 48%, rgba(0,0,0,0.2) 49%, rgba(0,0,0,0.2) 51%, transparent 52%)
+              `,
+              backgroundSize: '100px 50px, 150px 80px',
+              transform: `translateX(${-cameraX % 150}px)`,
+            }}
+          />
+          
+          {/* Neon edge lines on concrete */}
+          <div 
+            className="absolute inset-0 opacity-25"
+            style={{
+              backgroundImage: `
+                linear-gradient(90deg, rgba(0,255,255,0.15) 1px, transparent 1px),
+                linear-gradient(0deg, rgba(255,0,255,0.08) 1px, transparent 1px)
+              `,
+              backgroundSize: '120px 40px',
+              transform: `translateX(${-cameraX % 120}px)`,
+            }}
+          />
+          
+          {/* Top edge - neon glow on concrete */}
+          <div 
+            className="absolute top-0 left-0 right-0"
+            style={{
+              height: 4,
+              background: 'linear-gradient(90deg, rgba(0,255,255,0.5), rgba(255,0,255,0.7), rgba(0,255,255,0.5))',
+              boxShadow: '0 0 15px rgba(0,255,255,0.6), 0 3px 20px rgba(255,0,255,0.4)',
+            }}
+          />
+          
+          {/* Puddle reflections */}
+          <div 
+            className="absolute opacity-20"
+            style={{
+              width: 80,
+              height: 12,
+              background: 'linear-gradient(90deg, transparent, rgba(0,255,255,0.4), transparent)',
+              left: `${(200 - cameraX % 400)}px`,
+              top: 25,
+              borderRadius: '50%',
+              filter: 'blur(3px)',
+            }}
+          />
+          <div 
+            className="absolute opacity-15"
+            style={{
+              width: 50,
+              height: 8,
+              background: 'linear-gradient(90deg, transparent, rgba(255,0,255,0.3), transparent)',
+              left: `${(350 - cameraX % 500)}px`,
+              top: 50,
+              borderRadius: '50%',
+              filter: 'blur(2px)',
+            }}
+          />
+        </div>
+        
+        {/* Portal - appears after boss is defeated */}
+        <Portal
+          x={portalX}
+          cameraX={cameraX}
+          isOpen={portalOpen}
+          isEntering={heroEnteringPortal}
+        />
+        
+        {/* Princess only visible at wave 1000 */}
+        <Princess
+          x={levelLength - 100} 
+          cameraX={cameraX} 
+          isVisible={currentWave === 1000 && !isBossFight && distance > levelLength - 600}
+        />
+        
+        <Particles particles={particles} cameraX={cameraX} />
+        
+        <ChaosElements 
+          flyingRobots={flyingRobots} 
+          chickens={chickens} 
+          neonLights={neonLights} 
+          explosions={explosions} 
+          cameraX={cameraX} 
+        />
+        
+        {/* Shield indicator - permanent (no timer) */}
+        {gameState.player.shield > 0 && (
+          <motion.div
+            className="absolute bottom-2 left-2 z-30"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+          >
+            <div 
+              className="px-2 py-1 rounded-full font-bold text-[10px]"
+              style={{
+                background: 'linear-gradient(135deg, #00ffff, #0088ff)',
+                color: '#fff',
+                boxShadow: '0 0 12px #00ffff',
+              }}
+            >
+              🛡️ {Math.ceil(gameState.player.shield)}
+            </div>
+          </motion.div>
+        )}
+        
+        {/* Combo */}
+        {combo > 1 && comboTimer > 0 && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className="absolute top-12 right-2 text-center"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.08, 1] }}
+              transition={{ duration: 0.25, repeat: Infinity }}
+              className="font-bold text-xl"
+              style={{ color: '#ff00ff', textShadow: '0 0 15px #ff00ff' }}
+            >
+              {combo}x
+            </motion.div>
+          </motion.div>
+        )}
+        
+        <AnimatePresence>
+          {isFrozen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-cyan-500/20 z-30 flex items-center justify-center"
+            >
+              <motion.span className="text-4xl" animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 0.4, repeat: Infinity }}>
+                ❄️
+              </motion.span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
+        {isUltraMode && (
+          <motion.div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(circle at center, transparent 30%, rgba(255,0,255,0.25) 100%)' }}
+            animate={{ opacity: [0.4, 0.7, 0.4] }}
+            transition={{ duration: 0.4, repeat: Infinity }}
+          />
         )}
       </div>
+      
+      {/* Scanlines */}
+      <div className="absolute inset-0 pointer-events-none opacity-8"
+        style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px)' }}
+      />
     </div>
   );
-});
-
-Arena.displayName = 'Arena';
+};
