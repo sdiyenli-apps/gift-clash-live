@@ -28,10 +28,10 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   const healthPercent = (unit.health / unit.maxHealth) * 100;
   const shieldPercent = unit.maxShield > 0 ? (unit.shield / unit.maxShield) * 100 : 0;
   
-  // Size based on type
+  // Size based on type - Tank is 3x larger
   const isMech = unit.type === 'mech';
   const isTank = unit.type === 'tank';
-  const baseScale = 0.80;
+  const baseScale = isTank ? 1.0 : 0.80; // Tank uses full size (already 3x in config)
   const displayWidth = unit.width * baseScale;
   const displayHeight = unit.height * baseScale;
   

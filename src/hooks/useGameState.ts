@@ -842,14 +842,14 @@ export const useGameState = () => {
       id: `support-tank-${Date.now()}-${Math.random()}`,
       x: playerX + 100,
       y: GROUND_Y,
-      width: 100,
-      height: 70,
-      health: 150,
-      maxHealth: 150,
+      width: 300, // 3x size
+      height: 210, // 3x size
+      health: 300,
+      maxHealth: 300,
       shield: 0,
       maxShield: 0,
       type: 'tank',
-      timer: 10, // 10 seconds duration
+      timer: 15, // 15 seconds duration
       attackCooldown: 0,
       isLanding: true,
       landingTimer: 0.8,
@@ -2169,8 +2169,8 @@ export const useGameState = () => {
                   const velocityX = (dx / dist) * projSpeed;
                   const velocityY = (dy / dist) * projSpeed;
                   
-                  // Tank does 40 damage (laser), mech 25, walker 15
-                  const projDamage = unit.type === 'tank' ? 40 : unit.type === 'mech' ? 25 : 15;
+                  // Tank does 80 damage (big bullets), mech 25, walker 15
+                  const projDamage = unit.type === 'tank' ? 80 : unit.type === 'mech' ? 25 : 15;
                   
                   const proj: Projectile = {
                     id: `ally-${unit.type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -2244,9 +2244,22 @@ export const useGameState = () => {
               const currentDamage = enemyDamageById.get(enemy.id) || 0;
               enemyDamageById.set(enemy.id, currentDamage + damage);
               
-              // Impact particles
-              const impactColor = enemy.type === 'boss' ? '#ff00ff' : (isFlying ? '#00ffff' : '#00ff88');
-              newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 4, 'impact', impactColor)];
+              // Impact particles - TANK gets explosion FX
+              const isTankProj = proj.id.includes('tank');
+              if (isTankProj) {
+                // Big explosion for tank bullets
+                newState.explosions = [...(newState.explosions || []), {
+                  id: `tank-explosion-${Date.now()}-${Math.random()}`,
+                  x: proj.x,
+                  y: proj.y,
+                  size: 80,
+                  timer: 0.4,
+                }];
+                newState.screenShake = Math.max(newState.screenShake, 0.3);
+              } else {
+                const impactColor = enemy.type === 'boss' ? '#ff00ff' : (isFlying ? '#00ffff' : '#00ff88');
+                newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 4, 'impact', impactColor)];
+              }
               
               if (enemy.type === 'boss') {
                 newState.screenShake = Math.max(newState.screenShake, 0.15);

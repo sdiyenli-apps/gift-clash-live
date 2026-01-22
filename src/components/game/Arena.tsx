@@ -571,9 +571,9 @@ export const Arena = ({ gameState }: ArenaProps) => {
             
             if (screenX < -20 || screenX > 800) return null;
 
-            // Tank fires pink laser beams, mech/walker fire bullets
-            const width = isTank ? 25 : isMech ? 14 : 12;
-            const height = isTank ? 8 : isMech ? 7 : 6;
+            // Tank fires BIG bullets, mech/walker fire regular bullets
+            const width = isTank ? 45 : isMech ? 14 : 12;
+            const height = isTank ? 45 : isMech ? 7 : 6;
             
             return (
               <motion.div
@@ -589,14 +589,14 @@ export const Arena = ({ gameState }: ArenaProps) => {
                 animate={{ opacity: [0.8, 1, 0.8], scale: [1, 1.1, 1] }}
                 transition={{ duration: 0.1, repeat: Infinity }}
               >
-                {/* Trail effect - tank has longer laser trail */}
+                {/* Trail effect - tank has BIG fiery trail */}
                 <div
                   className="absolute right-full top-1/2 -translate-y-1/2"
                   style={{
-                    width: isTank ? 80 : isMech ? 40 : 32,
-                    height: Math.max(4, height - 1),
+                    width: isTank ? 120 : isMech ? 40 : 32,
+                    height: isTank ? 30 : Math.max(4, height - 1),
                     background: isTank
-                      ? 'linear-gradient(90deg, transparent, rgba(255,0,102,0.9), rgba(255,0,255,0.95))'
+                      ? 'linear-gradient(90deg, transparent, rgba(255,100,0,0.8), rgba(255,200,0,0.95), rgba(255,255,255,0.9))'
                       : isMech
                         ? 'linear-gradient(90deg, transparent, rgba(255,170,0,0.95))'
                         : 'linear-gradient(90deg, transparent, rgba(0,255,136,0.95))',
@@ -604,35 +604,37 @@ export const Arena = ({ gameState }: ArenaProps) => {
                   }}
                 />
 
-                {/* Core projectile */}
+                {/* Core projectile - Tank has BIG glowing orb */}
                 <div
                   className="w-full h-full rounded-full"
                   style={{
-                    background: isTank ? '#ff0066' : isMech ? '#ffaa00' : '#00ff88',
+                    background: isTank 
+                      ? 'radial-gradient(circle, #fff 20%, #ff6600 50%, #ff0000 80%, #aa0000)'
+                      : isMech ? '#ffaa00' : '#00ff88',
                     boxShadow: isTank
-                      ? '0 0 15px #ff0066, 0 0 30px #ff00ff, 0 0 45px rgba(255,0,102,0.5)'
+                      ? '0 0 25px #ff6600, 0 0 50px #ff4400, 0 0 80px rgba(255,100,0,0.6), inset 0 0 15px rgba(255,255,255,0.5)'
                       : isMech
                         ? '0 0 10px #ff8800, 0 0 20px #ff6600'
                         : '0 0 10px #00ff88, 0 0 20px #00ffaa',
                   }}
                 />
 
-                {/* Muzzle flash spark */}
+                {/* Muzzle flash spark - Tank has bigger flame effect */}
                 <motion.div
                   className="absolute -left-2 top-1/2 -translate-y-1/2"
                   style={{
-                    width: isTank ? 20 : 16,
-                    height: isTank ? 20 : 16,
+                    width: isTank ? 50 : 16,
+                    height: isTank ? 50 : 16,
                     background: isTank
-                      ? 'radial-gradient(circle, #fff, #ff0066, transparent)'
+                      ? 'radial-gradient(circle, #fff 30%, #ffcc00, #ff6600, transparent)'
                       : isMech
                         ? 'radial-gradient(circle, #fff, #ffaa00, transparent)'
                         : 'radial-gradient(circle, #fff, #00ff88, transparent)',
-                    filter: 'blur(1px)',
+                    filter: isTank ? 'blur(3px)' : 'blur(1px)',
                     borderRadius: '50%',
                   }}
-                  animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.7, 1, 0.7] }}
-                  transition={{ duration: 0.08, repeat: Infinity }}
+                  animate={{ scale: isTank ? [1, 1.5, 1] : [0.8, 1.3, 0.8], opacity: [0.7, 1, 0.7] }}
+                  transition={{ duration: isTank ? 0.1 : 0.08, repeat: Infinity }}
                 />
               </motion.div>
             );
