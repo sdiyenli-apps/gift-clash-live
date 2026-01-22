@@ -35,9 +35,8 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   // Check if currently attacking (cooldown just started)
   const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : 0.4);
   
-  // Allies positioned in movement zone - one above hero, one below
-  // Movement zone Y range: 80 (bottom) to 150 (top)
-  const baseBottom = isMech ? 130 : 100; // Mech above hero, Walker below (within zone)
+  // Allies positioned slightly lower - one above hero, one below
+  const baseBottom = isMech ? 115 : 85; // Mech above hero, Walker below (lowered)
   const selfDestructYOffset = isSelfDestructing ? (unit.y - 100) : 0;
   const leftOffset = -30; // Allies near hero on left
   

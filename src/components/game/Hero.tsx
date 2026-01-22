@@ -11,7 +11,7 @@ interface HeroProps {
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
   // Fixed screen position - hero on LEFT side in the movement zone
-  const screenX = 60; // Left side of movement zone
+  const screenX = 60; // Left side of arena
   const isEmpowered = isUltraMode || player.isMagicDashing;
   const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
   const isWalking = player.animationState === 'run' || player.animationState === 'dash';
@@ -21,9 +21,8 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
   const heroWidth = 80;
   const heroHeight = 85;
   
-  // Hero positioned at bottom of movement zone (GROUND_Y_BOTTOM = 80)
-  // During magic dash, flies higher
-  const flyingHeight = player.isMagicDashing ? 250 : 80; // Bottom of movement zone
+  // Hero positioned lower on ground (reduced from 110)
+  const flyingHeight = player.isMagicDashing ? 250 : 95; // Lower ground position
 
   return (
     <motion.div

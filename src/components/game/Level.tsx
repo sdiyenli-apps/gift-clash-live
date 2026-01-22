@@ -57,7 +57,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: parallaxX,
-              bottom: 78, // Aligned with movement zone floor level
+              bottom: 78, // Original floor level
               width: 80 + ((x * 3) % 60),
               height,
               background: `linear-gradient(180deg, ${currentZone.color}22, transparent)`,
@@ -92,7 +92,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             left: screenX,
             bottom: 0,
             width: 102,
-            height: 80, // Matches movement zone floor
+            height: 80, // Original ground tile height
           }}
         >
           {/* Main ground */}
@@ -198,7 +198,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: screenX,
-              bottom: 78, // Aligned with movement zone floor level
+              bottom: 78, // Original floor level
               width: obstacle.width,
               height: obstacle.height,
             }}
