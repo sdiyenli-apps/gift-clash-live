@@ -1827,22 +1827,33 @@ export const useGameState = () => {
             newState.evasionPopup = null;
           }
         }
-        // PARTICLE CLEANUP - Every frame, remove expired particles and enforce strict limits
+        // PARTICLE CLEANUP - Aggressive cleanup every frame to prevent residue
         newState.particleResetTimer = prev.particleResetTimer - delta;
         
-        // Remove expired particles (life <= 0)
-        newState.particles = prev.particles.filter(p => p.life > 0.01).map(p => ({
-          ...p,
-          life: p.life - delta * 8, // Fast decay
-          x: p.x + p.velocityX * delta,
-          y: p.y + p.velocityY * delta,
-        }));
+        // Remove expired particles (life <= 0) with ultra-fast decay
+        newState.particles = prev.particles
+          .filter(p => p.life > 0.01)
+          .map(p => ({
+            ...p,
+            life: p.life - delta * 12, // Ultra-fast decay to prevent residue
+            x: p.x + p.velocityX * delta,
+            y: p.y + p.velocityY * delta,
+          }))
+          .filter(p => {
+            // Remove particles that go off-screen
+            const screenX = p.x - newState.cameraX;
+            return screenX > -50 && screenX < 750 && p.y > -50 && p.y < 500;
+          });
         
-        // Full reset every 1.5 seconds
+        // Full reset every 1 second (faster cleanup)
         if (newState.particleResetTimer <= 0) {
           newState.particles = [];
           newState.supportProjectiles = [];
-          newState.particleResetTimer = 1.5;
+          newState.projectiles = newState.projectiles.filter(p => {
+            const screenX = p.x - newState.cameraX;
+            return screenX > -30 && screenX < 700;
+          });
+          newState.particleResetTimer = 1.0;
         }
         
         // STRICT LIMITS - never exceed max
@@ -1851,6 +1862,10 @@ export const useGameState = () => {
         }
         if ((newState.supportProjectiles || []).length > MAX_SUPPORT_PROJECTILES) {
           newState.supportProjectiles = (newState.supportProjectiles || []).slice(-MAX_SUPPORT_PROJECTILES);
+        }
+        // Also limit regular projectiles
+        if (newState.projectiles.length > 8) {
+          newState.projectiles = newState.projectiles.slice(-8);
         }
         
         // POWERUP COLLECTION - Hero collects powerups when near them
@@ -2219,9 +2234,9 @@ export const useGameState = () => {
                   : GROUND_Y + nearestEnemy.height / 2;
                 
                 // All units fire from their weapon position
-                // TANK fires from TOP of image (turret), others from center/torso
+                // TANK fires from VERY TOP of image (turret tip), others from center/torso
                 const startY = unit.type === 'tank' 
-                  ? unit.y + unit.height * 0.15 // Tank fires from top (turret position ~15% from top)
+                  ? unit.y + unit.height * 0.02 // Tank fires from very top of turret (2% from top)
                   : GROUND_Y - 10; // Others fire from green zone
                 const startX = unit.x + unit.width + 5;
                 
@@ -2269,7 +2284,7 @@ export const useGameState = () => {
           })
           .filter(unit => unit.timer > 0);
         
-        // Update support projectiles - limit count for performance
+        // Update support projectiles - aggressive cleanup to prevent residue
         newState.supportProjectiles = (prev.supportProjectiles || [])
           .slice(-MAX_SUPPORT_PROJECTILES) // Limit projectiles on screen
           .map(p => ({
@@ -2277,7 +2292,11 @@ export const useGameState = () => {
             x: p.x + p.velocityX * delta,
             y: p.y + (p.velocityY || 0) * delta,
           }))
-          .filter(p => p.x < prev.cameraX + 800 && p.x > prev.cameraX - 50);
+          .filter(p => {
+            const screenX = p.x - prev.cameraX;
+            // Remove projectiles that are off-screen or have traveled too far
+            return screenX > -30 && screenX < 700 && p.y > -30 && p.y < 450;
+          });
         
         // Support projectile-enemy collision - DAMAGES ALL ENEMIES (use ID-based map)
         const hitProjectileIds: Set<string> = new Set();
