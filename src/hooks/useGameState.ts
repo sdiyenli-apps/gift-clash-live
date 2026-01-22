@@ -21,7 +21,7 @@ const ROCKET_ATTACK_RANGE = 350; // Ranged attack distance
 const BOSS_FIREBALL_INTERVAL = 4; // Faster boss attacks
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
 const BOSS_KEEP_DISTANCE = 400; // Boss combat distance
-const HERO_FIXED_SCREEN_X = 35; // Hero position on screen - moved left for TikTok
+const HERO_FIXED_SCREEN_X = 28; // Hero position on screen - moved left for TikTok wider FOV
 const ENEMY_ATTACK_DELAY = 2; // Enemies wait 2 seconds before attacking
 const PARTICLE_LIFETIME = 3; // Particles reset after 3 seconds
 
@@ -120,16 +120,7 @@ interface EMPGrenade {
   timer: number; // Time until explosion
 }
 
-// Neon beam fired by jet robots - deals damage over time
-interface NeonBeam {
-  id: string;
-  x: number;
-  y: number;
-  targetX: number;
-  targetY: number;
-  life: number; // How long the beam lasts
-  damageTimer: number; // Time between damage ticks
-}
+// REMOVED: NeonBeam interface - All attacks are now projectiles only
 
 interface ExtendedGameState extends GameState {
   fireballs: Fireball[];
@@ -154,7 +145,7 @@ interface ExtendedGameState extends GameState {
   portalX: number;
   heroEnteringPortal: boolean;
   bossTransformFlash: number;
-  neonBeams: NeonBeam[];
+  // REMOVED: neonBeams - All attacks are now projectiles only
   supportUnits: SupportUnit[];
   supportProjectiles: Projectile[];
   // Cooldown timers for limited abilities (10 second cooldowns)
@@ -221,8 +212,7 @@ const INITIAL_STATE: ExtendedGameState = {
   heroEnteringPortal: false,
   // Boss transformation flash
   bossTransformFlash: 0,
-  // Neon beams from jet robots
-  neonBeams: [],
+  // REMOVED: neonBeams - All attacks are now projectiles
   // Support units
   supportUnits: [],
   supportProjectiles: [],
@@ -1627,71 +1617,7 @@ export const useGameState = () => {
           }
         });
         
-        // Update NEON BEAMS from jet robots - damage over time
-        newState.neonBeams = (prev.neonBeams || [])
-          .map(beam => ({
-            ...beam,
-            life: beam.life - delta,
-            damageTimer: beam.damageTimer - delta,
-            // Track player position for beam targeting
-            targetX: prev.player.x + PLAYER_WIDTH / 2,
-            targetY: prev.player.y + PLAYER_HEIGHT / 2,
-          }))
-          .filter(beam => beam.life > 0);
-        
-        // Neon beam-player collision - DAMAGE OVER TIME
-        (prev.neonBeams || []).forEach(beam => {
-          // Check if beam line intersects player hitbox
-          const playerCenterX = prev.player.x + PLAYER_WIDTH / 2;
-          const playerCenterY = prev.player.y + PLAYER_HEIGHT / 2;
-          
-          // Calculate distance from player to beam line
-          const dx = beam.targetX - beam.x;
-          const dy = beam.targetY - beam.y;
-          const beamLength = Math.sqrt(dx * dx + dy * dy);
-          
-          // Point-to-line distance check (simplified - check if player is near the beam)
-          const distToBeamStart = Math.sqrt(
-            Math.pow(playerCenterX - beam.x, 2) + Math.pow(playerCenterY - beam.y, 2)
-          );
-          const distToBeamEnd = Math.sqrt(
-            Math.pow(playerCenterX - beam.targetX, 2) + Math.pow(playerCenterY - beam.targetY, 2)
-          );
-          
-          // If player is within beam path (within ~40px of beam line)
-          const isInBeamPath = distToBeamStart < beamLength + 40 && distToBeamEnd < 60;
-          
-          if (isInBeamPath && beam.damageTimer <= 0) {
-            const beamDamage = 3; // Damage per tick
-            
-            if (newState.player.shield > 0) {
-              // Shield absorbs beam damage
-              newState.player.shield = Math.max(0, newState.player.shield - beamDamage);
-              newState.shieldBlockFlash = 0.3;
-              newState.particles = [
-                ...newState.particles,
-                ...createParticles(playerCenterX, playerCenterY, 5, 'spark', '#00ffff'),
-              ];
-            } else {
-              // Take health damage
-              newState.player.health -= beamDamage;
-              newState.damageFlash = 0.2;
-              newState.particles = [
-                ...newState.particles,
-                ...createParticles(playerCenterX, playerCenterY, 4, 'spark', '#ff00ff'),
-              ];
-            }
-            
-            // Reset damage timer for this beam (0.2s between damage ticks)
-            const beamIdx = newState.neonBeams.findIndex(b => b.id === beam.id);
-            if (beamIdx !== -1) {
-              newState.neonBeams[beamIdx] = {
-                ...newState.neonBeams[beamIdx],
-                damageTimer: 0.2,
-              };
-            }
-          }
-        });
+        // REMOVED: Neon beam update - All attacks are now projectiles only
         
         // Magic flash decay
         if (prev.magicFlash > 0) {
@@ -3011,22 +2937,22 @@ export const useGameState = () => {
             // Horizontal movement - approaches player slowly
             const horizontalMove = direction * enemy.speed * delta * 0.2;
             
-            // Attack with neon beam when close, then retreat!
-            const beamCooldown = (enemy.attackCooldown || 0) - delta;
+            // Attack with PROJECTILE when close, then retreat! (No more beams)
+            const attackCooldown = (enemy.attackCooldown || 0) - delta;
             const isCloseToHero = distToHero < RETREAT_DISTANCE && distToHero > 0;
             
-            if (isCloseToHero && beamCooldown <= 0 && isOnScreen) {
-              // Fire neon beam then retreat!
-              const newBeam: NeonBeam = {
-                id: `neonbeam-${Date.now()}-${Math.random()}`,
-                x: enemy.x,
+            if (isCloseToHero && attackCooldown <= 0 && isOnScreen) {
+              // Fire PROJECTILE instead of beam then retreat!
+              const jetProjectile: Projectile = {
+                id: `jetrobot-proj-${Date.now()}-${Math.random()}`,
+                x: enemy.x - 10,
                 y: targetY + enemy.height / 2,
-                targetX: prev.player.x + PLAYER_WIDTH / 2,
-                targetY: prev.player.y + PLAYER_HEIGHT / 2,
-                life: 1.5,
-                damageTimer: 0,
+                velocityX: -650,
+                velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - targetY - enemy.height / 2) * 0.4,
+                damage: 10,
+                type: 'mega',
               };
-              newState.neonBeams = [...newState.neonBeams, newBeam];
+              newState.enemyLasers = [...newState.enemyLasers, jetProjectile];
               
               newState.particles = [
                 ...newState.particles,
@@ -3050,7 +2976,7 @@ export const useGameState = () => {
               y: targetY,
               x: enemy.x + horizontalMove,
               animationPhase: newAnimPhase,
-              attackCooldown: Math.max(0, beamCooldown),
+              attackCooldown: Math.max(0, attackCooldown),
             };
           }
 

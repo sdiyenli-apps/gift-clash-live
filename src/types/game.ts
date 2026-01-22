@@ -295,7 +295,7 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
 // Gift action descriptions for UI
 export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: string; effect: 'help' | 'chaos' }> = {
   move_forward: { name: '➡️ FORWARD', description: 'Move toward princess!', effect: 'help' },
-  shoot: { name: '🔫 SHOOT', description: 'Laser hits ground enemies!', effect: 'help' },
+  shoot: { name: '🔫 SHOOT', description: 'Bullets hit ground enemies!', effect: 'help' },
   armor: { name: '🛡️ ARMOR', description: '+60 Shield!', effect: 'help' },
   heal: { name: '💚 HEAL', description: '+40 HP!', effect: 'help' },
   magic_dash: { name: '✨ MAGIC DASH', description: '6s auto-attack!', effect: 'help' },

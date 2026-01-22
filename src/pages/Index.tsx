@@ -134,7 +134,7 @@ const Index = () => {
       className="h-[100dvh] w-screen flex flex-col overflow-hidden touch-none select-none"
       style={{
         background: 'linear-gradient(180deg, #0a0a12 0%, #12081c 100%)',
-        // TikTok Live optimized - full vertical screen
+        // TikTok Live optimized - smartphone vertical screen
         maxWidth: '100vw',
       }}
     >
@@ -224,15 +224,15 @@ const Index = () => {
       </header>
 
       {/* Main Game Content - TikTok Live 9:16 optimized with space for TikTok UI */}
-      <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-16 pb-0">
-        {/* Game Arena - Full TikTok vertical view with camera optimization */}
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-12 pb-0">
+        {/* Game Arena - Smartphone-sized with smaller characters for wider FOV */}
         <div 
           className="flex-1 min-h-0 relative overflow-hidden mx-auto w-full"
           style={{ 
-            maxHeight: 'calc(100dvh - 180px)', // Leave space for TikTok bottom UI
-            maxWidth: '100%',
-            // Zoomed out for TikTok Live - wider view of arena
-            transform: 'scale(0.78)',
+            maxHeight: 'calc(100dvh - 160px)', // Leave space for TikTok bottom UI
+            maxWidth: '580px', // Smartphone width constraint
+            // Smaller scale = smaller characters = wider FOV camera effect
+            transform: 'scale(0.72)',
             transformOrigin: 'center top',
           }}
         >
@@ -257,22 +257,22 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - TikTok Live-style controls positioned above TikTok comment section */}
+        {/* Bottom HUD - TikTok Live-style controls positioned compactly above comment section */}
         {gameState.phase === 'playing' && (
           <div 
-            className="absolute bottom-28 left-0 right-0 z-20 p-2 space-y-2"
+            className="absolute bottom-24 left-0 right-0 z-20 px-2 space-y-1"
             style={{
-              background: 'linear-gradient(0deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 70%, transparent 100%)',
-              paddingBottom: 'max(env(safe-area-inset-bottom), 12px)',
+              background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 80%, transparent 100%)',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
             }}
           >
-            {/* Health bar - Full width TikTok style */}
+            {/* Compact Health bar - Full width TikTok style */}
             <div 
-              className="px-3 py-2 rounded-2xl mx-auto w-full max-w-md"
+              className="px-2 py-1.5 rounded-xl mx-auto w-full max-w-sm"
               style={{
-                background: 'rgba(0,0,0,0.9)',
-                border: '1px solid rgba(255,0,255,0.3)',
-                boxShadow: '0 0 15px rgba(255,0,255,0.2)',
+                background: 'rgba(0,0,0,0.8)',
+                border: '1px solid rgba(255,0,255,0.25)',
+                boxShadow: '0 0 10px rgba(255,0,255,0.15)',
               }}
             >
               <HealthBar 
@@ -282,8 +282,8 @@ const Index = () => {
               />
             </div>
             
-            {/* Gift buttons - TikTok large touch targets */}
-            <div className="w-full max-w-md mx-auto">
+            {/* Compact Gift buttons - TikTok large touch targets */}
+            <div className="w-full max-w-sm mx-auto">
               <GiftPanel 
                 onTriggerGift={handleTriggerGift}
                 disabled={gameState.phase !== 'playing'}
