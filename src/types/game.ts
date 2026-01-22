@@ -108,6 +108,10 @@ export interface Enemy {
   spiralCenterX?: number; // Center of spiral
   spiralCenterY?: number; // Center of spiral
   groundY?: number; // Assigned ground level for spread positioning
+  // Enemy armor system - activates at 20% HP for ground enemies
+  hasArmor?: boolean; // True when enemy has activated armor
+  armorTimer?: number; // Seconds remaining on armor (max 3 seconds)
+  armorUsed?: boolean; // Armor can only be activated once per enemy
 }
 
 // Bomb dropped by bomber enemies

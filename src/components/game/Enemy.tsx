@@ -277,6 +277,37 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
         </>
       )}
       
+      {/* ENEMY ARMOR INDICATOR - Shows when ground enemy has activated armor */}
+      {enemy.hasArmor && enemy.armorTimer && enemy.armorTimer > 0 && !enemy.isDying && (
+        <>
+          {/* Armor shield effect */}
+          <motion.div
+            className="absolute -inset-4 rounded-full pointer-events-none"
+            style={{
+              background: 'radial-gradient(circle, rgba(255,0,255,0.4), rgba(255,0,255,0.2), transparent)',
+              border: '3px solid #ff00ff',
+              boxShadow: '0 0 20px #ff00ff, inset 0 0 15px rgba(255,0,255,0.5)',
+            }}
+            animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
+            transition={{ duration: 0.3, repeat: Infinity }}
+          />
+          {/* ARMOR text */}
+          <motion.div
+            className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap font-black text-xs px-2 py-0.5 rounded"
+            style={{ 
+              background: 'linear-gradient(135deg, #ff00ff, #8800ff)',
+              color: '#fff',
+              textShadow: '0 0 4px #000',
+              boxShadow: '0 0 10px #ff00ff',
+            }}
+            animate={{ y: [0, -2, 0] }}
+            transition={{ duration: 0.4, repeat: Infinity }}
+          >
+            🛡️ ARMOR {enemy.armorTimer.toFixed(1)}s
+          </motion.div>
+        </>
+      )}
+      
       {/* Death effects */}
       {enemy.isDying && (
         <>

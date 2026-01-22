@@ -6,7 +6,7 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { Arena } from '@/components/game/Arena';
 import { HealthBar } from '@/components/game/HealthBar';
 import { GiftPanel } from '@/components/game/GiftPanel';
-import { SkillQueue } from '@/components/game/SkillQueue';
+// Skill Queue removed - replaced with cleaner HUD
 // Gift notifications are now flying boxes in the Arena
 import { GameOverlay } from '@/components/game/GameOverlay';
 import { WaveTransition } from '@/components/game/WaveTransition';
@@ -277,12 +277,6 @@ const Index = () => {
               paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
             }}
           >
-            {/* Skill Queue Display - Shows recent gifts (max 10) */}
-            <div className="flex items-center gap-2 px-1">
-              <span className="text-[8px] font-bold text-cyan-400 opacity-70">SKILLS:</span>
-              <SkillQueue recentGifts={recentGifts} maxItems={10} />
-            </div>
-            
             {/* Compact Health bar - Full width TikTok style */}
             <div 
               className="px-2 py-1.5 rounded-xl mx-auto w-full max-w-sm"
