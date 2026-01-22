@@ -15,7 +15,7 @@ import { FloorAssets } from './FloorAssets';
 import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
 import { DronePaths } from './DronePath';
-import { Level } from './Level';
+
 import { FloatingPowerup } from './FloatingPowerup';
 
 interface NeonLaser {
@@ -528,14 +528,6 @@ export const Arena = ({ gameState }: ArenaProps) => {
           );
         })}
         
-        {/* Zone-based Level Background and Ground */}
-        <Level 
-          obstacles={obstacles}
-          cameraX={cameraX}
-          distance={distance}
-          levelLength={levelLength}
-          isUltraMode={isUltraMode}
-        />
         
         {/* Drone Flight Paths - visible sine wave trails */}
         <DronePaths enemies={enemies} cameraX={cameraX} />
