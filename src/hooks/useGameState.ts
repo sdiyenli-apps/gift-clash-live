@@ -417,22 +417,22 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     const groundLevels = [GROUND_Y_TOP, GROUND_Y_MIDDLE, GROUND_Y_BOTTOM];
     const enemyGroundY = groundLevels[Math.floor(Math.random() * groundLevels.length)];
     
-    // Check if this should be an ELITE enemy (5 per wave max - 2 ally, 2 ult, 1 tank)
+    // Check if this should be an ELITE enemy (8 per wave - 3 ally, 3 ult, 2 tank for more powerups!)
     const currentEliteCount = enemies.filter(e => e.isElite).length;
-    const shouldBeElite = currentEliteCount < 5 && Math.random() < 0.08; // ~8% chance, capped at 5
+    const shouldBeElite = currentEliteCount < 8 && Math.random() < 0.12; // ~12% chance, capped at 8
     let eliteDropType: 'ally' | 'ult' | 'tank' | undefined = undefined;
     
     if (shouldBeElite) {
-      // Distribute drops: 2 ally, 2 ult, 1 tank (rare)
+      // Distribute drops: 3 ally, 3 ult, 2 tank
       const allyElites = enemies.filter(e => e.isElite && e.eliteDropType === 'ally').length;
       const ultElites = enemies.filter(e => e.isElite && e.eliteDropType === 'ult').length;
       const tankElites = enemies.filter(e => e.isElite && e.eliteDropType === 'tank').length;
-      if (allyElites < 2) {
+      if (allyElites < 3) {
         eliteDropType = 'ally';
-      } else if (ultElites < 2) {
+      } else if (ultElites < 3) {
         eliteDropType = 'ult';
-      } else if (tankElites < 1) {
-        eliteDropType = 'tank'; // Rare tank drop
+      } else if (tankElites < 2) {
+        eliteDropType = 'tank';
       }
     }
     
@@ -617,26 +617,26 @@ export const useGameState = () => {
   const lastUpdateRef = useRef<number>(Date.now());
   const helpRequestTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Max particles limit for performance - reduced for mobile
-  const MAX_PARTICLES = 25;
-  const MAX_SUPPORT_PROJECTILES = 10;
+  // Max particles limit for performance - AGGRESSIVE reduction for lag fix
+  const MAX_PARTICLES = 15;
+  const MAX_SUPPORT_PROJECTILES = 6;
 
   const createParticles = useCallback((x: number, y: number, count: number, type: Particle['type'], color?: string): Particle[] => {
     const particles: Particle[] = [];
     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
     
-    // Optimized: very few particles for performance
-    const maxParticles = Math.min(count, 4);
+    // PERFORMANCE: Minimal particles - max 2 per call
+    const maxParticles = Math.min(count, 2);
     for (let i = 0; i < maxParticles; i++) {
       particles.push({
-        id: `p-${Date.now()}-${i}-${Math.random()}`,
+        id: `p-${Date.now()}-${i}`,
         x,
         y,
-        velocityX: (Math.random() - 0.5) * 300,
-        velocityY: (Math.random() - 0.8) * 300,
+        velocityX: (Math.random() - 0.5) * 200,
+        velocityY: (Math.random() - 0.8) * 200,
         color: color || colors[Math.floor(Math.random() * colors.length)],
-        size: 3 + Math.random() * 5,
-        life: 0.15 + Math.random() * 0.2, // Shorter lifespan
+        size: 3 + Math.random() * 4,
+        life: 0.1 + Math.random() * 0.15, // Very short lifespan
         type,
       });
     }
