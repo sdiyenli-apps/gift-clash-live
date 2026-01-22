@@ -46,6 +46,8 @@ export interface Projectile {
   damage: number;
   type: 'normal' | 'mega' | 'ultra';
   isAllyProjectile?: boolean; // Marks projectile as from ally - can hit all enemy types
+  originX?: number; // Origin position for tracer effect
+  originY?: number; // Origin position for tracer effect
 }
 
 // Support unit that fights alongside the hero
