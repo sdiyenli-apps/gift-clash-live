@@ -277,14 +277,14 @@ const Index = () => {
 
       {/* Main Game Content - TikTok Live 9:16 optimized with space for TikTok UI */}
       <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-12 pb-0">
-        {/* Game Arena - WIDER for better POV - increased width and adjusted scale */}
+        {/* Game Arena - Full width for standard smartphone screens */}
         <div 
           className="flex-1 min-h-0 relative overflow-hidden mx-auto w-full"
           style={{ 
-            maxHeight: 'calc(100dvh - 140px)', // More vertical space
-            maxWidth: '720px', // WIDER arena - increased from 580px
-            // Slightly smaller scale = wider camera FOV
-            transform: 'scale(0.68)',
+            maxHeight: 'calc(100dvh - 120px)',
+            maxWidth: '100%', // Full width for smartphones
+            width: '100%',
+            transform: 'scale(0.75)', // Slightly larger scale for better visibility
             transformOrigin: 'center top',
           }}
         >
