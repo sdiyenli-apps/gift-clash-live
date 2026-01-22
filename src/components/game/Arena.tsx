@@ -225,10 +225,8 @@ export const Arena = ({ gameState }: ArenaProps) => {
         className="absolute inset-0"
         style={{ filter: player.isMagicDashing ? 'saturate(1.3) contrast(1.05)' : 'none' }}
       >
-        {/* Cyberpunk buildings in background */}
-        <CyberpunkBuildings cameraX={cameraX} />
-        
-        
+        {/* Parallax scrolling background */}
+
         {/* Parallax scrolling background */}
         <ParallaxBackground 
           cameraX={cameraX}
