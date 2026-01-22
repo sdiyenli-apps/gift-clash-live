@@ -104,14 +104,13 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   
   // Flying enemies (drones) hover higher - GROUND UNITS stay on ground!
   const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer';
-  const isGroundUnit = !isFlying && enemy.type !== 'boss';
+  const isGroundUnit = !isFlying && enemy.type !== 'boss'; // Ground units: robot, mech, tank, ninja, sentinel, giant
   const flyOffset = isFlying ? (enemy.flyHeight || 50) : 0;
   
-  // ============= STRICT GROUND POSITIONING =============
-  // Ground units ALWAYS at floor level (118px from bottom)
-  // Flying units hover above at their flyHeight
-  const FLOOR_LEVEL = 118;
-  const baseBottom = isGroundUnit ? FLOOR_LEVEL : (FLOOR_LEVEL + 40 + flyOffset);
+  // Ground units should be ON the ground (bottom: 118 to match floor)
+  // Flying units hover above
+  const groundY = 118; // Floor level
+  const baseBottom = isGroundUnit ? groundY : (160 + flyOffset);
   
   // Portal spawn animation OR drop-from-top animation for jet robots
   const isSpawning = enemy.isSpawning && (enemy.spawnTimer ?? 0) > 0;
@@ -120,8 +119,8 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const dropProgress = isDropping ? 1 - ((enemy.dropTimer ?? 0) / 1.0) : 1;
   
   // Calculate drop position - starts from top of screen
-  const dropStartY = 400;
-  const dropEndY = FLOOR_LEVEL + 40 + flyOffset;
+  const dropStartY = 400; // Start way above screen
+  const dropEndY = 160 + flyOffset; // End at normal position
   const currentDropY = isDropping ? dropStartY - (dropStartY - dropEndY) * dropProgress : baseBottom;
   
   return (
