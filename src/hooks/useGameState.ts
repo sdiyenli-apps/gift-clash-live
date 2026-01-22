@@ -2732,37 +2732,39 @@ export const useGameState = () => {
             const verticalPos = Math.sin(newAnimPhase * verticalSpeed);
             const targetY = GROUND_Y + minHeight + ((verticalPos + 1) / 2) * (maxHeight - minHeight);
             
-            // RETREAT BEHAVIOR - zoom back HALFWAY, then attack again!
-            const RETREAT_DISTANCE = 100; // Distance at which flying enemies retreat
-            const RETREAT_SPEED = 400; // How fast they zoom back
+            // RETREAT BEHAVIOR - zoom OFF SCREEN when within 2 pixels of hero, then come back!
+            const RETREAT_TRIGGER_DISTANCE = 80; // Distance at which flying enemies retreat (close to hero)
+            const RETREAT_SPEED = 600; // How fast they zoom back OFF SCREEN
             const BOMB_AOE_RANGE = 120; // AOE range for bombs
+            const OFF_SCREEN_X = prev.cameraX + 700; // Off right side of screen
             
             if (enemy.isRetreating) {
-              // Calculate halfway point between current position and original
-              const origX = enemy.originalX ?? enemy.x + 200;
-              const origY = enemy.originalY ?? targetY;
-              const halfwayX = prev.player.x + (origX - prev.player.x) * 0.5; // Halfway back
-              const halfwayY = (enemy.y + origY) / 2;
+              // Zoom to OFF SCREEN position (right side)
+              const targetReturnX = OFF_SCREEN_X;
+              const targetReturnY = GROUND_Y + 100 + Math.sin(newAnimPhase) * 40; // Vary Y during retreat
               
-              const dxToHalfway = halfwayX - enemy.x;
-              const dyToHalfway = halfwayY - enemy.y;
-              const distToHalfway = Math.sqrt(dxToHalfway * dxToHalfway + dyToHalfway * dyToHalfway);
+              const dxToTarget = targetReturnX - enemy.x;
+              const dyToTarget = targetReturnY - enemy.y;
+              const distToTarget = Math.sqrt(dxToTarget * dxToTarget + dyToTarget * dyToTarget);
               
-              if (distToHalfway < 40) {
-                // Reached halfway position, stop retreating and prepare to bomb again
+              if (distToTarget < 30 || enemy.x > prev.cameraX + 650) {
+                // Reached off-screen position - now come back with new attack pattern
+                // Mark as returning (coming back toward hero)
                 return { 
                   ...enemy, 
-                  x: halfwayX, 
-                  y: halfwayY, 
+                  x: OFF_SCREEN_X,
+                  y: GROUND_Y + 80 + Math.random() * 80, // Random height for return
                   isRetreating: false,
                   animationPhase: newAnimPhase,
-                  bombCooldown: 1.0 + Math.random() * 0.5, // Short cooldown before bombing again
+                  bombCooldown: 0.5 + Math.random() * 0.5, // Quick cooldown to attack again
+                  originalX: OFF_SCREEN_X, // Reset original position
+                  originalY: GROUND_Y + 100,
                 };
               }
               
-              // Move toward halfway position quickly
-              const moveX = (dxToHalfway / distToHalfway) * RETREAT_SPEED * delta;
-              const moveY = (dyToHalfway / distToHalfway) * RETREAT_SPEED * delta;
+              // Move toward off-screen position FAST
+              const moveX = (dxToTarget / distToTarget) * RETREAT_SPEED * delta;
+              const moveY = (dyToTarget / distToTarget) * (RETREAT_SPEED * 0.5) * delta;
               
               return {
                 ...enemy,
@@ -2772,37 +2774,49 @@ export const useGameState = () => {
               };
             }
             
-            // Check if close to hero and ready to DROP BOMB - then retreat!
+            // Check if VERY CLOSE to hero (within 2 pixels effective distance) - trigger retreat!
+            if (distToHero < RETREAT_TRIGGER_DISTANCE && !enemy.isRetreating) {
+              // Too close! Zoom away immediately
+              return {
+                ...enemy,
+                y: targetY,
+                isRetreating: true,
+                animationPhase: newAnimPhase,
+                bombCooldown: 2.0, // Reset bomb cooldown
+              };
+            }
+            
+            // Check if close enough to DROP BOMB - then retreat!
             const bombCooldown = (enemy.bombCooldown || 0) - delta;
-            if (distToHero < BOMB_AOE_RANGE && distToHero > 0 && bombCooldown <= 0) {
-              // Drop bomb from CENTER OF BODY
+            if (distToHero < BOMB_AOE_RANGE && distToHero >= RETREAT_TRIGGER_DISTANCE && bombCooldown <= 0) {
+              // Drop bomb from CENTER OF BODY (torso)
               const centerX = enemy.x + enemy.width / 2;
-              const centerY = enemy.y + enemy.height / 2;
+              const centerY = enemy.y + enemy.height / 2; // Torso position
               
               const newBomb: Bomb = {
                 id: `drone-bomb-${Date.now()}-${Math.random()}`,
                 x: centerX, // Center of body
-                y: centerY, // Center of body
+                y: centerY, // Torso height
                 velocityY: -180, // Falls down
                 damage: enemy.damage,
                 timer: 5,
               };
               newState.bombs = [...(newState.bombs || []), newBomb];
               
-              // Bomb drop particles from body center
+              // Bomb drop particles from torso center
               newState.particles = [
                 ...newState.particles,
                 ...createParticles(centerX, centerY, 8, 'muzzle', '#ff8800'),
               ];
               
-              // Now retreat!
+              // Now retreat off screen!
               return {
                 ...enemy,
                 y: targetY,
                 isRetreating: true,
                 animationPhase: newAnimPhase,
                 bombCooldown: 1.5 + Math.random() * 0.5, // Cooldown for next bomb
-                originalX: enemy.originalX ?? enemy.x + 150, // Store original position if not set
+                originalX: enemy.originalX ?? enemy.x + 150,
                 originalY: enemy.originalY ?? targetY,
               };
             }

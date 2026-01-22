@@ -302,10 +302,10 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           </motion.div>
         )}
         
-        {/* Shooting muzzle flash - FROM ARMOR/CHEST POSITION */}
+        {/* Shooting muzzle flash - FROM TORSO/CENTER POSITION */}
         {player.isShooting && !isSpaceshipMode && (
         <>
-          {/* Muzzle flash at armor */}
+          {/* Muzzle flash at torso center */}
           <motion.div
             initial={{ opacity: 1, scale: 0.5 }}
             animate={{ opacity: 0, scale: 2 }}
@@ -313,7 +313,8 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
             className="absolute"
             style={{ 
               right: -20, 
-              top: '45%', // Center of armor/chest
+              top: '50%', // Exact center/torso
+              transform: 'translateY(-50%)',
             }}
           >
               <div 
@@ -329,14 +330,15 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
               />
             </motion.div>
             
-            {/* Energy rings */}
+            {/* Energy rings from torso */}
             {[0, 1].map(i => (
               <motion.div
                 key={`ring-${i}`}
                 className="absolute rounded-full border-2"
                 style={{
                   right: -10,
-                  top: '35%',
+                  top: '50%', // Torso center
+                  transform: 'translateY(-50%)',
                   width: 12,
                   height: 12,
                   borderColor: player.isMagicDashing ? '#ff00ff' : '#00ffff',
