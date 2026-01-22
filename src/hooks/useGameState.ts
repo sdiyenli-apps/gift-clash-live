@@ -1301,18 +1301,51 @@ export const useGameState = () => {
               };
             }
             
-            // Determine which attacks are available based on wave tier
-            // Shield only available if not used yet
-            const availableAttacks: BossAttackType[] = ['fireball'];
+            // LEVEL-SPECIFIC BOSS ATTACK STYLES!
+            // Each wave boss has different attack patterns
+            const availableAttacks: BossAttackType[] = [];
             
             // Only add shield if not yet used
             if (!bossEnemy.bossShieldUsed) {
               availableAttacks.push('shield');
             }
-            if (wave >= 10) availableAttacks.push('laser_sweep');
-            if (wave >= 25) availableAttacks.push('missile_barrage');
-            if (wave >= 50) availableAttacks.push('ground_pound');
-            if (wave >= 100 || bossPhase >= 3) availableAttacks.push('screen_attack');
+            
+            // Level-specific attack patterns
+            switch (wave) {
+              case 1: // Neon Streets - Basic fireballs only
+                availableAttacks.push('fireball');
+                break;
+              case 2: // Robot Factory - Fireballs + laser sweep
+                availableAttacks.push('fireball', 'laser_sweep');
+                break;
+              case 3: // Data Core - Fast laser sweeps
+                availableAttacks.push('laser_sweep', 'laser_sweep', 'fireball');
+                break;
+              case 4: // Rooftops - Missile barrages from above
+                availableAttacks.push('fireball', 'missile_barrage');
+                break;
+              case 5: // Bunker - Ground pound specialist
+                availableAttacks.push('ground_pound', 'fireball', 'ground_pound');
+                break;
+              case 6: // Highway - Fast missiles + lasers
+                availableAttacks.push('missile_barrage', 'laser_sweep', 'fireball');
+                break;
+              case 7: // Mega Mall - Everything except screen attack
+                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound');
+                break;
+              case 8: // Power Plant - Heavy ground pounds + lasers
+                availableAttacks.push('ground_pound', 'ground_pound', 'laser_sweep', 'fireball');
+                break;
+              case 9: // Spaceport - Missile hell
+                availableAttacks.push('missile_barrage', 'missile_barrage', 'laser_sweep', 'fireball');
+                break;
+              case 10: // Boss Lair - EVERYTHING including screen attack
+                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'screen_attack');
+                break;
+              default: // Higher waves - all attacks
+                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound');
+                if (bossPhase >= 3) availableAttacks.push('screen_attack');
+            }
             
             // More attacks in higher phases
             const attackChance = bossPhase >= 3 ? 0.4 : bossPhase >= 2 ? 0.6 : 0.8;
@@ -2185,9 +2218,11 @@ export const useGameState = () => {
                   ? (nearestEnemy.y || GROUND_Y) + nearestEnemy.height / 2
                   : GROUND_Y + nearestEnemy.height / 2;
                 
-                // All units fire through the GREEN ZONE (floor combat area) - lower Y position
-                // Tank fires at floor level, others slightly above
-                const startY = unit.type === 'tank' ? GROUND_Y - 20 : GROUND_Y - 10;
+                // All units fire from their weapon position
+                // TANK fires from TOP of image (turret), others from center/torso
+                const startY = unit.type === 'tank' 
+                  ? unit.y + unit.height * 0.15 // Tank fires from top (turret position ~15% from top)
+                  : GROUND_Y - 10; // Others fire from green zone
                 const startX = unit.x + unit.width + 5;
                 
                 // Calculate direction to enemy center
