@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { GameState, Projectile, GiftBlock, getBossName, GiftEvent, Bomb, SupportUnit } from '@/types/game';
+import { GameState, Projectile, getBossName, Bomb, SupportUnit } from '@/types/game';
 import { BackgroundVideo } from './BackgroundVideo';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
@@ -37,8 +37,6 @@ interface EMPGrenade {
   timer: number;
 }
 
-// REMOVED: NeonBeam interface - All attacks are now projectiles only
-
 interface Powerup {
   id: string;
   x: number;
@@ -71,16 +69,15 @@ interface ExtendedGameState extends GameState {
 
 interface ArenaProps {
   gameState: ExtendedGameState;
-  notifications?: GiftEvent[];
 }
 
-export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
+export const Arena = ({ gameState }: ArenaProps) => {
   const { 
     player, enemies, projectiles, particles, obstacles,
     cameraX, distance, levelLength, isUltraMode, speechBubble,
     combo, comboTimer, isFrozen, isBossFight, screenShake,
-    flyingRobots, chickens, neonLights, explosions, giftBlocks = [],
-    fireballs = [], redFlash = 0, armorTimer = 0, enemyLasers = [],
+    flyingRobots, chickens, neonLights, explosions,
+    fireballs = [], redFlash = 0, enemyLasers = [],
     magicFlash = 0, bossTaunt = null, currentWave,
     damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
     empGrenades = [], bombs = [],

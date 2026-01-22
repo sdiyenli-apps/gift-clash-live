@@ -6,19 +6,15 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { Arena } from '@/components/game/Arena';
 import { HealthBar } from '@/components/game/HealthBar';
 import { GiftPanel } from '@/components/game/GiftPanel';
-// Skill Queue removed - replaced with cleaner HUD
-// Gift notifications are now flying boxes in the Arena
 import { GameOverlay } from '@/components/game/GameOverlay';
 import { WaveTransition } from '@/components/game/WaveTransition';
-import { GiftEvent } from '@/types/game';
 import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
 
 const Index = () => {
   const [autoSimulate, setAutoSimulate] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
-  const [recentGifts, setRecentGifts] = useState<GiftEvent[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const { gameState, giftEvents, notifications, startGame, startNextWave, handleGift } = useGameState();
+  const { gameState, startGame, startNextWave, handleGift } = useGameState();
   const { playSound } = useSoundEffects();
   
   const { triggerGift } = useTikTokSimulator(
@@ -126,25 +122,17 @@ const Index = () => {
     }
   }, [landedJetRobots.length, playSound]);
 
+  // Optimized gift trigger - immediate response
   const handleTriggerGift = useCallback((giftId: string) => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');
-    const result = triggerGift(giftId, `Viewer_${Math.floor(Math.random() * 9999)}`);
-    
-    // Add to recent gifts queue (max 10)
-    if (result) {
-      setRecentGifts(prev => {
-        const newGifts = [...prev, result].slice(-10);
-        return newGifts;
-      });
-    }
+    triggerGift(giftId, `Player_${Math.floor(Math.random() * 999)}`);
   }, [gameState.phase, triggerGift, playSound]);
 
-  // Special handlers for powerup buttons that bypass the gift system
+  // Powerup handlers - immediate action processing
   const handleUseAlly = useCallback(() => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');
-    // Directly process the summon_support action
     handleGift({
       id: `ally-${Date.now()}`,
       gift: { id: 'ally_powerup', name: 'Ally', tier: 'large', diamonds: 0, emoji: '🤖', action: 'summon_support' },
@@ -157,7 +145,6 @@ const Index = () => {
   const handleUseUlt = useCallback(() => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');
-    // Directly process the magic_dash action
     handleGift({
       id: `ult-${Date.now()}`,
       gift: { id: 'ult_powerup', name: 'ULT', tier: 'large', diamonds: 0, emoji: '🚀', action: 'magic_dash' },
@@ -170,7 +157,6 @@ const Index = () => {
   const handleUseTank = useCallback(() => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');
-    // Directly process the summon_tank action (special hidden action)
     handleGift({
       id: `tank-${Date.now()}`,
       gift: { id: 'tank_powerup', name: 'Tank', tier: 'large', diamonds: 0, emoji: '🔫', action: 'summon_tank' as any },
@@ -302,7 +288,7 @@ const Index = () => {
             transformOrigin: 'center top',
           }}
         >
-          <Arena gameState={gameState} notifications={notifications} />
+          <Arena gameState={gameState} />
           <GameOverlay 
             phase={gameState.phase}
             score={gameState.score}
