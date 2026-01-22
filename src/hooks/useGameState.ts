@@ -2145,19 +2145,34 @@ export const useGameState = () => {
             }
             newUnit.y = GROUND_Y; // Stay on ground
             
-            // Attack nearby enemies - slower rate to reduce lag
+            // Attack nearby enemies - Tank has ADVANCED AI TARGETING with extended range
             const currentProjCount = (newState.supportProjectiles || []).length;
+            const isTank = unit.type === 'tank';
+            const attackRange = isTank ? 800 : 500; // Tank has much longer range
+            
             if (newUnit.attackCooldown <= 0 && !unit.isLanding && !unit.isSelfDestructing && currentProjCount < MAX_SUPPORT_PROJECTILES) {
-              // Find all enemies in range - prioritize closest
+              // TANK AI: Finds ALL enemies and prioritizes targets
+              // Priority: 1. Closest threat, 2. Flying enemies, 3. Elite enemies
               const enemiesInRange = newState.enemies
-                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x - 50 && e.x < unit.x + 500)
-                .sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
+                .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x - 50 && e.x < unit.x + attackRange)
+                .sort((a, b) => {
+                  if (isTank) {
+                    // Tank prioritizes: flying enemies > elites > closest
+                    const aFlying = a.isFlying || a.type === 'drone' || a.type === 'bomber' || a.type === 'flyer' || a.type === 'jetrobot';
+                    const bFlying = b.isFlying || b.type === 'drone' || b.type === 'bomber' || b.type === 'flyer' || b.type === 'jetrobot';
+                    if (aFlying && !bFlying) return -1;
+                    if (!aFlying && bFlying) return 1;
+                    if (a.isElite && !b.isElite) return -1;
+                    if (!a.isElite && b.isElite) return 1;
+                  }
+                  return Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x);
+                });
               
               const nearestEnemy = enemiesInRange[0];
               
               if (nearestEnemy) {
-                // Tank fires VERY FAST with big AOE bullets, mech is medium, walker is fast
-                newUnit.attackCooldown = unit.type === 'tank' ? 0.15 : unit.type === 'mech' ? 0.6 : 0.4;
+                // Tank fires RAPIDLY with AI targeting, mech is medium, walker is fast
+                newUnit.attackCooldown = isTank ? 0.12 : unit.type === 'mech' ? 0.6 : 0.4;
                 
                 // Get enemy position - ground enemies are AT ground level, flying enemies have Y offset
                 const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
@@ -2188,7 +2203,7 @@ export const useGameState = () => {
                   const velocityY = (dy / dist) * projSpeed;
                   
                   // Tank does 120 damage (double hero's 60), mech 25, walker 15
-                  const projDamage = unit.type === 'tank' ? 120 : unit.type === 'mech' ? 25 : 15;
+                  const projDamage = isTank ? 120 : unit.type === 'mech' ? 25 : 15;
                   
                   const proj: Projectile = {
                     id: `ally-${unit.type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -2197,16 +2212,19 @@ export const useGameState = () => {
                     velocityX: velocityX,
                     velocityY: velocityY,
                     damage: projDamage,
-                    type: unit.type === 'tank' ? 'ultra' : unit.type === 'mech' ? 'ultra' : 'mega',
+                    type: isTank ? 'ultra' : unit.type === 'mech' ? 'ultra' : 'mega',
                     isAllyProjectile: true,
+                    // Store origin for tracer effect
+                    originX: startX,
+                    originY: startY,
                   };
                   newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                   
                   // Muzzle flash - tank is pink, mech is orange, walker is green
-                  const muzzleColor = unit.type === 'tank' ? '#ff0066' : unit.type === 'mech' ? '#ff6600' : '#00ff88';
+                  const muzzleColor = isTank ? '#ff0066' : unit.type === 'mech' ? '#ff6600' : '#00ff88';
                   newState.particles = [
                     ...newState.particles,
-                    ...createParticles(startX, startY, unit.type === 'tank' ? 5 : 2, 'muzzle', muzzleColor),
+                    ...createParticles(startX, startY, isTank ? 8 : 2, 'muzzle', muzzleColor),
                   ];
                 }
               }
