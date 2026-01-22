@@ -357,7 +357,7 @@ export const Arena = memo(({ gameState, notifications = [] }: ArenaProps) => {
         
         {/* Portal */}
         {portalOpen && (
-          <Portal x={portalX} cameraX={cameraX} />
+          <Portal x={portalX} cameraX={cameraX} isOpen={portalOpen} isEntering={heroEnteringPortal} />
         )}
         
         {/* Floor */}
