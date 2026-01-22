@@ -35,8 +35,8 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   // Check if currently attacking (cooldown just started)
   const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : 0.4);
   
-  // Allies positioned slightly lower - one above hero, one below
-  const baseBottom = isMech ? 115 : 85; // Mech above hero, Walker below (lowered)
+  // Allies positioned LOWER - one above hero, one below
+  const baseBottom = isMech ? 100 : 70; // Much lower positions
   const selfDestructYOffset = isSelfDestructing ? (unit.y - 100) : 0;
   const leftOffset = -30; // Allies near hero on left
   
