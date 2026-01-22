@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { useState, useEffect } from 'react';
 
 interface WaveTransitionProps {
   isVisible: boolean;
@@ -11,6 +12,25 @@ interface WaveTransitionProps {
 
 export const WaveTransition = ({ isVisible, currentWave, maxWaves, score, onNextWave }: WaveTransitionProps) => {
   const isFinalVictory = currentWave >= maxWaves;
+  const [countdown, setCountdown] = useState(5);
+
+  // Auto-start countdown when visible and not final victory
+  useEffect(() => {
+    if (isVisible && !isFinalVictory) {
+      setCountdown(5);
+      const timer = setInterval(() => {
+        setCountdown(prev => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            onNextWave();
+            return 5;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+  }, [isVisible, isFinalVictory, onNextWave]);
 
   return (
     <AnimatePresence>
@@ -87,13 +107,28 @@ export const WaveTransition = ({ isVisible, currentWave, maxWaves, score, onNext
               ⭐ {score.toLocaleString()} PTS
             </motion.div>
 
-            {/* Next Wave Button */}
+            {/* Next Wave Countdown */}
             {!isFinalVictory && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
+                transition={{ delay: 0.3 }}
+                className="space-y-3"
               >
+                {/* Countdown display */}
+                <motion.div
+                  className="text-5xl font-black"
+                  style={{
+                    color: countdown <= 2 ? '#ff00ff' : '#00ffff',
+                    textShadow: `0 0 30px ${countdown <= 2 ? '#ff00ff' : '#00ffff'}`,
+                  }}
+                  animate={{ scale: [1, 1.1, 1] }}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                >
+                  {countdown}
+                </motion.div>
+                <p className="text-gray-400 text-sm">Next wave starting...</p>
+                
                 <motion.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -107,7 +142,7 @@ export const WaveTransition = ({ isVisible, currentWave, maxWaves, score, onNext
                       boxShadow: '0 0 30px rgba(255,0,255,0.5), 0 0 60px rgba(0,255,255,0.3)',
                     }}
                   >
-                    ⚡ NEXT WAVE ({currentWave + 1}/{maxWaves}) ⚡
+                    ⚡ SKIP ({currentWave + 1}/{maxWaves}) ⚡
                   </Button>
                 </motion.div>
               </motion.div>
@@ -125,7 +160,7 @@ export const WaveTransition = ({ isVisible, currentWave, maxWaves, score, onNext
                   👸 PRINCESS SAVED! 👸
                 </p>
                 <p className="text-gray-400 text-sm">
-                  You've conquered all 1000 waves!
+                  You've conquered all {maxWaves} waves!
                 </p>
               </motion.div>
             )}
