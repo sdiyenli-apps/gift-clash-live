@@ -89,29 +89,31 @@ export interface Enemy {
   spawnTimer?: number;
   isFlying?: boolean;
   flyHeight?: number;
-  bossPhase?: number; // 1 = normal, 2 = 50% health, 3 = 25% health
-  isSlashing?: boolean; // True when enemy is doing melee slash attack
-  bossShieldTimer?: number; // Boss shield duration remaining (1 second max)
-  bossShieldUsed?: boolean; // Boss can only use shield once
-  isGiant?: boolean; // Giant enemy variant - larger and tougher
-  bombCooldown?: number; // Bomber bomb drop cooldown
-  isDropping?: boolean; // True when enemy is dropping from top of screen
-  dropTimer?: number; // Timer for drop animation
-  empOnly?: boolean; // Can only be killed by EMP (jet robots)
-  originalX?: number; // Original spawn X position for flying enemies
-  originalY?: number; // Original spawn Y position for flying enemies
-  isRetreating?: boolean; // True when flying enemy is zooming back to original position
-  droneVariant?: number; // Variant of drone sprite (1-4)
-  targetType?: 'hero' | 'ally'; // Who this enemy is targeting (for indicators)
-  isSpiralDrone?: boolean; // Special drone that spirals while shooting
-  spiralAngle?: number; // Current angle in spiral pattern
-  spiralCenterX?: number; // Center of spiral
-  spiralCenterY?: number; // Center of spiral
-  groundY?: number; // Assigned ground level for spread positioning
-  // Enemy armor system - activates at 20% HP for ground enemies
-  hasArmor?: boolean; // True when enemy has activated armor
-  armorTimer?: number; // Seconds remaining on armor (max 3 seconds)
-  armorUsed?: boolean; // Armor can only be activated once per enemy
+  bossPhase?: number;
+  isSlashing?: boolean;
+  bossShieldTimer?: number;
+  bossShieldUsed?: boolean;
+  isGiant?: boolean;
+  bombCooldown?: number;
+  isDropping?: boolean;
+  dropTimer?: number;
+  empOnly?: boolean;
+  originalX?: number;
+  originalY?: number;
+  isRetreating?: boolean;
+  droneVariant?: number;
+  targetType?: 'hero' | 'ally';
+  isSpiralDrone?: boolean;
+  spiralAngle?: number;
+  spiralCenterX?: number;
+  spiralCenterY?: number;
+  groundY?: number;
+  hasArmor?: boolean;
+  armorTimer?: number;
+  armorUsed?: boolean;
+  // Elite enemy system - drops powerups when killed
+  isElite?: boolean;
+  eliteDropType?: 'ally' | 'ult'; // What powerup this elite drops
 }
 
 // Bomb dropped by bomber enemies
@@ -270,7 +272,7 @@ export interface Gifter {
   giftCount: number;
 }
 
-// 8 CORE GIFTS - Simple and clear!
+// 6 GIFT BUTTONS - Ally and ULT are now powerup drops from elites!
 export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   // MOVE FORWARD
   rose: { id: 'rose', name: 'Rose', tier: 'small', diamonds: 1, emoji: '🌹', action: 'move_forward' },
@@ -284,17 +286,11 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   // HEAL
   perfume: { id: 'perfume', name: 'Perfume', tier: 'medium', diamonds: 199, emoji: '💐', action: 'heal' },
   
-  // MAGIC DASH (Auto-plays with effects for 6 seconds)
-  galaxy: { id: 'galaxy', name: 'Galaxy', tier: 'large', diamonds: 1000, emoji: '🌌', action: 'magic_dash' },
-  
   // SPAWN DANGEROUS ENEMIES (chaos gift)
   skull: { id: 'skull', name: 'Skull', tier: 'medium', diamonds: 50, emoji: '💀', action: 'spawn_enemies' },
   
   // EMP GRENADE - Kills ALL flying enemies (drones, bombers, flyers)!
   lightning: { id: 'lightning', name: 'EMP Grenade', tier: 'medium', diamonds: 75, emoji: '⚡', action: 'emp_grenade' },
-  
-  // SUMMON SUPPORT UNITS - Mech & Walker allies fight for 10 seconds!
-  robot: { id: 'robot', name: 'Robot Army', tier: 'large', diamonds: 500, emoji: '🤖', action: 'summon_support' },
 };
 
 // Gift action descriptions for UI
@@ -303,10 +299,10 @@ export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: s
   shoot: { name: '🔫 SHOOT', description: 'Bullets hit ground enemies!', effect: 'help' },
   armor: { name: '🛡️ ARMOR', description: '+60 Shield!', effect: 'help' },
   heal: { name: '💚 HEAL', description: '+40 HP!', effect: 'help' },
-  magic_dash: { name: '✨ MAGIC DASH', description: '6s auto-attack!', effect: 'help' },
+  magic_dash: { name: '✨ ULT', description: '6s spaceship mode!', effect: 'help' },
   spawn_enemies: { name: '💀 DANGER', description: 'Spawns enemies!', effect: 'chaos' },
   emp_grenade: { name: '⚡ EMP', description: 'Kills ALL flying enemies!', effect: 'help' },
-  summon_support: { name: '🤖 SUPPORT', description: '2 allies for 10s!', effect: 'help' },
+  summon_support: { name: '🤖 ALLY', description: '2 allies for 10s!', effect: 'help' },
 };
 
 // Bro-style hero quips - MEGA EXPANDED with taunts and gift requests!

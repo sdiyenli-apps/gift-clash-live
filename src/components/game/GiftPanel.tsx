@@ -4,9 +4,22 @@ import { TIKTOK_GIFTS, GIFT_ACTION_INFO } from '@/types/game';
 interface GiftPanelProps {
   onTriggerGift: (giftId: string) => void;
   disabled: boolean;
+  collectedAllyPowerups?: number;
+  collectedUltPowerups?: number;
+  allyCharges?: number;
+  onUseAlly?: () => void;
+  onUseUlt?: () => void;
 }
 
-export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
+export const GiftPanel = ({ 
+  onTriggerGift, 
+  disabled, 
+  collectedAllyPowerups = 0, 
+  collectedUltPowerups = 0,
+  allyCharges = 0,
+  onUseAlly,
+  onUseUlt,
+}: GiftPanelProps) => {
   const gifts = Object.values(TIKTOK_GIFTS);
 
   const getGiftStyle = (action: string) => {
@@ -15,10 +28,8 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
       shoot: { border: 'rgba(255,150,0,0.6)', bg: 'rgba(255,150,0,0.2)', glow: '0 0 12px rgba(255,150,0,0.4)' },
       armor: { border: 'rgba(0,150,255,0.6)', bg: 'rgba(0,150,255,0.2)', glow: '0 0 12px rgba(0,150,255,0.4)' },
       heal: { border: 'rgba(0,255,100,0.6)', bg: 'rgba(0,255,100,0.2)', glow: '0 0 12px rgba(0,255,100,0.4)' },
-      magic_dash: { border: 'rgba(255,0,255,0.6)', bg: 'rgba(255,0,255,0.2)', glow: '0 0 12px rgba(255,0,255,0.4)' },
       spawn_enemies: { border: 'rgba(255,50,50,0.6)', bg: 'rgba(255,50,50,0.2)', glow: '0 0 12px rgba(255,50,50,0.4)' },
       emp_grenade: { border: 'rgba(255,255,0,0.6)', bg: 'rgba(255,255,0,0.2)', glow: '0 0 12px rgba(255,255,0,0.4)' },
-      summon_support: { border: 'rgba(0,255,136,0.6)', bg: 'rgba(0,255,136,0.2)', glow: '0 0 12px rgba(0,255,136,0.4)' },
     };
     return styles[action] || { border: 'rgba(255,255,255,0.2)', bg: 'rgba(255,255,255,0.05)', glow: 'none' };
   };
@@ -33,11 +44,11 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
         boxShadow: '0 4px 20px rgba(0,0,0,0.5)',
       }}
     >
-      {/* Gift Grid - Mobile optimized larger buttons */}
+      {/* Gift Grid + Powerup Buttons */}
       <div className="grid grid-cols-8 gap-1.5 sm:gap-2">
+        {/* Regular gift buttons (6) */}
         {gifts.map(gift => {
           const style = getGiftStyle(gift.action);
-          const actionInfo = GIFT_ACTION_INFO[gift.action];
           
           return (
             <motion.button
@@ -58,12 +69,11 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
             >
               <motion.div 
                 className="text-xl sm:text-2xl"
-                animate={gift.action === 'magic_dash' ? { rotate: [0, 360] } : { scale: [1, 1.12, 1] }}
-                transition={{ duration: gift.action === 'magic_dash' ? 3 : 1.5, repeat: Infinity }}
+                animate={{ scale: [1, 1.12, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
               >
                 {gift.emoji}
               </motion.div>
-              {/* Small action label */}
               <span 
                 className="text-[6px] sm:text-[7px] font-bold mt-0.5 opacity-80 uppercase tracking-tight"
                 style={{ color: style.border.replace('0.6', '1') }}
@@ -73,21 +83,101 @@ export const GiftPanel = ({ onTriggerGift, disabled }: GiftPanelProps) => {
                  gift.action === 'shoot' ? 'FIRE' :
                  gift.action === 'armor' ? 'DEF' :
                  gift.action === 'heal' ? 'HP' :
-                 gift.action === 'magic_dash' ? 'ULT' :
-                 gift.action === 'spawn_enemies' ? '⚠️' : 
-                 gift.action === 'summon_support' ? 'ALLY' : ''}
+                 gift.action === 'spawn_enemies' ? '⚠️' : ''}
               </span>
             </motion.button>
           );
         })}
+        
+        {/* ALLY Powerup Button */}
+        <motion.button
+          whileHover={{ scale: allyCharges > 0 ? 1.08 : 1 }}
+          whileTap={{ scale: allyCharges > 0 ? 0.88 : 1 }}
+          onClick={() => allyCharges > 0 && onUseAlly?.()}
+          disabled={disabled || allyCharges <= 0}
+          className="relative rounded-xl flex flex-col items-center justify-center aspect-square touch-manipulation"
+          style={{
+            background: allyCharges > 0 ? 'rgba(0,255,136,0.3)' : 'rgba(50,50,50,0.5)',
+            border: `2px solid ${allyCharges > 0 ? 'rgba(0,255,136,0.8)' : 'rgba(100,100,100,0.4)'}`,
+            boxShadow: allyCharges > 0 ? '0 0 15px rgba(0,255,136,0.5)' : 'none',
+            opacity: disabled ? 0.5 : 1,
+            minHeight: '44px',
+            minWidth: '44px',
+          }}
+        >
+          <motion.div 
+            className="text-xl sm:text-2xl"
+            animate={allyCharges > 0 ? { scale: [1, 1.15, 1] } : {}}
+            transition={{ duration: 0.8, repeat: Infinity }}
+          >
+            🤖
+          </motion.div>
+          <span 
+            className="text-[6px] sm:text-[7px] font-bold mt-0.5 uppercase"
+            style={{ color: allyCharges > 0 ? '#00ff88' : '#666' }}
+          >
+            ALLY
+          </span>
+          {/* Collected count badge */}
+          <div 
+            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-4 h-4 flex items-center justify-center"
+            style={{
+              background: allyCharges > 0 ? '#00ff88' : '#444',
+              color: '#000',
+            }}
+          >
+            {allyCharges}
+          </div>
+        </motion.button>
+        
+        {/* ULT Powerup Button */}
+        <motion.button
+          whileHover={{ scale: collectedUltPowerups > 0 ? 1.08 : 1 }}
+          whileTap={{ scale: collectedUltPowerups > 0 ? 0.88 : 1 }}
+          onClick={() => collectedUltPowerups > 0 && onUseUlt?.()}
+          disabled={disabled || collectedUltPowerups <= 0}
+          className="relative rounded-xl flex flex-col items-center justify-center aspect-square touch-manipulation"
+          style={{
+            background: collectedUltPowerups > 0 ? 'rgba(255,0,255,0.3)' : 'rgba(50,50,50,0.5)',
+            border: `2px solid ${collectedUltPowerups > 0 ? 'rgba(255,0,255,0.8)' : 'rgba(100,100,100,0.4)'}`,
+            boxShadow: collectedUltPowerups > 0 ? '0 0 15px rgba(255,0,255,0.5)' : 'none',
+            opacity: disabled ? 0.5 : 1,
+            minHeight: '44px',
+            minWidth: '44px',
+          }}
+        >
+          <motion.div 
+            className="text-xl sm:text-2xl"
+            animate={collectedUltPowerups > 0 ? { rotate: [0, 360] } : {}}
+            transition={{ duration: 3, repeat: Infinity }}
+          >
+            🚀
+          </motion.div>
+          <span 
+            className="text-[6px] sm:text-[7px] font-bold mt-0.5 uppercase"
+            style={{ color: collectedUltPowerups > 0 ? '#ff66ff' : '#666' }}
+          >
+            ULT
+          </span>
+          {/* Collected count badge */}
+          <div 
+            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-4 h-4 flex items-center justify-center"
+            style={{
+              background: collectedUltPowerups > 0 ? '#ff00ff' : '#444',
+              color: '#fff',
+            }}
+          >
+            {collectedUltPowerups}
+          </div>
+        </motion.button>
       </div>
 
-      {/* Legend - Clearer mobile text */}
+      {/* Legend */}
       <div className="mt-1.5 pt-1.5 border-t border-white/15 flex justify-center gap-2 text-[8px] sm:text-[9px] text-gray-300">
         <span className="flex items-center gap-0.5"><span className="opacity-70">🌹</span>Move</span>
         <span className="flex items-center gap-0.5"><span className="opacity-70">🫰</span>Shoot</span>
         <span className="flex items-center gap-0.5"><span className="opacity-70">⚡</span>EMP</span>
-        <span className="flex items-center gap-0.5"><span className="opacity-70">🤖</span>Ally</span>
+        <span className="flex items-center gap-0.5 text-yellow-400"><span className="opacity-70">⭐</span>Kill ELITES for 🤖/🚀</span>
       </div>
     </div>
   );

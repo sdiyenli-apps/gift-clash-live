@@ -313,6 +313,11 @@ const Index = () => {
               <GiftPanel 
                 onTriggerGift={handleTriggerGift}
                 disabled={gameState.phase !== 'playing'}
+                collectedAllyPowerups={gameState.collectedAllyPowerups || 0}
+                collectedUltPowerups={gameState.collectedUltPowerups || 0}
+                allyCharges={gameState.allyCharges || 0}
+                onUseAlly={() => handleTriggerGift('robot')}
+                onUseUlt={() => handleTriggerGift('galaxy')}
               />
             </div>
           </div>
