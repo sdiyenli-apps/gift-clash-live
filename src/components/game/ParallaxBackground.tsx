@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 // Import all level backgrounds
 import level1Bg from '@/assets/parallax/level-1-bg.jpg';
@@ -40,10 +40,37 @@ const ZONE_COLORS = [
 
 // Parallax layer speeds (lower = slower = further away)
 const LAYER_SPEEDS = {
-  far: 0.1,      // Distant skyline - slowest
-  mid: 0.25,     // Mid-ground buildings
-  near: 0.5,     // Foreground debris - fastest
+  far: 0.1,
+  mid: 0.25,
+  near: 0.5,
 };
+
+// Smoke particle configuration
+const SMOKE_PARTICLES = Array.from({ length: 6 }, (_, i) => ({
+  id: i,
+  baseX: i * 250 + Math.random() * 100,
+  baseY: 80 + Math.random() * 120,
+  size: 40 + Math.random() * 60,
+  speed: 0.05 + Math.random() * 0.08,
+  drift: Math.random() * 2 - 1,
+}));
+
+// Neon sign configuration
+const NEON_SIGNS = [
+  { x: 150, y: 140, text: 'CYBER', width: 60 },
+  { x: 450, y: 160, text: 'ZONE', width: 50 },
+  { x: 800, y: 130, text: 'NEON', width: 55 },
+  { x: 1100, y: 150, text: 'BAR', width: 40 },
+  { x: 1400, y: 145, text: 'HOTEL', width: 65 },
+];
+
+// Distant explosion configuration
+const EXPLOSION_SPOTS = [
+  { x: 300, y: 200 },
+  { x: 700, y: 180 },
+  { x: 1200, y: 210 },
+  { x: 1600, y: 190 },
+];
 
 export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: ParallaxBackgroundProps) => {
   const waveIndex = Math.min(currentWave - 1, 9);
@@ -160,23 +187,14 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
             opacity: 0.5,
           }}
         >
-          {/* Antenna/spire on top */}
           {i % 3 === 0 && (
             <div
               className="absolute left-1/2 -translate-x-1/2"
-              style={{
-                top: -15,
-                width: 2,
-                height: 15,
-                background: '#333',
-              }}
+              style={{ top: -15, width: 2, height: 15, background: '#333' }}
             >
               <div
                 className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full animate-pulse"
-                style={{
-                  background: zoneData.color,
-                  boxShadow: `0 0 6px ${zoneData.color}`,
-                }}
+                style={{ background: zoneData.color, boxShadow: `0 0 6px ${zoneData.color}` }}
               />
             </div>
           )}
@@ -185,6 +203,54 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
     }
     return skyline;
   }, [cameraX, zoneData.color]);
+
+  // Flickering neon signs state
+  const [neonFlickers, setNeonFlickers] = useState<boolean[]>(NEON_SIGNS.map(() => true));
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setNeonFlickers(prev => prev.map((on, i) => {
+        // Random flicker with different frequencies per sign
+        const flickerChance = 0.1 + (i * 0.05);
+        return Math.random() > flickerChance ? on : !on;
+      }));
+    }, 100);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Distant explosions state
+  const [explosions, setExplosions] = useState<{ id: number; x: number; y: number; phase: number }[]>([]);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Randomly trigger a distant explosion
+      if (Math.random() > 0.7 && explosions.length < 2) {
+        const spot = EXPLOSION_SPOTS[Math.floor(Math.random() * EXPLOSION_SPOTS.length)];
+        setExplosions(prev => [...prev, {
+          id: Date.now(),
+          x: spot.x + Math.random() * 100 - 50,
+          y: spot.y + Math.random() * 40 - 20,
+          phase: 0,
+        }]);
+      }
+      // Progress explosion phases
+      setExplosions(prev => prev
+        .map(e => ({ ...e, phase: e.phase + 1 }))
+        .filter(e => e.phase < 8)
+      );
+    }, 200);
+    return () => clearInterval(interval);
+  }, [explosions.length]);
+
+  // Smoke animation time
+  const [smokeTime, setSmokeTime] = useState(0);
+  
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSmokeTime(t => t + 1);
+    }, 50);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="absolute inset-0 overflow-hidden">
@@ -206,14 +272,106 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
         {farSkyline}
       </div>
       
+      {/* LAYER 2.5: Distant explosions */}
+      <div className="absolute inset-0 pointer-events-none">
+        {explosions.map(exp => {
+          const screenX = ((exp.x - cameraX * LAYER_SPEEDS.far) % 1600 + 1600) % 1600;
+          const size = 20 + exp.phase * 8;
+          const opacity = Math.max(0, 1 - exp.phase * 0.15);
+          return (
+            <div key={exp.id} className="absolute" style={{ left: screenX, bottom: exp.y }}>
+              {/* Flash */}
+              <div
+                className="absolute rounded-full"
+                style={{
+                  width: size,
+                  height: size,
+                  background: `radial-gradient(circle, #ff8800${Math.floor(opacity * 255).toString(16).padStart(2, '0')}, #ff4400${Math.floor(opacity * 150).toString(16).padStart(2, '0')}, transparent)`,
+                  transform: 'translate(-50%, 50%)',
+                  boxShadow: exp.phase < 3 ? `0 0 ${30 - exp.phase * 8}px #ff6600` : 'none',
+                }}
+              />
+              {/* Smoke ring */}
+              {exp.phase > 2 && (
+                <div
+                  className="absolute rounded-full border"
+                  style={{
+                    width: size * 1.5,
+                    height: size * 0.8,
+                    borderColor: `rgba(100,100,100,${opacity * 0.5})`,
+                    transform: 'translate(-50%, 50%)',
+                  }}
+                />
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
       {/* LAYER 3: Mid-ground buildings with window lights */}
       <div className="absolute inset-0 pointer-events-none">
         {midBuildings}
       </div>
       
+      {/* LAYER 3.5: Flickering neon signs */}
+      <div className="absolute inset-0 pointer-events-none">
+        {NEON_SIGNS.map((sign, i) => {
+          const screenX = ((sign.x - cameraX * LAYER_SPEEDS.mid) % 1400 + 1400) % 1400;
+          const isOn = neonFlickers[i];
+          return (
+            <div
+              key={`neon-${i}`}
+              className="absolute"
+              style={{
+                left: screenX,
+                bottom: sign.y,
+                opacity: isOn ? 1 : 0.2,
+                transition: 'opacity 0.05s',
+              }}
+            >
+              <div
+                className="px-2 py-0.5 rounded-sm font-bold text-[8px] tracking-widest"
+                style={{
+                  background: isOn ? `${zoneData.color}33` : '#11111188',
+                  color: isOn ? zoneData.color : '#333',
+                  border: `1px solid ${isOn ? zoneData.color : '#222'}`,
+                  textShadow: isOn ? `0 0 8px ${zoneData.color}, 0 0 16px ${zoneData.color}` : 'none',
+                  boxShadow: isOn ? `0 0 12px ${zoneData.color}66, inset 0 0 8px ${zoneData.color}33` : 'none',
+                }}
+              >
+                {sign.text}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
       {/* LAYER 4: Foreground debris/structures - fastest parallax */}
       <div className="absolute inset-0 pointer-events-none">
         {debrisElements}
+      </div>
+      
+      {/* LAYER 4.5: Floating smoke particles */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {SMOKE_PARTICLES.map(smoke => {
+          const driftX = Math.sin(smokeTime * smoke.speed + smoke.id) * 30;
+          const driftY = Math.cos(smokeTime * smoke.speed * 0.7 + smoke.id) * 15;
+          const screenX = ((smoke.baseX + driftX - cameraX * LAYER_SPEEDS.near * 0.3) % 1500 + 1500) % 1500;
+          return (
+            <div
+              key={`smoke-${smoke.id}`}
+              className="absolute rounded-full"
+              style={{
+                left: screenX,
+                bottom: smoke.baseY + driftY,
+                width: smoke.size,
+                height: smoke.size * 0.6,
+                background: `radial-gradient(ellipse, rgba(60,60,70,0.25), rgba(40,40,50,0.1), transparent)`,
+                filter: 'blur(8px)',
+              }}
+            />
+          );
+        })}
       </div>
       
       {/* Atmospheric gradient overlay */}
