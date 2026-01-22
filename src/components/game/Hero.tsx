@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
 import heroSprite from '@/assets/hero-sprite.gif';
+import spaceshipSprite from '@/assets/hero-spaceship.gif';
 
 interface HeroProps {
   player: Player;
@@ -149,7 +150,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           transition={{ duration: 0.25, repeat: Infinity }}
         />
         
-        {/* SPACESHIP MODE - Transforms hero into a spaceship during ULT */}
+        {/* SPACESHIP MODE - Transforms hero into spaceship using asset during ULT */}
         {isSpaceshipMode ? (
           <motion.div
             className="relative w-full h-full"
@@ -157,96 +158,57 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
             animate={{ scale: 1, rotate: 0 }}
             transition={{ duration: 0.3, type: 'spring' }}
           >
-            {/* Spaceship body */}
-            <div
-              className="absolute inset-0"
+            {/* Spaceship sprite image */}
+            <motion.img
+              src={spaceshipSprite}
+              alt="Spaceship"
+              className="w-full h-full object-contain"
               style={{
-                background: 'linear-gradient(135deg, #00ffff 0%, #0088ff 30%, #4400ff 60%, #ff00ff 100%)',
-                clipPath: 'polygon(100% 50%, 70% 15%, 20% 20%, 0% 50%, 20% 80%, 70% 85%)',
-                boxShadow: '0 0 30px #00ffff, 0 0 60px #ff00ff',
+                imageRendering: 'pixelated',
+                filter: 'drop-shadow(0 0 15px #00ffff) drop-shadow(0 0 25px #ff00ff)',
               }}
-            />
-            {/* Cockpit */}
-            <div
-              className="absolute rounded-full"
-              style={{
-                width: '30%',
-                height: '40%',
-                left: '50%',
-                top: '30%',
-                background: 'radial-gradient(circle, #fff 0%, #00ffff 50%, #0066ff 100%)',
-                boxShadow: 'inset 0 0 10px #fff, 0 0 15px #00ffff',
+              animate={{
+                y: [0, -3, 0],
               }}
+              transition={{ duration: 0.3, repeat: Infinity }}
             />
-            {/* Engine glow */}
+            {/* Engine boost trail behind spaceship */}
             <motion.div
               className="absolute"
               style={{
-                left: -20,
+                left: -25,
                 top: '35%',
-                width: 40,
+                width: 35,
                 height: '30%',
-                background: 'linear-gradient(90deg, transparent, #ff00ff, #ffff00, #fff)',
+                background: 'linear-gradient(90deg, transparent, #00ffff, #fff)',
                 filter: 'blur(4px)',
                 borderRadius: 10,
               }}
               animate={{ 
-                scaleX: [1, 1.5, 1],
-                opacity: [0.8, 1, 0.8],
+                scaleX: [1, 1.8, 1],
+                opacity: [0.7, 1, 0.7],
               }}
-              transition={{ duration: 0.1, repeat: Infinity }}
+              transition={{ duration: 0.08, repeat: Infinity }}
             />
-            {/* Wing lights */}
-            {[0, 1].map(i => (
-              <motion.div
-                key={`wing-${i}`}
-                className="absolute rounded-full"
-                style={{
-                  width: 8,
-                  height: 8,
-                  right: '25%',
-                  top: i === 0 ? '15%' : '75%',
-                  background: '#ff0000',
-                  boxShadow: '0 0 10px #ff0000',
-                }}
-                animate={{ opacity: [1, 0.3, 1] }}
-                transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.15 }}
-              />
-            ))}
-            {/* Hero inside cockpit (tiny) */}
-            <img
-              src={heroSprite}
-              alt="Hero"
-              className="absolute"
-              style={{
-                width: 20,
-                height: 25,
-                left: '52%',
-                top: '28%',
-                transform: 'translateX(-50%)',
-                filter: 'brightness(1.2)',
-                imageRendering: 'pixelated',
-              }}
-            />
-            {/* Energy trail */}
-            {[...Array(5)].map((_, i) => (
+            {/* Energy trail particles */}
+            {[...Array(6)].map((_, i) => (
               <motion.div
                 key={`trail-${i}`}
                 className="absolute rounded-full"
                 style={{
-                  width: 10 - i * 1.5,
-                  height: 10 - i * 1.5,
-                  left: -15 - i * 12,
-                  top: '45%',
-                  background: i % 2 === 0 ? '#ff00ff' : '#00ffff',
+                  width: 8 - i,
+                  height: 8 - i,
+                  left: -10 - i * 10,
+                  top: '42%',
+                  background: i % 2 === 0 ? '#00ffff' : '#ff00ff',
                   filter: 'blur(2px)',
                 }}
                 animate={{ 
-                  x: [0, -20],
-                  opacity: [0.8, 0],
-                  scale: [1, 0.5],
+                  x: [0, -25],
+                  opacity: [0.9, 0],
+                  scale: [1, 0.3],
                 }}
-                transition={{ duration: 0.2, repeat: Infinity, delay: i * 0.03 }}
+                transition={{ duration: 0.15, repeat: Infinity, delay: i * 0.025 }}
               />
             ))}
             {/* ULT MODE text */}
