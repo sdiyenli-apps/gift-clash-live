@@ -2019,6 +2019,18 @@ export const useGameState = () => {
               newUnit.landingTimer = (unit.landingTimer || 1) - delta;
               if (newUnit.landingTimer <= 0) {
                 newUnit.isLanding = false;
+                // TANK LANDING SCREEN SHAKE - big impact!
+                if (unit.type === 'tank') {
+                  newState.screenShake = 1.0; // Heavy screen shake
+                  newState.explosions = [...(newState.explosions || []), {
+                    id: `tank-landing-${Date.now()}`,
+                    x: newUnit.x + newUnit.width / 2,
+                    y: GROUND_Y,
+                    size: 120,
+                    timer: 0.5,
+                  }];
+                  showSpeechBubble("💥 TANK DEPLOYED! 💥", 'excited');
+                }
               }
             }
             
@@ -2244,7 +2256,7 @@ export const useGameState = () => {
               const currentDamage = enemyDamageById.get(enemy.id) || 0;
               enemyDamageById.set(enemy.id, currentDamage + damage);
               
-              // Impact particles - TANK gets explosion FX
+              // Impact particles - TANK gets explosion FX with AOE damage
               const isTankProj = proj.id.includes('tank');
               if (isTankProj) {
                 // Big explosion for tank bullets
@@ -2252,10 +2264,42 @@ export const useGameState = () => {
                   id: `tank-explosion-${Date.now()}-${Math.random()}`,
                   x: proj.x,
                   y: proj.y,
-                  size: 80,
-                  timer: 0.4,
+                  size: 100,
+                  timer: 0.5,
                 }];
-                newState.screenShake = Math.max(newState.screenShake, 0.3);
+                newState.screenShake = Math.max(newState.screenShake, 0.4);
+                
+                // AOE DAMAGE - hit all enemies (ground and drones) within radius
+                const TANK_AOE_RADIUS = 120;
+                const TANK_AOE_DAMAGE = 40; // Half of direct hit damage
+                newState.enemies = newState.enemies.map(aoeEnemy => {
+                  if (aoeEnemy.id === enemy.id || aoeEnemy.isDying) return aoeEnemy; // Skip direct hit target
+                  
+                  const isAoeFlying = aoeEnemy.isFlying || aoeEnemy.type === 'drone' || aoeEnemy.type === 'bomber' || aoeEnemy.type === 'flyer' || aoeEnemy.type === 'jetrobot';
+                  const aoeEnemyY = isAoeFlying ? (aoeEnemy.y || GROUND_Y) : GROUND_Y;
+                  const aoeDx = proj.x - (aoeEnemy.x + aoeEnemy.width / 2);
+                  const aoeDy = proj.y - (aoeEnemyY + aoeEnemy.height / 2);
+                  const aoeDist = Math.sqrt(aoeDx * aoeDx + aoeDy * aoeDy);
+                  
+                  if (aoeDist < TANK_AOE_RADIUS) {
+                    // Apply AOE damage (reduced by armor if active)
+                    let aoeDamage = TANK_AOE_DAMAGE;
+                    if (aoeEnemy.hasArmor && aoeEnemy.armorTimer && aoeEnemy.armorTimer > 0) {
+                      aoeDamage *= 0.2; // 80% reduction with armor
+                    }
+                    
+                    const newHealth = aoeEnemy.health - aoeDamage;
+                    if (newHealth <= 0 && !aoeEnemy.isDying) {
+                      const scoreMap: Record<string, number> = { tank: 300, mech: 180, ninja: 100, robot: 60, drone: 50, flyer: 70, sentinel: 250, giant: 400, bomber: 120, jetrobot: 150 };
+                      newState.score += scoreMap[aoeEnemy.type] || 60;
+                      newState.combo++;
+                      newState.killStreak++;
+                      return { ...aoeEnemy, health: 0, isDying: true, deathTimer: 0.4 };
+                    }
+                    return { ...aoeEnemy, health: newHealth };
+                  }
+                  return aoeEnemy;
+                });
               } else {
                 const impactColor = enemy.type === 'boss' ? '#ff00ff' : (isFlying ? '#00ffff' : '#00ff88');
                 newState.particles = [...newState.particles, ...createParticles(proj.x, proj.y, 4, 'impact', impactColor)];
