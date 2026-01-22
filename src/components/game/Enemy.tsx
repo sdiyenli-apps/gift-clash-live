@@ -507,11 +507,15 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
             </motion.div>
           )}
           
-          {/* Enemy shooting muzzle flash - ROCKET ATTACK for ranged, LASER for sentinel */}
+          {/* Enemy shooting muzzle flash - from TORSO CENTER */}
           {enemy.attackCooldown <= 0.5 && enemy.attackCooldown > 0 && !enemy.isSlashing && (
             <motion.div
-              className="absolute left-0 top-1/2 -translate-y-1/2"
-              style={{ left: enemy.type === 'sentinel' ? -80 : -25 }}
+              className="absolute"
+              style={{ 
+                left: enemy.type === 'sentinel' ? -80 : -25,
+                top: '50%', // Torso center
+                transform: 'translateY(-50%)',
+              }}
               initial={{ scale: 0 }}
               animate={{ opacity: [0.6, 1, 0.6], scale: [0.8, 1.4, 0.8] }}
               transition={{ duration: 0.1, repeat: Infinity }}

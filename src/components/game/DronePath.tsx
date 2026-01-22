@@ -6,12 +6,10 @@ interface DronePathProps {
   cameraX: number;
 }
 
-// Spiral path configuration - stays to the RIGHT of hero
-const HERO_SCREEN_X = 80; // Hero is at ~60px, drones should never go past this
-const SPIRAL_CENTER_X = 350; // Center of spiral (right side of screen)
-const SPIRAL_CENTER_Y = 180; // Vertical center
-const SPIRAL_RADIUS_MIN = 40;
-const SPIRAL_RADIUS_MAX = 120;
+// Movement zone constants - drones zoom away when close to hero
+const HERO_SCREEN_X = 60; // Hero fixed position
+const DANGER_ZONE_X = 140; // Drones retreat when reaching this X
+const ENTRY_ZONE_X = 550; // Drones enter from here
 
 export const DronePaths = ({ enemies, cameraX }: DronePathProps) => {
   // Filter to only flying enemies (drones, bombers)
@@ -21,132 +19,134 @@ export const DronePaths = ({ enemies, cameraX }: DronePathProps) => {
     !e.isSpawning
   );
   
-  // Only render ONE central path (not per-enemy)
-  const hasFlying = flyingEnemies.length > 0;
+  if (flyingEnemies.length === 0) return null;
   
-  if (!hasFlying) return null;
+  // Check if any drone is retreating
+  const retreatingCount = flyingEnemies.filter(e => e.isRetreating).length;
+  const attackingCount = flyingEnemies.length - retreatingCount;
   
-  // Generate SPIRAL path points - fast outward spiral then back inward
-  // Drones never go past the hero (stay right of HERO_SCREEN_X)
-  const pathPoints: { x: number; y: number }[] = [];
-  const numPoints = 80;
-  const time = Date.now() * 0.003; // Faster animation
+  const time = Date.now() * 0.002;
   
-  for (let i = 0; i < numPoints; i++) {
-    const progress = i / numPoints;
-    // Spiral outward first half, inward second half
-    const spiralPhase = progress < 0.5 
-      ? progress * 2 // 0 to 1 for first half
-      : 2 - progress * 2; // 1 to 0 for second half
-    
-    const radius = SPIRAL_RADIUS_MIN + spiralPhase * (SPIRAL_RADIUS_MAX - SPIRAL_RADIUS_MIN);
-    const angle = progress * Math.PI * 6 + time; // Multiple rotations + time animation
-    
-    // Calculate position - ensure X never goes past hero
-    let x = SPIRAL_CENTER_X + Math.cos(angle) * radius;
-    x = Math.max(x, HERO_SCREEN_X + 40); // Never go left of hero + margin
-    
-    const y = SPIRAL_CENTER_Y + Math.sin(angle) * radius * 0.6; // Elliptical vertical
-    
-    pathPoints.push({ x, y });
+  // Generate dynamic path showing drone approach -> retreat pattern
+  const approachPath: { x: number; y: number }[] = [];
+  const retreatPath: { x: number; y: number }[] = [];
+  
+  // Approach path - from right to danger zone
+  for (let i = 0; i < 40; i++) {
+    const progress = i / 40;
+    const x = ENTRY_ZONE_X - progress * (ENTRY_ZONE_X - DANGER_ZONE_X);
+    const y = 180 + Math.sin(progress * Math.PI * 3 + time) * 30;
+    approachPath.push({ x, y });
   }
   
-  // Create SVG path string for spiral
-  const pathD = pathPoints.length > 1
-    ? `M ${pathPoints[0].x} ${400 - pathPoints[0].y} ` + 
-      pathPoints.slice(1).map(p => `L ${p.x} ${400 - p.y}`).join(' ')
-    : '';
+  // Retreat path - fast zoom back to right
+  for (let i = 0; i < 20; i++) {
+    const progress = i / 20;
+    const x = DANGER_ZONE_X + progress * (ENTRY_ZONE_X - DANGER_ZONE_X + 100);
+    const y = 180 + Math.sin(progress * Math.PI + time) * 20;
+    retreatPath.push({ x, y });
+  }
   
-  const pathColor = '#ff00ff';
+  // Create SVG path strings
+  const approachD = approachPath.length > 1
+    ? `M ${approachPath[0].x} ${400 - approachPath[0].y} ` + 
+      approachPath.slice(1).map(p => `L ${p.x} ${400 - p.y}`).join(' ')
+    : '';
+    
+  const retreatD = retreatPath.length > 1
+    ? `M ${retreatPath[0].x} ${400 - retreatPath[0].y} ` + 
+      retreatPath.slice(1).map(p => `L ${p.x} ${400 - p.y}`).join(' ')
+    : '';
   
   return (
     <motion.svg
       className="absolute inset-0 pointer-events-none z-10"
       style={{ width: '100%', height: '100%' }}
       initial={{ opacity: 0 }}
-      animate={{ opacity: 0.35 }}
+      animate={{ opacity: 0.4 }}
     >
-      {/* Spiral drone flight path */}
-      <motion.path
-        d={pathD}
-        fill="none"
-        stroke={pathColor}
+      {/* Danger zone line - drones don't cross */}
+      <motion.line
+        x1={DANGER_ZONE_X}
+        y1={100}
+        x2={DANGER_ZONE_X}
+        y2={300}
+        stroke="#ff4444"
         strokeWidth={2}
-        strokeDasharray="8,4"
-        strokeLinecap="round"
-        style={{
-          filter: `drop-shadow(0 0 6px ${pathColor})`,
-        }}
-        animate={{
-          strokeDashoffset: [0, -48],
-        }}
-        transition={{
-          duration: 0.5,
-          repeat: Infinity,
-          ease: 'linear',
-        }}
-      />
-      
-      {/* Spiral center marker */}
-      <motion.circle
-        cx={SPIRAL_CENTER_X}
-        cy={400 - SPIRAL_CENTER_Y}
-        r={6}
-        fill="none"
-        stroke={pathColor}
-        strokeWidth={2}
-        style={{ filter: `drop-shadow(0 0 8px ${pathColor})` }}
-        animate={{ 
-          r: [6, 10, 6],
-          opacity: [0.5, 1, 0.5],
-        }}
+        strokeDasharray="6,4"
+        style={{ filter: 'drop-shadow(0 0 4px #ff4444)' }}
+        animate={{ opacity: [0.3, 0.6, 0.3] }}
         transition={{ duration: 1, repeat: Infinity }}
       />
       
-      {/* Path label */}
+      {/* Approach flight path - cyan */}
+      <motion.path
+        d={approachD}
+        fill="none"
+        stroke="#00ffff"
+        strokeWidth={2}
+        strokeDasharray="8,4"
+        strokeLinecap="round"
+        style={{ filter: 'drop-shadow(0 0 4px #00ffff)' }}
+        animate={{ strokeDashoffset: [0, -24] }}
+        transition={{ duration: 0.4, repeat: Infinity, ease: 'linear' }}
+      />
+      
+      {/* Retreat flight path - red/orange when retreating */}
+      {retreatingCount > 0 && (
+        <motion.path
+          d={retreatD}
+          fill="none"
+          stroke="#ff6600"
+          strokeWidth={3}
+          strokeDasharray="12,6"
+          strokeLinecap="round"
+          style={{ filter: 'drop-shadow(0 0 6px #ff6600)' }}
+          animate={{ strokeDashoffset: [0, 36] }}
+          transition={{ duration: 0.2, repeat: Infinity, ease: 'linear' }}
+        />
+      )}
+      
+      {/* DANGER ZONE label */}
       <text
-        x={SPIRAL_CENTER_X - 30}
-        y={400 - SPIRAL_CENTER_Y - SPIRAL_RADIUS_MAX - 15}
-        fill={pathColor}
-        fontSize={9}
+        x={DANGER_ZONE_X - 45}
+        y={90}
+        fill="#ff4444"
+        fontSize={8}
         fontWeight="bold"
-        style={{ filter: `drop-shadow(0 0 4px ${pathColor})` }}
+        style={{ filter: 'drop-shadow(0 0 3px #ff4444)' }}
       >
-        ⟳ DRONE ZONE
+        ⚠ DANGER
       </text>
       
-      {/* Pulse markers along spiral at key points */}
-      {[0, 0.25, 0.5, 0.75].map((progress, idx) => {
-        const pointIdx = Math.floor(progress * (pathPoints.length - 1));
-        const point = pathPoints[pointIdx];
-        return (
-          <motion.circle
-            key={`marker-${idx}`}
-            cx={point.x}
-            cy={400 - point.y}
-            r={3}
-            fill={pathColor}
-            style={{ filter: `drop-shadow(0 0 5px ${pathColor})` }}
-            animate={{ 
-              opacity: [0.4, 1, 0.4], 
-              r: [2, 4, 2],
-            }}
-            transition={{ duration: 0.8, repeat: Infinity, delay: idx * 0.2 }}
-          />
-        );
-      })}
+      {/* Status indicators */}
+      <text
+        x={ENTRY_ZONE_X - 60}
+        y={130}
+        fill={retreatingCount > 0 ? '#ff6600' : '#00ffff'}
+        fontSize={9}
+        fontWeight="bold"
+        style={{ filter: `drop-shadow(0 0 3px ${retreatingCount > 0 ? '#ff6600' : '#00ffff'})` }}
+      >
+        {retreatingCount > 0 ? `🚀 ${retreatingCount} RETREATING` : `✈ ${attackingCount} ATTACKING`}
+      </text>
       
-      {/* Hero boundary line - drones don't cross */}
-      <line
-        x1={HERO_SCREEN_X + 30}
-        y1={400 - SPIRAL_CENTER_Y - 80}
-        x2={HERO_SCREEN_X + 30}
-        y2={400 - SPIRAL_CENTER_Y + 80}
-        stroke="#ff4444"
-        strokeWidth={1}
-        strokeDasharray="4,4"
-        opacity={0.3}
-      />
+      {/* Pulse markers at key positions */}
+      {[DANGER_ZONE_X, 250, 400, ENTRY_ZONE_X].map((x, idx) => (
+        <motion.circle
+          key={`marker-${idx}`}
+          cx={x}
+          cy={400 - 180}
+          r={3}
+          fill={idx === 0 ? '#ff4444' : '#00ffff'}
+          style={{ filter: `drop-shadow(0 0 4px ${idx === 0 ? '#ff4444' : '#00ffff'})` }}
+          animate={{ 
+            opacity: [0.4, 1, 0.4], 
+            r: [2, 4, 2],
+          }}
+          transition={{ duration: 0.8, repeat: Infinity, delay: idx * 0.15 }}
+        />
+      ))}
     </motion.svg>
   );
 };

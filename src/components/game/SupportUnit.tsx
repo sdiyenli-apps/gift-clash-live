@@ -143,15 +143,16 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
         </>
       )}
       
-      {/* ATTACK EFFECTS - ENHANCED Muzzle flash and projectile visuals */}
+      {/* ATTACK EFFECTS - Muzzle flash from TORSO CENTER */}
       {isAttacking && !isSelfDestructing && !isLanding && (
         <>
-          {/* Large muzzle flash glow */}
+          {/* Large muzzle flash glow at torso */}
           <motion.div
             className="absolute"
             style={{
               right: isMech ? -30 : -25,
-              top: '35%',
+              top: '50%', // Torso center
+              transform: 'translateY(-50%)',
               width: isMech ? 50 : 40,
               height: isMech ? 50 : 40,
               background: isMech 
@@ -165,12 +166,13 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             transition={{ duration: 0.12 }}
           />
           
-          {/* PROJECTILE muzzle flash - NO BEAM, just bullet effect */}
+          {/* PROJECTILE muzzle flash from torso - NO BEAM, just bullet effect */}
           <motion.div
             className="absolute"
             style={{
               right: isMech ? -20 : -18,
-              top: '38%',
+              top: '50%', // Torso center
+              transform: 'translateY(-50%)',
               width: isMech ? 12 : 10,
               height: isMech ? 12 : 10,
               background: isMech
@@ -186,14 +188,15 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             transition={{ duration: 0.12 }}
           />
           
-          {/* Energy rings from muzzle */}
+          {/* Energy rings from torso */}
           {[0, 1, 2].map(i => (
             <motion.div
               key={`ring-${i}`}
               className="absolute rounded-full"
               style={{
                 right: -10 - i * 20,
-                top: '40%',
+                top: '50%', // Torso center
+                transform: 'translateY(-50%)',
                 width: 16,
                 height: 16,
                 border: `2px solid ${isMech ? '#ffaa00' : '#00ff88'}`,
@@ -205,14 +208,14 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             />
           ))}
           
-          {/* Small sparks for bullet fire - reduced from 6 to 3 */}
+          {/* Small sparks for bullet fire from torso */}
           {[...Array(3)].map((_, i) => (
             <motion.div
               key={`attack-spark-${i}`}
               className="absolute rounded-full"
               style={{
                 right: -15,
-                top: `${35 + i * 10}%`,
+                top: `${45 + i * 5}%`, // Around torso center
                 width: 4,
                 height: 4,
                 background: isMech ? '#ffff00' : '#00ffff',
