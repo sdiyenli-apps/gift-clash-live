@@ -417,23 +417,15 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     const groundLevels = [GROUND_Y_TOP, GROUND_Y_MIDDLE, GROUND_Y_BOTTOM];
     const enemyGroundY = groundLevels[Math.floor(Math.random() * groundLevels.length)];
     
-    // Check if this should be an ELITE enemy (8 per wave - 3 ally, 3 ult, 2 tank for more powerups!)
+    // Check if this should be an ELITE enemy (8 per wave - drops in ORDER: Ally, ULT, Tank, Ally, ULT, Tank, Ally, ULT)
     const currentEliteCount = enemies.filter(e => e.isElite).length;
     const shouldBeElite = currentEliteCount < 8 && Math.random() < 0.12; // ~12% chance, capped at 8
     let eliteDropType: 'ally' | 'ult' | 'tank' | undefined = undefined;
     
     if (shouldBeElite) {
-      // Distribute drops: 3 ally, 3 ult, 2 tank
-      const allyElites = enemies.filter(e => e.isElite && e.eliteDropType === 'ally').length;
-      const ultElites = enemies.filter(e => e.isElite && e.eliteDropType === 'ult').length;
-      const tankElites = enemies.filter(e => e.isElite && e.eliteDropType === 'tank').length;
-      if (allyElites < 3) {
-        eliteDropType = 'ally';
-      } else if (ultElites < 3) {
-        eliteDropType = 'ult';
-      } else if (tankElites < 2) {
-        eliteDropType = 'tank';
-      }
+      // Drops in FIXED ORDER: Ally, ULT, Tank, Ally, ULT, Tank, Ally, ULT
+      const dropSequence: ('ally' | 'ult' | 'tank')[] = ['ally', 'ult', 'tank', 'ally', 'ult', 'tank', 'ally', 'ult'];
+      eliteDropType = dropSequence[currentEliteCount] || 'ally';
     }
     
     enemies.push({
@@ -618,25 +610,25 @@ export const useGameState = () => {
   const helpRequestTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Max particles limit for performance - AGGRESSIVE reduction for lag fix
-  const MAX_PARTICLES = 15;
-  const MAX_SUPPORT_PROJECTILES = 6;
+  const MAX_PARTICLES = 10;
+  const MAX_SUPPORT_PROJECTILES = 4;
 
   const createParticles = useCallback((x: number, y: number, count: number, type: Particle['type'], color?: string): Particle[] => {
     const particles: Particle[] = [];
     const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
     
-    // PERFORMANCE: Minimal particles - max 2 per call
-    const maxParticles = Math.min(count, 2);
+    // PERFORMANCE: Only 1 particle per call to minimize lag
+    const maxParticles = Math.min(count, 1);
     for (let i = 0; i < maxParticles; i++) {
       particles.push({
         id: `p-${Date.now()}-${i}`,
         x,
         y,
-        velocityX: (Math.random() - 0.5) * 200,
-        velocityY: (Math.random() - 0.8) * 200,
+        velocityX: (Math.random() - 0.5) * 150,
+        velocityY: (Math.random() - 0.8) * 150,
         color: color || colors[Math.floor(Math.random() * colors.length)],
-        size: 3 + Math.random() * 4,
-        life: 0.1 + Math.random() * 0.15, // Very short lifespan
+        size: 3 + Math.random() * 3,
+        life: 0.08 + Math.random() * 0.1, // Very short lifespan (80-180ms)
         type,
       });
     }
@@ -955,9 +947,7 @@ export const useGameState = () => {
                 newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                 
                 // Bullet muzzle flash at body center
-                newState.particles = [...newState.particles, 
-                  ...createParticles(startX, startY, 3, 'spark', unit.type === 'mech' ? '#ffaa00' : '#00ffaa'),
-                ];
+                // PERFORMANCE: No muzzle particles for ally attacks - reduces lag
               }
             }
           });
@@ -1797,11 +1787,20 @@ export const useGameState = () => {
             newState.evasionPopup = null;
           }
         }
-        // PARTICLE RESET TIMER - Reset all particles every 3 seconds
+        // PARTICLE RESET TIMER - Reset all particles every 2 seconds (faster cleanup)
         newState.particleResetTimer = prev.particleResetTimer - delta;
         if (newState.particleResetTimer <= 0) {
           newState.particles = [];
-          newState.particleResetTimer = PARTICLE_LIFETIME;
+          newState.supportProjectiles = []; // Also clear ally projectiles for performance
+          newState.particleResetTimer = 2; // Reset every 2 seconds
+        }
+        
+        // PERFORMANCE: Limit total particles and projectiles
+        if (newState.particles.length > MAX_PARTICLES) {
+          newState.particles = newState.particles.slice(-MAX_PARTICLES);
+        }
+        if ((newState.supportProjectiles || []).length > MAX_SUPPORT_PROJECTILES) {
+          newState.supportProjectiles = (newState.supportProjectiles || []).slice(-MAX_SUPPORT_PROJECTILES);
         }
         
         // POWERUP COLLECTION - Hero collects powerups when near them
@@ -2024,9 +2023,10 @@ export const useGameState = () => {
             const shouldSelfDestruct = (newUnit.health <= 0 || newUnit.timer <= 0.5) && !unit.isSelfDestructing && !unit.isLanding;
             
             if (shouldSelfDestruct) {
-              // RESET PARTICLES when ally starts self-destructing (clean up visual clutter)
+              // RESET ALL PARTICLES AND PROJECTILES when ally starts self-destructing (clean up visual clutter)
               newState.particles = [];
               newState.supportProjectiles = [];
+              newState.neonLasers = []; // Also clear neon lasers
               
               // Find nearest enemy to fly toward (including flying drones)
               const nearestEnemy = newState.enemies

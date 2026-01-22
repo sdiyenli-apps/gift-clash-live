@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { Particle } from '@/types/game';
 
 interface ParticlesProps {
@@ -7,88 +6,72 @@ interface ParticlesProps {
 }
 
 export const Particles = ({ particles, cameraX }: ParticlesProps) => {
+  // PERFORMANCE: Limit rendered particles
+  const visibleParticles = particles.slice(-10);
+  
   return (
     <>
-      {particles.map((particle) => {
+      {visibleParticles.map((particle) => {
         const screenX = particle.x - cameraX;
         
-        if (screenX < -50 || screenX > 1000) return null;
+        // Skip off-screen particles
+        if (screenX < -50 || screenX > 800) return null;
         
-        const getParticleStyle = () => {
+        const getParticleStyle = (): React.CSSProperties => {
+          const baseStyle: React.CSSProperties = {
+            position: 'absolute',
+            left: screenX,
+            bottom: 280 - particle.y,
+            width: particle.size,
+            height: particle.size,
+            opacity: particle.life,
+            pointerEvents: 'none',
+          };
+          
           switch (particle.type) {
             case 'ultra':
+            case 'magic':
               return {
+                ...baseStyle,
                 background: `radial-gradient(circle, ${particle.color}, transparent)`,
-                boxShadow: `0 0 ${particle.size * 2}px ${particle.color}`,
                 borderRadius: '50%',
               };
             case 'explosion':
             case 'death':
               return {
+                ...baseStyle,
                 background: particle.color,
-                boxShadow: `0 0 ${particle.size}px ${particle.color}`,
-                borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-              };
-            case 'muzzle':
-              return {
-                background: `radial-gradient(circle, white, ${particle.color})`,
-                boxShadow: `0 0 ${particle.size}px ${particle.color}`,
                 borderRadius: '50%',
               };
+            case 'muzzle':
             case 'impact':
-              // Hero impact FX - bright, energetic
+            case 'spark':
               return {
-                background: `radial-gradient(circle, #fff, ${particle.color})`,
-                boxShadow: `0 0 ${particle.size * 1.5}px ${particle.color}, 0 0 ${particle.size * 3}px ${particle.color}`,
+                ...baseStyle,
+                background: particle.color,
                 borderRadius: '50%',
               };
             case 'laser':
-              // Laser particle FX - hot pink/red glow
               return {
-                background: `linear-gradient(90deg, transparent, ${particle.color}, #fff, ${particle.color}, transparent)`,
-                boxShadow: `0 0 ${particle.size * 2}px ${particle.color}`,
-                borderRadius: '2px',
-                width: particle.size * 3,
-                height: particle.size,
-              };
-            case 'magic':
-              return {
-                background: `radial-gradient(circle, #fff, ${particle.color}, transparent)`,
-                boxShadow: `0 0 ${particle.size * 2}px ${particle.color}, 0 0 ${particle.size * 4}px ${particle.color}`,
-                borderRadius: '50%',
-              };
-            case 'spark':
-              return {
+                ...baseStyle,
                 background: particle.color,
-                boxShadow: `0 0 ${particle.size}px ${particle.color}, 0 0 ${particle.size * 2}px ${particle.color}`,
-                borderRadius: '50%',
+                borderRadius: '2px',
+                width: particle.size * 2,
+                height: particle.size,
               };
             default:
               return {
+                ...baseStyle,
                 background: particle.color,
-                boxShadow: `0 0 ${particle.size / 2}px ${particle.color}`,
                 borderRadius: '2px',
               };
           }
         };
         
         return (
-          <motion.div
+          <div
             key={particle.id}
-            className="absolute pointer-events-none"
-            style={{
-              left: screenX,
-              bottom: 280 - particle.y,
-              width: particle.size,
-              height: particle.size,
-              opacity: particle.life,
-              ...getParticleStyle(),
-            }}
-            animate={particle.type === 'impact' ? {
-              scale: [1, 1.5, 0.5],
-              opacity: [particle.life, particle.life * 0.5, 0],
-            } : undefined}
-            transition={{ duration: 0.2 }}
+            style={getParticleStyle()}
           />
         );
       })}
