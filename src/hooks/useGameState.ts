@@ -1630,32 +1630,35 @@ export const useGameState = () => {
           }))
           .filter(g => g.timer > 0);
         
-        // Check for EMP grenade explosions - ONLY DAMAGES DRONES!
+        // Check for EMP grenade explosions - KILLS ALL FLYING ENEMIES (drones, bombers, flyers, jetrobots)!
         prev.empGrenades.forEach(grenade => {
           if (grenade.timer <= delta) {
-            // EXPLODE AT CENTER! Kill only DRONES (flying enemies only) within explosion radius
-            const EMP_EXPLOSION_RADIUS = 250; // Large explosion at center
+            // EXPLODE AT CENTER! Kill ALL flying enemies within explosion radius
+            const EMP_EXPLOSION_RADIUS = 350; // Large explosion radius
             
-            const dronesKilled = newState.enemies.filter(e => 
-              (e.type === 'drone' || e.type === 'bomber' || e.type === 'flyer') && 
-              !e.isDying && !e.isSpawning &&
-              Math.abs(e.x - grenade.x) < EMP_EXPLOSION_RADIUS &&
-              (e.isFlying || e.flyHeight)
-            );
+            // Find ALL flying/drone type enemies - EMP kills them all
+            const flyingEnemiesKilled = newState.enemies.filter(e => {
+              const isFlying = e.isFlying || e.type === 'drone' || e.type === 'bomber' || e.type === 'flyer' || e.type === 'jetrobot';
+              const inRange = Math.abs(e.x - grenade.x) < EMP_EXPLOSION_RADIUS;
+              return isFlying && !e.isDying && !e.isSpawning && inRange && e.type !== 'boss';
+            });
             
-            dronesKilled.forEach(enemy => {
+            flyingEnemiesKilled.forEach(enemy => {
               const enemyIdx = newState.enemies.findIndex(e => e.id === enemy.id);
               if (enemyIdx !== -1) {
                 newState.enemies[enemyIdx] = {
                   ...newState.enemies[enemyIdx],
                   isDying: true,
                   deathTimer: 0.5,
+                  health: 0,
                 };
-                const scoreMap: Record<string, number> = { drone: 75, bomber: 120, flyer: 80 };
+                const scoreMap: Record<string, number> = { drone: 75, bomber: 120, flyer: 80, jetrobot: 150 };
                 newState.score += scoreMap[enemy.type] || 75;
+                newState.combo++;
+                newState.killStreak++;
                 newState.particles = [...newState.particles, ...createParticles(
                   enemy.x + enemy.width/2, enemy.y + enemy.height/2, 
-                  30, 'spark', '#00ffff'
+                  35, 'spark', '#00ffff'
                 )];
               }
             });
@@ -1663,17 +1666,17 @@ export const useGameState = () => {
             // Big EMP explosion effect at grenade position - MASSIVE visual at CENTER
             newState.particles = [
               ...newState.particles,
-              ...createParticles(grenade.x, grenade.y, 50, 'spark', '#00ffff'),
-              ...createParticles(grenade.x, grenade.y, 40, 'explosion', '#ffff00'),
-              ...createParticles(grenade.x, grenade.y, 25, 'magic', '#00ff88'),
+              ...createParticles(grenade.x, grenade.y, 60, 'spark', '#00ffff'),
+              ...createParticles(grenade.x, grenade.y, 50, 'explosion', '#ffff00'),
+              ...createParticles(grenade.x, grenade.y, 35, 'magic', '#00ff88'),
             ];
-            newState.screenShake = 1.0;
-            newState.magicFlash = 0.8;
+            newState.screenShake = 1.2;
+            newState.magicFlash = 1.0;
             
-            if (dronesKilled.length > 0) {
-              showSpeechBubble(`⚡ CENTER BLAST! ${dronesKilled.length} DRONES DOWN! ⚡`, 'excited');
+            if (flyingEnemiesKilled.length > 0) {
+              showSpeechBubble(`⚡ EMP BLAST! ${flyingEnemiesKilled.length} FLYING ENEMIES DOWN! ⚡`, 'excited');
             } else {
-              showSpeechBubble("⚡ EMP AT CENTER! DRONES BEWARE! ⚡", 'funny');
+              showSpeechBubble("⚡ EMP DEPLOYED! ALL DRONES BEWARE! ⚡", 'funny');
             }
           }
         });
@@ -2008,10 +2011,23 @@ export const useGameState = () => {
               }
             }
             
+            // Handle tank armor timer countdown
+            if (unit.type === 'tank' && unit.hasArmor && unit.armorTimer !== undefined && unit.armorTimer > 0) {
+              newUnit.armorTimer = unit.armorTimer - delta;
+              if (newUnit.armorTimer <= 0) {
+                newUnit.hasArmor = false;
+                newUnit.armorTimer = 0;
+              }
+            }
+            
             // Check if unit should start self-destruct (health critical or timer almost up)
             const shouldSelfDestruct = (newUnit.health <= 0 || newUnit.timer <= 0.5) && !unit.isSelfDestructing && !unit.isLanding;
             
             if (shouldSelfDestruct) {
+              // RESET PARTICLES when ally starts self-destructing (clean up visual clutter)
+              newState.particles = [];
+              newState.supportProjectiles = [];
+              
               // Find nearest enemy to fly toward (including flying drones)
               const nearestEnemy = newState.enemies
                 .filter(e => !e.isDying && !e.isSpawning && e.x > unit.x)
@@ -2072,13 +2088,14 @@ export const useGameState = () => {
                   return { ...enemy, targetType: undefined };
                 });
                 
-                // Big explosion particles at current position
+                // RESET all particles on ally death for clean state
                 newState.particles = [
-                  ...newState.particles,
-                  ...createParticles(newUnit.x, newUnit.y + 30, 30, 'explosion', '#ff8800'),
-                  ...createParticles(newUnit.x, newUnit.y + 30, 20, 'spark', '#ffff00'),
+                  ...createParticles(newUnit.x, newUnit.y + 30, 40, 'explosion', '#ff8800'),
+                  ...createParticles(newUnit.x, newUnit.y + 30, 30, 'spark', '#ffff00'),
+                  ...createParticles(newUnit.x, newUnit.y + 30, 20, 'magic', '#ff4400'),
                 ];
-                newState.screenShake = 0.6;
+                newState.supportProjectiles = []; // Clear ally projectiles
+                newState.screenShake = 0.8;
                 showSpeechBubble(`💥 ALLY SACRIFICED! 💥`, 'excited');
                 
                 // Remove the unit
@@ -2110,7 +2127,8 @@ export const useGameState = () => {
               const nearestEnemy = enemiesInRange[0];
               
               if (nearestEnemy) {
-                newUnit.attackCooldown = unit.type === 'mech' ? 0.6 : 0.4;
+                // Tank has slower but more powerful attacks, mech is medium, walker is fast
+                newUnit.attackCooldown = unit.type === 'tank' ? 0.5 : unit.type === 'mech' ? 0.6 : 0.4;
                 
                 // Get enemy position - ground enemies are AT ground level, flying enemies have Y offset
                 const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
@@ -2134,9 +2152,13 @@ export const useGameState = () => {
                 
                 // Prevent division by zero
                 if (dist > 0) {
-                  const projSpeed = 1000;
+                  // Tank has slower but stronger laser attacks
+                  const projSpeed = unit.type === 'tank' ? 1200 : 1000;
                   const velocityX = (dx / dist) * projSpeed;
                   const velocityY = (dy / dist) * projSpeed;
+                  
+                  // Tank does 40 damage (laser), mech 25, walker 15
+                  const projDamage = unit.type === 'tank' ? 40 : unit.type === 'mech' ? 25 : 15;
                   
                   const proj: Projectile = {
                     id: `ally-${unit.type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -2144,17 +2166,17 @@ export const useGameState = () => {
                     y: startY,
                     velocityX: velocityX,
                     velocityY: velocityY,
-                    damage: 15,
-                    type: unit.type === 'mech' ? 'ultra' : 'mega',
+                    damage: projDamage,
+                    type: unit.type === 'tank' ? 'ultra' : unit.type === 'mech' ? 'ultra' : 'mega',
                     isAllyProjectile: true,
                   };
                   newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                   
-                  // Muzzle flash
-                  const muzzleColor = unit.type === 'mech' ? '#ff6600' : '#00ff88';
+                  // Muzzle flash - tank is pink, mech is orange, walker is green
+                  const muzzleColor = unit.type === 'tank' ? '#ff0066' : unit.type === 'mech' ? '#ff6600' : '#00ff88';
                   newState.particles = [
                     ...newState.particles,
-                    ...createParticles(startX, startY, 2, 'muzzle', muzzleColor),
+                    ...createParticles(startX, startY, unit.type === 'tank' ? 5 : 2, 'muzzle', muzzleColor),
                   ];
                 }
               }
