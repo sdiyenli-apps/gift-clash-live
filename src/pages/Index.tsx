@@ -6,14 +6,17 @@ import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { Arena } from '@/components/game/Arena';
 import { HealthBar } from '@/components/game/HealthBar';
 import { GiftPanel } from '@/components/game/GiftPanel';
+import { SkillQueue } from '@/components/game/SkillQueue';
 // Gift notifications are now flying boxes in the Arena
 import { GameOverlay } from '@/components/game/GameOverlay';
 import { WaveTransition } from '@/components/game/WaveTransition';
+import { GiftEvent } from '@/types/game';
 import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
 
 const Index = () => {
   const [autoSimulate, setAutoSimulate] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
+  const [recentGifts, setRecentGifts] = useState<GiftEvent[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { gameState, giftEvents, notifications, startGame, startNextWave, handleGift } = useGameState();
   const { playSound } = useSoundEffects();
@@ -126,7 +129,15 @@ const Index = () => {
   const handleTriggerGift = useCallback((giftId: string) => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');
-    triggerGift(giftId, `Viewer_${Math.floor(Math.random() * 9999)}`);
+    const result = triggerGift(giftId, `Viewer_${Math.floor(Math.random() * 9999)}`);
+    
+    // Add to recent gifts queue (max 10)
+    if (result) {
+      setRecentGifts(prev => {
+        const newGifts = [...prev, result].slice(-10);
+        return newGifts;
+      });
+    }
   }, [gameState.phase, triggerGift, playSound]);
 
   return (
@@ -266,6 +277,12 @@ const Index = () => {
               paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
             }}
           >
+            {/* Skill Queue Display - Shows recent gifts (max 10) */}
+            <div className="flex items-center gap-2 px-1">
+              <span className="text-[8px] font-bold text-cyan-400 opacity-70">SKILLS:</span>
+              <SkillQueue recentGifts={recentGifts} maxItems={10} />
+            </div>
+            
             {/* Compact Health bar - Full width TikTok style */}
             <div 
               className="px-2 py-1.5 rounded-xl mx-auto w-full max-w-sm"

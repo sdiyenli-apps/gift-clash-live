@@ -14,6 +14,8 @@ import { CyberpunkBuildings } from './CyberpunkBuildings';
 import { FloorAssets } from './FloorAssets';
 import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
+import { DronePaths } from './DronePath';
+import { Level } from './Level';
 
 interface NeonLaser {
   id: string;
@@ -453,6 +455,18 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
             </motion.div>
           );
         })}
+        
+        {/* Zone-based Level Background and Ground */}
+        <Level 
+          obstacles={obstacles}
+          cameraX={cameraX}
+          distance={distance}
+          levelLength={levelLength}
+          isUltraMode={isUltraMode}
+        />
+        
+        {/* Drone Flight Paths - visible sine wave trails */}
+        <DronePaths enemies={enemies} cameraX={cameraX} />
         
         {/* === UNIFIED GAME LAYER (z-25) - All entities on same level for proper interaction === */}
         <div className="absolute inset-0 z-25">

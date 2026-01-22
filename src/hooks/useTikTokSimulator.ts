@@ -50,19 +50,20 @@ export const useTikTokSimulator = (
     onGift(event);
   }, [getRandomGift, onGift]);
 
-  const triggerGift = useCallback((giftId: string, username: string = 'TestUser') => {
+  const triggerGift = useCallback((giftId: string, username: string = 'TestUser'): GiftEvent | null => {
     const gift = TIKTOK_GIFTS[giftId];
-    if (!gift) return;
+    if (!gift) return null;
     
     const event: GiftEvent = {
       id: `gift-${Date.now()}-${Math.random()}`,
       gift,
       username,
       timestamp: Date.now(),
-      action: 'heal',
+      action: gift.action,
     };
     
     onGift(event);
+    return event;
   }, [onGift]);
 
   useEffect(() => {

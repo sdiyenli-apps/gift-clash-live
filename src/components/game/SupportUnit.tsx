@@ -18,9 +18,9 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   const healthPercent = (unit.health / unit.maxHealth) * 100;
   const shieldPercent = unit.maxShield > 0 ? (unit.shield / unit.maxShield) * 100 : 0;
   
-  // Allies scaled SMALLER for wider FOV - Metal Slug style proportions
+  // Allies sized LARGER for visibility - Metal Slug style proportions
   const isMech = unit.type === 'mech';
-  const baseScale = 0.65; // All allies scaled down 35% for wider FOV
+  const baseScale = 0.80; // Allies scaled up for visibility
   const displayWidth = unit.width * baseScale;
   const displayHeight = unit.height * baseScale;
   
@@ -36,10 +36,10 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : 0.4);
   
   // Calculate bottom position - account for self-destruct flying up and larger units
-  // Adjusted for TikTok view - allies positioned slightly left
-  const baseBottom = isMech ? 135 : 150; // Higher for TikTok ground level
+  // Adjusted for TikTok view - allies positioned left near hero
+  const baseBottom = isMech ? 130 : 145; // Ground level aligned with hero
   const selfDestructYOffset = isSelfDestructing ? (unit.y - 160) : 0; // unit.y tracks actual Y during self-destruct
-  const leftOffset = -15; // Move allies slightly left for TikTok view
+  const leftOffset = -40; // Move allies further left to be near hero
   
   return (
     <motion.div
