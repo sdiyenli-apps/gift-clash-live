@@ -102,15 +102,19 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const displayWidth = enemy.width * scaleFactor;
   const displayHeight = enemy.height * scaleFactor;
   
-  // Flying enemies (drones) hover higher - GROUND UNITS stay on ground!
+  // Flying enemies (drones) hover higher - GROUND UNITS stay in movement zone!
   const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer';
-  const isGroundUnit = !isFlying && enemy.type !== 'boss'; // Ground units: robot, mech, tank, ninja, sentinel, giant
+  const isGroundUnit = !isFlying && enemy.type !== 'boss';
   const flyOffset = isFlying ? (enemy.flyHeight || 50) : 0;
   
-  // Ground units should be ON the ground (bottom: 118 to match floor)
-  // Flying units hover above
-  const groundY = 118; // Floor level
-  const baseBottom = isGroundUnit ? groundY : (160 + flyOffset);
+  // MOVEMENT ZONE: Ground units positioned between Y 80-150 (bottom of screen)
+  // Ground Y comes from enemy.groundY which is set during spawn (80, 115, or 150)
+  // Flying units hover above the movement zone
+  const groundFloor = 78; // Bottom of movement zone aligned with floor
+  const enemyGroundY = enemy.groundY || 115; // Default to middle of movement zone
+  const baseBottom = isFlying 
+    ? 150 + flyOffset  // Flying units above movement zone
+    : groundFloor + (enemyGroundY - 80); // Ground units within movement zone (80-150 range becomes 78-148 bottom)
   
   // Portal spawn animation OR drop-from-top animation for jet robots
   const isSpawning = enemy.isSpawning && (enemy.spawnTimer ?? 0) > 0;
@@ -119,8 +123,8 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   const dropProgress = isDropping ? 1 - ((enemy.dropTimer ?? 0) / 1.0) : 1;
   
   // Calculate drop position - starts from top of screen
-  const dropStartY = 400; // Start way above screen
-  const dropEndY = 160 + flyOffset; // End at normal position
+  const dropStartY = 400;
+  const dropEndY = 150 + flyOffset;
   const currentDropY = isDropping ? dropStartY - (dropStartY - dropEndY) * dropProgress : baseBottom;
   
   return (

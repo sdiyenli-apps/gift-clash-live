@@ -7,31 +7,40 @@ import {
 } from '@/types/game';
 
 const GRAVITY = 0;
-const GROUND_Y = 160; // TikTok optimized ground level
-const PLAYER_WIDTH = 32; // Slightly larger hitbox
-const PLAYER_HEIGHT = 48; // Taller for run-and-gun style
-const BASE_LEVEL_LENGTH = 12000; // Longer levels
+const GROUND_Y = 100; // Bottom of movement zone (ground floor)
+const PLAYER_WIDTH = 32;
+const PLAYER_HEIGHT = 48;
+const BASE_LEVEL_LENGTH = 12000;
 const MAX_WAVES = 1000;
 const HELP_REQUEST_DELAY = 8000;
-const KILL_RADIUS = 70; // Bigger kill radius
-const ENEMY_MIN_DISTANCE = 100; // More space between enemies
-const ENEMY_COLLISION_DISTANCE = 60; // Enemies stop here - no overlap with hero
-const SLASH_ATTACK_RANGE = 80; // Closer melee range for better gameplay
-const ROCKET_ATTACK_RANGE = 350; // Ranged attack distance
-const BOSS_FIREBALL_INTERVAL = 4; // Faster boss attacks
+const KILL_RADIUS = 70;
+const ENEMY_MIN_DISTANCE = 100;
+const ENEMY_COLLISION_DISTANCE = 60;
+const SLASH_ATTACK_RANGE = 80;
+const ROCKET_ATTACK_RANGE = 350;
+const BOSS_FIREBALL_INTERVAL = 4;
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
-const BOSS_KEEP_DISTANCE = 400; // Boss combat distance
-const HERO_FIXED_SCREEN_X = 70; // Hero on LEFT side of screen for wider battlefield view (moved left)
-const ENEMY_ATTACK_DELAY = 2; // Enemies wait 2 seconds before attacking
-const PARTICLE_LIFETIME = 3; // Particles reset after 3 seconds
-const EVASION_CHANCE = 1 / 15; // 1 in 15 attacks are evaded
-const ARMOR_ACTIVATION_THRESHOLD = 0.2; // Enemies can activate armor at 20% HP
-const ARMOR_DURATION = 3; // 3 seconds of enemy armor
+const BOSS_KEEP_DISTANCE = 400;
+const HERO_FIXED_SCREEN_X = 60; // Hero on LEFT side of screen
+const ENEMY_ATTACK_DELAY = 2;
+const PARTICLE_LIFETIME = 3;
+const EVASION_CHANCE = 1 / 15;
+const ARMOR_ACTIVATION_THRESHOLD = 0.2;
+const ARMOR_DURATION = 3;
 
-// Ground Y positions for spread positioning
-const GROUND_Y_TOP = GROUND_Y + 40; // Above hero position
-const GROUND_Y_MIDDLE = GROUND_Y; // Hero's ground level
-const GROUND_Y_BOTTOM = GROUND_Y - 30; // Below hero position
+// MOVEMENT ZONE - Green rectangle area where ground units can move
+// Zone spans from left edge to right edge, bottom ~20% of screen
+const MOVEMENT_ZONE = {
+  minX: 0,           // Left boundary of arena
+  maxX: 580,         // Right boundary of arena (screen width)
+  minY: 80,          // Bottom of zone (ground floor)
+  maxY: 150,         // Top of zone (max height for ground units)
+};
+
+// Ground Y positions spread within the movement zone
+const GROUND_Y_TOP = MOVEMENT_ZONE.maxY;      // Top of movement zone
+const GROUND_Y_MIDDLE = (MOVEMENT_ZONE.minY + MOVEMENT_ZONE.maxY) / 2; // Middle
+const GROUND_Y_BOTTOM = MOVEMENT_ZONE.minY;   // Bottom of movement zone (hero position)
 
 // Boss attack types
 type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield';
