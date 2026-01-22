@@ -536,74 +536,11 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           {supportProjectiles.map(proj => {
             const screenX = proj.x - cameraX;
             const isMech = proj.type === 'ultra';
-            const isBeam = proj.id.includes('beam'); // Laser beams for flying enemies
             
             if (screenX < -20 || screenX > 800) return null;
 
-            // LASER BEAM - continuous line effect for flying targets
-            if (isBeam) {
-              const beamLength = Math.sqrt(proj.velocityX * proj.velocityX + proj.velocityY * proj.velocityY) * 0.15;
-              const angle = Math.atan2(proj.velocityY, proj.velocityX) * (180 / Math.PI);
-              
-              return (
-                <motion.div
-                  key={proj.id}
-                  className="absolute"
-                  style={{
-                    left: screenX,
-                    bottom: 280 - proj.y,
-                    transformOrigin: 'left center',
-                    transform: `rotate(${-angle}deg)`,
-                  }}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: [0.7, 1, 0.7] }}
-                  transition={{ duration: 0.05, repeat: Infinity }}
-                >
-                  {/* Main laser beam */}
-                  <div
-                    style={{
-                      width: beamLength,
-                      height: 4,
-                      background: isMech
-                        ? 'linear-gradient(90deg, #ff6600, #ffaa00, #ffff00, #fff)'
-                        : 'linear-gradient(90deg, #00aa66, #00ff88, #00ffcc, #fff)',
-                      boxShadow: isMech
-                        ? '0 0 12px #ff6600, 0 0 24px #ff4400'
-                        : '0 0 12px #00ff88, 0 0 24px #00ffaa',
-                      borderRadius: 2,
-                    }}
-                  />
-                  {/* Beam glow */}
-                  <motion.div
-                    className="absolute top-1/2 -translate-y-1/2 left-0"
-                    style={{
-                      width: beamLength,
-                      height: 12,
-                      background: isMech
-                        ? 'linear-gradient(90deg, rgba(255,102,0,0.4), rgba(255,170,0,0.2), transparent)'
-                        : 'linear-gradient(90deg, rgba(0,255,136,0.4), rgba(0,255,170,0.2), transparent)',
-                      filter: 'blur(4px)',
-                      borderRadius: 6,
-                    }}
-                    animate={{ scaleY: [0.8, 1.2, 0.8] }}
-                    transition={{ duration: 0.1, repeat: Infinity }}
-                  />
-                  {/* Impact sparks at tip */}
-                  <motion.div
-                    className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full"
-                    style={{
-                      background: isMech
-                        ? 'radial-gradient(circle, #fff, #ffff00, transparent)'
-                        : 'radial-gradient(circle, #fff, #00ffff, transparent)',
-                    }}
-                    animate={{ scale: [0.8, 1.5, 0.8], opacity: [1, 0.6, 1] }}
-                    transition={{ duration: 0.08, repeat: Infinity }}
-                  />
-                </motion.div>
-              );
-            }
-
-            // PROJECTILE - standard for ground targets
+            // ALL ally attacks are BULLETS (no laser beams)
+            // PROJECTILE - for ground targets
             const width = isMech ? 14 : 12;
             const height = isMech ? 7 : 6;
             

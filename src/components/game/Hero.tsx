@@ -234,20 +234,20 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           )}
         </motion.div>
         
-        {/* Shooting muzzle flash - FROM GUN POSITION */}
-        {player.isShooting && (
-          <>
-            {/* Muzzle flash at gun */}
-            <motion.div
-              initial={{ opacity: 1, scale: 0.5 }}
-              animate={{ opacity: 0, scale: 2 }}
-              transition={{ duration: 0.1 }}
-              className="absolute"
-              style={{ 
-                right: -15, 
-                top: '35%',
-              }}
-            >
+      {/* Shooting muzzle flash - FROM ARMOR/CHEST POSITION */}
+      {player.isShooting && (
+        <>
+          {/* Muzzle flash at armor */}
+          <motion.div
+            initial={{ opacity: 1, scale: 0.5 }}
+            animate={{ opacity: 0, scale: 2 }}
+            transition={{ duration: 0.1 }}
+            className="absolute"
+            style={{ 
+              right: -20, 
+              top: '45%', // Center of armor/chest
+            }}
+          >
               <div 
                 className="w-10 h-10 rounded-full"
                 style={{
