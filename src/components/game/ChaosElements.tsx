@@ -18,14 +18,9 @@ interface ChaosElementsProps {
   cameraX: number;
 }
 
-export const ChaosElements = ({ flyingRobots, neonLights, explosions, cameraX }: ChaosElementsProps) => {
+export const ChaosElements = ({ neonLights, explosions, cameraX }: ChaosElementsProps) => {
   return (
     <>
-      {/* Flying Robots in the sky */}
-      {flyingRobots.slice(0, 3).map(robot => (
-        <FlyingRobotSprite key={robot.id} robot={robot} cameraX={cameraX} />
-      ))}
-      
       {/* Neon Lights - reduced for performance */}
       {neonLights.slice(0, 2).map(light => (
         <div

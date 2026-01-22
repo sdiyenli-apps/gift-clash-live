@@ -24,18 +24,18 @@ const LEVEL_BACKGROUNDS = [
   level6Bg, level7Bg, level8Bg, level9Bg, level10Bg,
 ];
 
-// Zone colors for tint overlay
+// Zone colors and weather for tint overlay
 const ZONE_COLORS = [
-  { name: 'NEON STREETS', color: '#00ffff' },
-  { name: 'ROBOT FACTORY', color: '#ff6600' },
-  { name: 'DATA CORE', color: '#ff00ff' },
-  { name: 'ROOFTOPS', color: '#ff0088' },
-  { name: 'BUNKER', color: '#ff0000' },
-  { name: 'HIGHWAY', color: '#00ff00' },
-  { name: 'MEGA MALL', color: '#ffaa00' },
-  { name: 'POWER PLANT', color: '#00ffaa' },
-  { name: 'SPACEPORT', color: '#ff00aa' },
-  { name: 'BOSS LAIR', color: '#ff0000' },
+  { name: 'NEON STREETS', color: '#00ffff', weather: 'rain' as const },
+  { name: 'ROBOT FACTORY', color: '#ff6600', weather: 'fog' as const },
+  { name: 'DATA CORE', color: '#ff00ff', weather: 'none' as const },
+  { name: 'ROOFTOPS', color: '#ff0088', weather: 'rain' as const },
+  { name: 'BUNKER', color: '#ff0000', weather: 'fog' as const },
+  { name: 'HIGHWAY', color: '#00ff00', weather: 'rain' as const },
+  { name: 'MEGA MALL', color: '#ffaa00', weather: 'none' as const },
+  { name: 'POWER PLANT', color: '#00ffaa', weather: 'fog' as const },
+  { name: 'SPACEPORT', color: '#ff00aa', weather: 'rain' as const },
+  { name: 'BOSS LAIR', color: '#ff0000', weather: 'fog' as const },
 ];
 
 // Parallax layer speeds (lower = slower = further away)
@@ -70,6 +70,35 @@ const EXPLOSION_SPOTS = [
   { x: 700, y: 180 },
   { x: 1200, y: 210 },
   { x: 1600, y: 190 },
+];
+
+// Rain drops configuration
+const RAIN_DROPS = Array.from({ length: 40 }, (_, i) => ({
+  id: i,
+  x: (i * 37) % 800,
+  delay: Math.random() * 2,
+  speed: 0.8 + Math.random() * 0.4,
+  length: 15 + Math.random() * 20,
+}));
+
+// War scene silhouettes - soldiers, tanks, helicopters, explosions
+const WAR_SILHOUETTES = [
+  // Soldiers in action poses
+  { x: 100, y: 220, type: 'soldier-crouching' as const },
+  { x: 350, y: 215, type: 'soldier-aiming' as const },
+  { x: 600, y: 220, type: 'soldier-running' as const },
+  { x: 900, y: 218, type: 'soldier-prone' as const },
+  // Tanks
+  { x: 250, y: 230, type: 'tank' as const },
+  { x: 750, y: 228, type: 'tank' as const },
+  { x: 1300, y: 232, type: 'tank' as const },
+  // Helicopters
+  { x: 180, y: 80, type: 'helicopter' as const },
+  { x: 520, y: 60, type: 'helicopter' as const },
+  { x: 1100, y: 70, type: 'helicopter' as const },
+  // Wreckage
+  { x: 450, y: 235, type: 'wreckage' as const },
+  { x: 1000, y: 230, type: 'wreckage' as const },
 ];
 
 export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: ParallaxBackgroundProps) => {
@@ -351,7 +380,82 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
         {debrisElements}
       </div>
       
-      {/* LAYER 4.5: Floating smoke particles */}
+      {/* LAYER 4.5: War scene silhouettes */}
+      <div className="absolute inset-0 pointer-events-none">
+        {WAR_SILHOUETTES.map((silhouette, i) => {
+          const screenX = ((silhouette.x - cameraX * LAYER_SPEEDS.mid * 0.6) % 1500 + 1500) % 1500;
+          return (
+            <div
+              key={`war-${i}`}
+              className="absolute"
+              style={{ left: screenX, bottom: 280 - silhouette.y }}
+            >
+              {silhouette.type === 'soldier-crouching' && (
+                <svg width="20" height="25" viewBox="0 0 20 25" fill="black">
+                  <ellipse cx="10" cy="3" rx="3" ry="3" /> {/* Head */}
+                  <path d="M7 6 L5 15 L8 15 L10 10 L12 15 L15 15 L13 6 Z" /> {/* Body crouching */}
+                  <path d="M5 15 L3 22 L6 22 L8 15" /> {/* Left leg */}
+                  <path d="M12 15 L14 22 L17 22 L15 15" /> {/* Right leg */}
+                  <path d="M13 8 L20 10 L20 11 L13 10" /> {/* Gun */}
+                </svg>
+              )}
+              {silhouette.type === 'soldier-aiming' && (
+                <svg width="24" height="28" viewBox="0 0 24 28" fill="black">
+                  <ellipse cx="8" cy="4" rx="3" ry="3" /> {/* Head */}
+                  <path d="M5 7 L3 20 L7 20 L8 12 L9 20 L13 20 L11 7 Z" /> {/* Body */}
+                  <path d="M3 20 L2 28 L5 28 L7 20" /> {/* Legs */}
+                  <path d="M9 9 L22 6 L22 8 L9 12" /> {/* Rifle aiming */}
+                </svg>
+              )}
+              {silhouette.type === 'soldier-running' && (
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="black">
+                  <ellipse cx="14" cy="4" rx="3" ry="3" /> {/* Head */}
+                  <path d="M11 7 L9 18 L14 15 L19 18 L17 7 Z" /> {/* Torso */}
+                  <path d="M9 18 L3 26 L6 27 L14 18" /> {/* Back leg */}
+                  <path d="M19 18 L25 24 L22 26 L14 18" /> {/* Front leg */}
+                  <path d="M17 9 L24 11 L24 12 L17 11" /> {/* Gun */}
+                </svg>
+              )}
+              {silhouette.type === 'soldier-prone' && (
+                <svg width="35" height="12" viewBox="0 0 35 12" fill="black">
+                  <ellipse cx="4" cy="6" rx="3" ry="3" /> {/* Head */}
+                  <path d="M7 4 L30 3 L30 9 L7 8 Z" /> {/* Body prone */}
+                  <path d="M30 5 L35 4 L35 6 L30 7" /> {/* Feet */}
+                  <path d="M4 8 L0 6 L0 7 L4 9" /> {/* Gun barrel */}
+                </svg>
+              )}
+              {silhouette.type === 'tank' && (
+                <svg width="50" height="25" viewBox="0 0 50 25" fill="black">
+                  <rect x="5" y="15" width="40" height="10" rx="2" /> {/* Body */}
+                  <rect x="8" y="8" width="25" height="10" rx="2" /> {/* Turret */}
+                  <rect x="33" y="11" width="15" height="4" /> {/* Barrel */}
+                  <circle cx="10" cy="22" r="4" /> {/* Wheel */}
+                  <circle cx="25" cy="22" r="4" /> {/* Wheel */}
+                  <circle cx="40" cy="22" r="4" /> {/* Wheel */}
+                </svg>
+              )}
+              {silhouette.type === 'helicopter' && (
+                <svg width="45" height="25" viewBox="0 0 45 25" fill="black">
+                  <ellipse cx="18" cy="14" rx="14" ry="8" /> {/* Body */}
+                  <path d="M32 12 L44 10 L44 14 L32 16 Z" /> {/* Tail */}
+                  <rect x="42" y="6" width="2" height="12" /> {/* Tail rotor */}
+                  <rect x="5" y="4" width="26" height="2" /> {/* Main rotor */}
+                  <path d="M14 22 L12 25 L24 25 L22 22" /> {/* Skids */}
+                </svg>
+              )}
+              {silhouette.type === 'wreckage' && (
+                <svg width="40" height="20" viewBox="0 0 40 20" fill="black">
+                  <path d="M0 18 L5 10 L15 15 L20 5 L25 12 L35 8 L40 18 Z" /> {/* Debris pile */}
+                  <rect x="8" y="3" width="3" height="12" transform="rotate(-15 8 3)" /> {/* Broken beam */}
+                  <rect x="28" y="2" width="2" height="10" transform="rotate(20 28 2)" /> {/* Pole */}
+                </svg>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      
+      {/* LAYER 5: Floating smoke particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         {SMOKE_PARTICLES.map(smoke => {
           const driftX = Math.sin(smokeTime * smoke.speed + smoke.id) * 30;
@@ -373,6 +477,62 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
           );
         })}
       </div>
+      
+      {/* LAYER 6: Weather effects - Rain */}
+      {zoneData.weather === 'rain' && (
+        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+          {RAIN_DROPS.map(drop => (
+            <div
+              key={`rain-${drop.id}`}
+              className="absolute"
+              style={{
+                left: `${drop.x + (smokeTime * 2) % 50}px`,
+                top: 0,
+                width: 1,
+                height: drop.length,
+                background: 'linear-gradient(180deg, transparent, rgba(150,180,255,0.4), rgba(150,180,255,0.2))',
+                animation: `fall ${drop.speed}s linear infinite`,
+                animationDelay: `${drop.delay}s`,
+                transform: 'rotate(-10deg)',
+              }}
+            />
+          ))}
+          <style>{`
+            @keyframes fall {
+              0% { transform: translateY(-30px) rotate(-10deg); opacity: 0; }
+              10% { opacity: 1; }
+              90% { opacity: 1; }
+              100% { transform: translateY(400px) rotate(-10deg); opacity: 0; }
+            }
+          `}</style>
+        </div>
+      )}
+      
+      {/* LAYER 6: Weather effects - Fog */}
+      {zoneData.weather === 'fog' && (
+        <div className="absolute inset-0 pointer-events-none">
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(180deg, rgba(80,80,100,0.15) 0%, rgba(60,60,80,0.25) 50%, rgba(40,40,60,0.35) 100%)',
+            }}
+          />
+          {[0, 1, 2].map(i => (
+            <div
+              key={`fog-layer-${i}`}
+              className="absolute"
+              style={{
+                left: ((smokeTime * (2 + i) + i * 200) % 1200) - 200,
+                bottom: 40 + i * 60,
+                width: 400,
+                height: 80,
+                background: 'radial-gradient(ellipse, rgba(100,100,120,0.3), transparent)',
+                filter: 'blur(20px)',
+              }}
+            />
+          ))}
+        </div>
+      )}
       
       {/* Atmospheric gradient overlay */}
       <div 
