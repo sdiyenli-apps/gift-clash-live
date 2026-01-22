@@ -473,8 +473,9 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
               alt={enemy.type}
               className="w-full h-full object-contain"
               style={{
-                // Flip to face LEFT toward the hero (hero is on the left)
-                transform: 'scaleX(-1)',
+                // Non-boss enemies flip to face LEFT toward the hero
+                // Boss sprites stay mirrored (original orientation facing right)
+                transform: isBoss ? 'none' : 'scaleX(-1)',
                 // Make boss phase 3 image super bright and visible
                 filter: isBoss && bossPhase === 3 
                   ? 'brightness(1.4) saturate(1.5) contrast(1.2)' 
