@@ -833,25 +833,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
           cameraX={cameraX} 
         />
         
-        {/* Shield indicator - permanent (no timer) */}
-        {gameState.player.shield > 0 && (
-          <motion.div
-            className="absolute bottom-2 left-2 z-30"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-          >
-            <div 
-              className="px-2 py-1 rounded-full font-bold text-[10px]"
-              style={{
-                background: 'linear-gradient(135deg, #00ffff, #0088ff)',
-                color: '#fff',
-                boxShadow: '0 0 12px #00ffff',
-              }}
-            >
-              🛡️ {Math.ceil(gameState.player.shield)}
-            </div>
-          </motion.div>
-        )}
+        {/* Shield indicator removed from bottom-left */}
         
         {/* Combo */}
         {combo > 1 && comboTimer > 0 && (

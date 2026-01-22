@@ -177,59 +177,23 @@ const Index = () => {
     >
       {/* TikTok Live-style Header - Positioned to avoid TikTok UI elements */}
       <header className="absolute top-14 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
-        {/* Left side - Compact Logo - Moved down to avoid TikTok profile area */}
-        <div className="flex items-center pointer-events-auto">
-          <div 
-            className="flex items-center gap-1 px-2 py-1 rounded-full"
-            style={{
-              background: 'rgba(0,0,0,0.85)',
-              backdropFilter: 'blur(12px)',
-              border: '1px solid rgba(255,0,255,0.3)',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
-            }}
-          >
-            <span className="text-xs">🔫</span>
-            <span 
-              className="font-black text-[9px]"
-              style={{
-                background: 'linear-gradient(90deg, #ff00ff, #00ffff)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                letterSpacing: '0.5px',
-              }}
-            >
-              RUN & GUN
-            </span>
-          </div>
-        </div>
+        {/* Left side - Empty (game name removed) */}
+        <div className="flex items-center pointer-events-auto" />
 
-        {/* Right side - Score, Wave, Audio - Positioned to avoid TikTok follow button */}
+        {/* Right side - Score and Audio only (wave removed) */}
         <div className="flex items-center gap-1 pointer-events-auto">
           {gameState.phase === 'playing' && (
-            <>
-              <div 
-                className="px-2 py-0.5 rounded-full font-bold text-[10px] sm:text-xs"
-                style={{
-                  background: 'rgba(0,0,0,0.8)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,0,0.3)',
-                  color: '#ffff00',
-                }}
-              >
-                ⭐{gameState.score.toLocaleString()}
-              </div>
-              <div 
-                className="px-2 py-0.5 rounded-full font-bold text-[10px] sm:text-xs"
-                style={{
-                  background: 'rgba(0,0,0,0.8)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(0,255,255,0.3)',
-                  color: '#00ffff',
-                }}
-              >
-                W{gameState.currentWave}
-              </div>
-            </>
+            <div 
+              className="px-2 py-0.5 rounded-full font-bold text-[10px] sm:text-xs"
+              style={{
+                background: 'rgba(0,0,0,0.8)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,0,0.3)',
+                color: '#ffff00',
+              }}
+            >
+              ⭐{gameState.score.toLocaleString()}
+            </div>
           )}
           <motion.button
             onClick={() => setAudioOn(!audioOn)}
@@ -307,20 +271,8 @@ const Index = () => {
                 />
               </div>
               
-              {/* Data elements next to health/armor */}
+              {/* Data elements next to health (wave indicator removed) */}
               <div className="flex items-center gap-1 shrink-0">
-                {/* Wave indicator */}
-                <div 
-                  className="px-1.5 py-0.5 rounded text-[8px] font-bold"
-                  style={{
-                    background: 'rgba(0,255,255,0.2)',
-                    border: '1px solid rgba(0,255,255,0.4)',
-                    color: '#00ffff',
-                  }}
-                >
-                  W{gameState.currentWave}
-                </div>
-                
                 {/* Magic Dash timer */}
                 {gameState.player.isMagicDashing && (
                   <motion.div
