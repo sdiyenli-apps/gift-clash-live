@@ -234,20 +234,35 @@ export const Arena = ({ gameState }: ArenaProps) => {
           isBossFight={isBossFight}
         />
         
-        {/* Player projectiles */}
-        {projectiles.map(proj => (
-          <ProjectileSprite key={proj.id} projectile={proj} cameraX={cameraX} />
-        ))}
+        {/* Player projectiles - filter off-screen */}
+        {projectiles
+          .filter(proj => {
+            const screenX = proj.x - cameraX;
+            return screenX > -30 && screenX < 700;
+          })
+          .map(proj => (
+            <ProjectileSprite key={proj.id} projectile={proj} cameraX={cameraX} />
+          ))}
         
-        {/* Enemy lasers */}
-        {enemyLasers.map(laser => (
-          <EnemyLaserSprite key={laser.id} projectile={laser} cameraX={cameraX} />
-        ))}
+        {/* Enemy lasers - filter off-screen */}
+        {enemyLasers
+          .filter(laser => {
+            const screenX = laser.x - cameraX;
+            return screenX > -30 && screenX < 700;
+          })
+          .map(laser => (
+            <EnemyLaserSprite key={laser.id} projectile={laser} cameraX={cameraX} />
+          ))}
         
-        {/* Boss fireballs */}
-        {fireballs.map(fireball => (
-          <FireballSprite key={fireball.id} fireball={fireball} cameraX={cameraX} />
-        ))}
+        {/* Boss fireballs - filter off-screen */}
+        {fireballs
+          .filter(fireball => {
+            const screenX = fireball.x - cameraX;
+            return screenX > -50 && screenX < 750;
+          })
+          .map(fireball => (
+            <FireballSprite key={fireball.id} fireball={fireball} cameraX={cameraX} />
+          ))}
         
         {/* NEON LASERS - bouncing wall lasers! */}
         {neonLasers.map(laser => {
