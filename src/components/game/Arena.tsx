@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { GameState, Projectile, getBossName, Bomb, SupportUnit } from '@/types/game';
-import { BackgroundVideo } from './BackgroundVideo';
+import { ParallaxBackground } from './ParallaxBackground';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
 import { ProjectileSprite, EnemyLaserSprite, FireballSprite } from './Projectile';
@@ -229,13 +229,11 @@ export const Arena = ({ gameState }: ArenaProps) => {
         <CyberpunkBuildings cameraX={cameraX} />
         
         
-        {/* Video-like background */}
-        <BackgroundVideo 
-          distance={distance}
+        {/* Parallax scrolling background */}
+        <ParallaxBackground 
           cameraX={cameraX}
-          isUltraMode={isUltraMode}
+          currentWave={currentWave || 1}
           isBossFight={isBossFight}
-          levelLength={levelLength}
         />
         
         {/* Player projectiles */}
