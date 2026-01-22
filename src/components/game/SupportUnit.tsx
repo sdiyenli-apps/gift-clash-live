@@ -157,24 +157,26 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
         </>
       )}
       
-      {/* ATTACK EFFECTS - Laser for tank, bullets for others */}
+      {/* ATTACK EFFECTS - From FRONT of tank image, bullets for others */}
       {isAttacking && !isSelfDestructing && !isLanding && (
         <>
-          {/* Muzzle flash */}
+          {/* Muzzle flash - positioned at FRONT of unit */}
           <motion.div
             className="absolute"
             style={{
-              right: isTank ? -40 : isMech ? -30 : -25,
-              top: '50%',
+              // Tank fires from front (right edge of image)
+              left: isTank ? displayWidth - 10 : undefined,
+              right: isTank ? undefined : (isMech ? -30 : -25),
+              top: isTank ? '35%' : '50%', // Tank cannon is higher
               transform: 'translateY(-50%)',
-              width: isTank ? 60 : isMech ? 50 : 40,
-              height: isTank ? 20 : isMech ? 50 : 40,
+              width: isTank ? 70 : isMech ? 50 : 40,
+              height: isTank ? 30 : isMech ? 50 : 40,
               background: isTank 
                 ? 'linear-gradient(90deg, #ff0066, #ff00ff, #00ffff)'
                 : isMech 
                   ? 'radial-gradient(circle, #fff, #ffaa00, #ff6600, transparent)'
                   : 'radial-gradient(circle, #fff, #00ffaa, #00ff88, transparent)',
-              borderRadius: isTank ? '50%' : '50%',
+              borderRadius: '50%',
               filter: 'blur(3px)',
             }}
             initial={{ scale: 0, opacity: 0 }}
@@ -182,16 +184,16 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             transition={{ duration: 0.12 }}
           />
           
-          {/* Tank laser beam effect */}
+          {/* Tank laser beam effect - from front of tank */}
           {isTank && (
             <motion.div
               className="absolute"
               style={{
-                right: -80,
-                top: '50%',
+                left: displayWidth + 20, // Fire from front edge
+                top: '35%', // Tank cannon height
                 transform: 'translateY(-50%)',
                 width: 120,
-                height: 8,
+                height: 10,
                 background: 'linear-gradient(90deg, #ff0066, #ff00ff, transparent)',
                 boxShadow: '0 0 15px #ff0066, 0 0 30px #ff00ff',
               }}
