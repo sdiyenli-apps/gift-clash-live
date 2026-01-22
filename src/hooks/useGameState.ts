@@ -2151,8 +2151,8 @@ export const useGameState = () => {
               const nearestEnemy = enemiesInRange[0];
               
               if (nearestEnemy) {
-                // Tank has slower but more powerful attacks, mech is medium, walker is fast
-                newUnit.attackCooldown = unit.type === 'tank' ? 0.5 : unit.type === 'mech' ? 0.6 : 0.4;
+                // Tank fires FAST with big AOE bullets, mech is medium, walker is fast
+                newUnit.attackCooldown = unit.type === 'tank' ? 0.25 : unit.type === 'mech' ? 0.6 : 0.4;
                 
                 // Get enemy position - ground enemies are AT ground level, flying enemies have Y offset
                 const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
