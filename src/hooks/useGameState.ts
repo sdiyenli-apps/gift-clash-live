@@ -2155,8 +2155,8 @@ export const useGameState = () => {
               const nearestEnemy = enemiesInRange[0];
               
               if (nearestEnemy) {
-                // Tank fires FAST with big AOE bullets, mech is medium, walker is fast
-                newUnit.attackCooldown = unit.type === 'tank' ? 0.25 : unit.type === 'mech' ? 0.6 : 0.4;
+                // Tank fires VERY FAST with big AOE bullets, mech is medium, walker is fast
+                newUnit.attackCooldown = unit.type === 'tank' ? 0.15 : unit.type === 'mech' ? 0.6 : 0.4;
                 
                 // Get enemy position - ground enemies are AT ground level, flying enemies have Y offset
                 const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
@@ -2169,8 +2169,8 @@ export const useGameState = () => {
                   ? (nearestEnemy.y || GROUND_Y) + nearestEnemy.height / 2
                   : GROUND_Y + nearestEnemy.height / 2;
                 
-                // Ally fires from slightly above ground (chest level of ally unit)
-                const startY = GROUND_Y + 35; // Lower firing position to hit ground enemies better
+                // Tank fires from TOP section (cannon level), others fire from chest
+                const startY = unit.type === 'tank' ? GROUND_Y + 70 : GROUND_Y + 35;
                 const startX = unit.x + unit.width + 5;
                 
                 // Calculate direction to enemy center
@@ -2185,8 +2185,8 @@ export const useGameState = () => {
                   const velocityX = (dx / dist) * projSpeed;
                   const velocityY = (dy / dist) * projSpeed;
                   
-                  // Tank does 80 damage (big bullets), mech 25, walker 15
-                  const projDamage = unit.type === 'tank' ? 80 : unit.type === 'mech' ? 25 : 15;
+                  // Tank does 120 damage (double hero's 60), mech 25, walker 15
+                  const projDamage = unit.type === 'tank' ? 120 : unit.type === 'mech' ? 25 : 15;
                   
                   const proj: Projectile = {
                     id: `ally-${unit.type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
