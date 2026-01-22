@@ -892,8 +892,9 @@ export const useGameState = () => {
           // In spaceship mode, fire from spaceship height (200), else from ground torso
           const isSpaceshipMode = prev.player.isMagicDashing;
           const spaceshipY = 200; // Spaceship flying height
-          const groundTorsoY = prev.player.y + PLAYER_HEIGHT * 0.5;
-          const bulletY = isSpaceshipMode ? spaceshipY + 30 : groundTorsoY; // Spaceship center is +30 from bottom
+          // Hero fires through the GREEN ZONE (floor combat area)
+          const groundTorsoY = GROUND_Y - 15; // Lower firing position for ground combat
+          const bulletY = isSpaceshipMode ? spaceshipY + 30 : groundTorsoY;
           
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
@@ -2169,8 +2170,9 @@ export const useGameState = () => {
                   ? (nearestEnemy.y || GROUND_Y) + nearestEnemy.height / 2
                   : GROUND_Y + nearestEnemy.height / 2;
                 
-                // Tank fires from TOP section (cannon level), others fire from chest
-                const startY = unit.type === 'tank' ? GROUND_Y + 70 : GROUND_Y + 35;
+                // All units fire through the GREEN ZONE (floor combat area) - lower Y position
+                // Tank fires at floor level, others slightly above
+                const startY = unit.type === 'tank' ? GROUND_Y - 20 : GROUND_Y - 10;
                 const startX = unit.x + unit.width + 5;
                 
                 // Calculate direction to enemy center
