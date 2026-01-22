@@ -609,30 +609,32 @@ export const useGameState = () => {
   const lastUpdateRef = useRef<number>(Date.now());
   const helpRequestTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Max particles limit for performance - AGGRESSIVE reduction for lag fix
-  const MAX_PARTICLES = 10;
-  const MAX_SUPPORT_PROJECTILES = 4;
+  // PERFORMANCE: Aggressive particle limits
+  const MAX_PARTICLES = 6;
+  const MAX_SUPPORT_PROJECTILES = 3;
 
+  // Particle pool - reuse particle objects instead of creating new ones
+  const particlePoolRef = useRef<Particle[]>([]);
+  
   const createParticles = useCallback((x: number, y: number, count: number, type: Particle['type'], color?: string): Particle[] => {
-    const particles: Particle[] = [];
-    const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff0080', '#00ff80'];
+    // PERFORMANCE: Skip particle creation entirely for non-essential types
+    if (type === 'spark' || type === 'muzzle') return [];
     
-    // PERFORMANCE: Only 1 particle per call to minimize lag
-    const maxParticles = Math.min(count, 1);
-    for (let i = 0; i < maxParticles; i++) {
-      particles.push({
-        id: `p-${Date.now()}-${i}`,
-        x,
-        y,
-        velocityX: (Math.random() - 0.5) * 150,
-        velocityY: (Math.random() - 0.8) * 150,
-        color: color || colors[Math.floor(Math.random() * colors.length)],
-        size: 3 + Math.random() * 3,
-        life: 0.08 + Math.random() * 0.1, // Very short lifespan (80-180ms)
-        type,
-      });
-    }
-    return particles;
+    const colors = ['#ff00ff', '#00ffff', '#ffff00'];
+    
+    // Only create 1 particle max
+    const particle: Particle = {
+      id: `p-${Date.now()}`,
+      x,
+      y,
+      velocityX: (Math.random() - 0.5) * 100,
+      velocityY: (Math.random() - 0.8) * 100,
+      color: color || colors[Math.floor(Math.random() * colors.length)],
+      size: 3 + Math.random() * 2,
+      life: 0.05 + Math.random() * 0.08, // Very short lifespan (50-130ms)
+      type,
+    };
+    return [particle];
   }, []);
 
   const showSpeechBubble = useCallback((text: string, type: SpeechBubble['type'] = 'normal') => {
@@ -1787,15 +1789,25 @@ export const useGameState = () => {
             newState.evasionPopup = null;
           }
         }
-        // PARTICLE RESET TIMER - Reset all particles every 2 seconds (faster cleanup)
+        // PARTICLE CLEANUP - Every frame, remove expired particles and enforce strict limits
         newState.particleResetTimer = prev.particleResetTimer - delta;
+        
+        // Remove expired particles (life <= 0)
+        newState.particles = prev.particles.filter(p => p.life > 0.01).map(p => ({
+          ...p,
+          life: p.life - delta * 8, // Fast decay
+          x: p.x + p.velocityX * delta,
+          y: p.y + p.velocityY * delta,
+        }));
+        
+        // Full reset every 1.5 seconds
         if (newState.particleResetTimer <= 0) {
           newState.particles = [];
-          newState.supportProjectiles = []; // Also clear ally projectiles for performance
-          newState.particleResetTimer = 2; // Reset every 2 seconds
+          newState.supportProjectiles = [];
+          newState.particleResetTimer = 1.5;
         }
         
-        // PERFORMANCE: Limit total particles and projectiles
+        // STRICT LIMITS - never exceed max
         if (newState.particles.length > MAX_PARTICLES) {
           newState.particles = newState.particles.slice(-MAX_PARTICLES);
         }
@@ -1819,8 +1831,8 @@ export const useGameState = () => {
               newState.collectedTankPowerups = (prev.collectedTankPowerups || 0) + 1;
               showSpeechBubble("🔫 TANK POWERUP! RARE! 🔫", 'excited');
             }
-            const particleColor = powerup.type === 'ally' ? '#00ff88' : powerup.type === 'tank' ? '#ff8800' : '#ff00ff';
-            newState.particles = [...newState.particles, ...createParticles(powerup.x, powerup.y, 20, 'magic', particleColor)];
+            // No particles for powerup collection - performance
+            // Just show speech bubble
             return false;
           }
           // Despawn timer
