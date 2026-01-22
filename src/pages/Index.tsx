@@ -140,6 +140,46 @@ const Index = () => {
     }
   }, [gameState.phase, triggerGift, playSound]);
 
+  // Special handlers for powerup buttons that bypass the gift system
+  const handleUseAlly = useCallback(() => {
+    if (gameState.phase !== 'playing') return;
+    playSound('gift');
+    // Directly process the summon_support action
+    handleGift({
+      id: `ally-${Date.now()}`,
+      gift: { id: 'ally_powerup', name: 'Ally', tier: 'large', diamonds: 0, emoji: '🤖', action: 'summon_support' },
+      username: 'Hero',
+      timestamp: Date.now(),
+      action: 'summon_support',
+    } as any);
+  }, [gameState.phase, playSound, handleGift]);
+
+  const handleUseUlt = useCallback(() => {
+    if (gameState.phase !== 'playing') return;
+    playSound('gift');
+    // Directly process the magic_dash action
+    handleGift({
+      id: `ult-${Date.now()}`,
+      gift: { id: 'ult_powerup', name: 'ULT', tier: 'large', diamonds: 0, emoji: '🚀', action: 'magic_dash' },
+      username: 'Hero',
+      timestamp: Date.now(),
+      action: 'magic_dash',
+    } as any);
+  }, [gameState.phase, playSound, handleGift]);
+
+  const handleUseTank = useCallback(() => {
+    if (gameState.phase !== 'playing') return;
+    playSound('gift');
+    // Directly process the summon_tank action (special hidden action)
+    handleGift({
+      id: `tank-${Date.now()}`,
+      gift: { id: 'tank_powerup', name: 'Tank', tier: 'large', diamonds: 0, emoji: '🔫', action: 'summon_tank' as any },
+      username: 'Hero',
+      timestamp: Date.now(),
+      action: 'summon_tank' as any,
+    } as any);
+  }, [gameState.phase, playSound, handleGift]);
+
   return (
     <div 
       className="h-[100dvh] w-screen flex flex-col overflow-hidden touch-none select-none"
@@ -316,9 +356,9 @@ const Index = () => {
                 collectedAllyPowerups={gameState.collectedAllyPowerups || 0}
                 collectedUltPowerups={gameState.collectedUltPowerups || 0}
                 collectedTankPowerups={gameState.collectedTankPowerups || 0}
-                onUseAlly={() => handleTriggerGift('robot')}
-                onUseUlt={() => handleTriggerGift('galaxy')}
-                onUseTank={() => handleTriggerGift('tank_special')}
+                onUseAlly={handleUseAlly}
+                onUseUlt={handleUseUlt}
+                onUseTank={handleUseTank}
               />
             </div>
           </div>

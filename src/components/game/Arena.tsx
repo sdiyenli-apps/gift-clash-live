@@ -16,6 +16,7 @@ import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
 import { DronePaths } from './DronePath';
 import { Level } from './Level';
+import { FloatingPowerup } from './FloatingPowerup';
 
 interface NeonLaser {
   id: string;
@@ -38,6 +39,14 @@ interface EMPGrenade {
 
 // REMOVED: NeonBeam interface - All attacks are now projectiles only
 
+interface Powerup {
+  id: string;
+  x: number;
+  y: number;
+  type: 'ally' | 'ult' | 'tank';
+  timer: number;
+}
+
 interface ExtendedGameState extends GameState {
   fireballs?: { id: string; x: number; y: number; velocityX: number; velocityY: number; damage: number }[];
   redFlash?: number;
@@ -57,6 +66,7 @@ interface ExtendedGameState extends GameState {
   supportUnits?: SupportUnit[];
   supportProjectiles?: Projectile[];
   evasionPopup?: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
+  powerups?: Powerup[];
 }
 
 interface ArenaProps {
@@ -77,7 +87,8 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
     portalOpen = false, portalX = 0, heroEnteringPortal = false,
     bossTransformFlash = 0,
     supportUnits = [], supportProjectiles = [],
-    evasionPopup = null
+    evasionPopup = null,
+    powerups = []
   } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -539,6 +550,11 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
             <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} />
           ))}
           
+          {/* Floating Powerups - dropped by elite enemies */}
+          {powerups.map(powerup => (
+            <FloatingPowerup key={powerup.id} powerup={powerup} cameraX={cameraX} />
+          ))}
+          
           {/* Support Units - friendly mech and walker allies */}
           {supportUnits.map(unit => (
             <SupportUnitSprite key={unit.id} unit={unit} cameraX={cameraX} />
@@ -550,17 +566,17 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
         
         {/* Projectiles Layer (z-30) - Above entities for visibility */}
         <div className="absolute inset-0 z-30 pointer-events-none">
-          {/* Support Unit Projectiles - Different rendering for beam vs projectile */}
+          {/* Support Unit Projectiles - Different rendering for tank laser vs mech/walker bullets */}
           {supportProjectiles.map(proj => {
             const screenX = proj.x - cameraX;
-            const isMech = proj.type === 'ultra';
+            const isTank = proj.id.includes('tank');
+            const isMech = proj.type === 'ultra' && !isTank;
             
             if (screenX < -20 || screenX > 800) return null;
 
-            // ALL ally attacks are BULLETS (no laser beams)
-            // PROJECTILE - for ground targets
-            const width = isMech ? 14 : 12;
-            const height = isMech ? 7 : 6;
+            // Tank fires pink laser beams, mech/walker fire bullets
+            const width = isTank ? 25 : isMech ? 14 : 12;
+            const height = isTank ? 8 : isMech ? 7 : 6;
             
             return (
               <motion.div
@@ -576,16 +592,18 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
                 animate={{ opacity: [0.8, 1, 0.8], scale: [1, 1.1, 1] }}
                 transition={{ duration: 0.1, repeat: Infinity }}
               >
-                {/* Trail effect */}
+                {/* Trail effect - tank has longer laser trail */}
                 <div
                   className="absolute right-full top-1/2 -translate-y-1/2"
                   style={{
-                    width: isMech ? 40 : 32,
+                    width: isTank ? 80 : isMech ? 40 : 32,
                     height: Math.max(4, height - 1),
-                    background: isMech
-                      ? 'linear-gradient(90deg, transparent, rgba(255,170,0,0.95))'
-                      : 'linear-gradient(90deg, transparent, rgba(0,255,136,0.95))',
-                    filter: 'blur(1px)',
+                    background: isTank
+                      ? 'linear-gradient(90deg, transparent, rgba(255,0,102,0.9), rgba(255,0,255,0.95))'
+                      : isMech
+                        ? 'linear-gradient(90deg, transparent, rgba(255,170,0,0.95))'
+                        : 'linear-gradient(90deg, transparent, rgba(0,255,136,0.95))',
+                    filter: isTank ? 'blur(2px)' : 'blur(1px)',
                   }}
                 />
 
@@ -593,21 +611,28 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
                 <div
                   className="w-full h-full rounded-full"
                   style={{
-                    background: isMech ? '#ffaa00' : '#00ff88',
-                    boxShadow: isMech
-                      ? '0 0 10px #ff8800, 0 0 20px #ff6600'
-                      : '0 0 10px #00ff88, 0 0 20px #00ffaa',
+                    background: isTank ? '#ff0066' : isMech ? '#ffaa00' : '#00ff88',
+                    boxShadow: isTank
+                      ? '0 0 15px #ff0066, 0 0 30px #ff00ff, 0 0 45px rgba(255,0,102,0.5)'
+                      : isMech
+                        ? '0 0 10px #ff8800, 0 0 20px #ff6600'
+                        : '0 0 10px #00ff88, 0 0 20px #00ffaa',
                   }}
                 />
 
                 {/* Muzzle flash spark */}
                 <motion.div
-                  className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full"
+                  className="absolute -left-2 top-1/2 -translate-y-1/2"
                   style={{
-                    background: isMech
-                      ? 'radial-gradient(circle, #fff, #ffaa00, transparent)'
-                      : 'radial-gradient(circle, #fff, #00ff88, transparent)',
+                    width: isTank ? 20 : 16,
+                    height: isTank ? 20 : 16,
+                    background: isTank
+                      ? 'radial-gradient(circle, #fff, #ff0066, transparent)'
+                      : isMech
+                        ? 'radial-gradient(circle, #fff, #ffaa00, transparent)'
+                        : 'radial-gradient(circle, #fff, #00ff88, transparent)',
                     filter: 'blur(1px)',
+                    borderRadius: '50%',
                   }}
                   animate={{ scale: [0.8, 1.3, 0.8], opacity: [0.7, 1, 0.7] }}
                   transition={{ duration: 0.08, repeat: Infinity }}
