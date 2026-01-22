@@ -107,6 +107,7 @@ export interface Enemy {
   spiralAngle?: number; // Current angle in spiral pattern
   spiralCenterX?: number; // Center of spiral
   spiralCenterY?: number; // Center of spiral
+  groundY?: number; // Assigned ground level for spread positioning
 }
 
 // Bomb dropped by bomber enemies

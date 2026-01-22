@@ -54,6 +54,7 @@ interface ExtendedGameState extends GameState {
   bossTransformFlash?: number;
   supportUnits?: SupportUnit[];
   supportProjectiles?: Projectile[];
+  evasionPopup?: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
 }
 
 interface ArenaProps {
@@ -73,8 +74,9 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
     empGrenades = [], bombs = [],
     portalOpen = false, portalX = 0, heroEnteringPortal = false,
     bossTransformFlash = 0,
-    supportUnits = [], supportProjectiles = []
-  } = gameState;
+    supportUnits = [], supportProjectiles = [],
+    evasionPopup = null
+  } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
   const shakeY = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -180,6 +182,24 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           animate={{ opacity: [1, 0.5, 0.8, 0.3, 0] }}
           transition={{ duration: 0.8, ease: "easeOut" }}
         />
+      )}
+      
+      {/* EVASION POPUP - Shows when attack is evaded */}
+      {evasionPopup && evasionPopup.timer > 0 && (
+        <motion.div
+          className="absolute z-60 pointer-events-none font-black text-lg"
+          style={{
+            left: 150,
+            bottom: 200,
+            color: '#00ff00',
+            textShadow: '0 0 10px #00ff00, 0 0 20px #00ff00, 2px 2px 0 #000',
+          }}
+          initial={{ opacity: 1, y: 0, scale: 1.5 }}
+          animate={{ opacity: 0, y: -30, scale: 1 }}
+          transition={{ duration: 1 }}
+        >
+          ⚡ EVADED! ⚡
+        </motion.div>
       )}
       
       {/* Zone/Level info - smaller and out of way */}

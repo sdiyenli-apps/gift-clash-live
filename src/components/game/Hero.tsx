@@ -10,8 +10,8 @@ interface HeroProps {
 }
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
-  // Fixed screen position - hero stays on LEFT side, moved left for TikTok Live
-  const screenX = 28; // Moved further left to give more room for enemies
+  // Fixed screen position - hero stays in CENTER of ground for TikTok Live
+  const screenX = 150; // Center of screen for better visibility
   const isEmpowered = isUltraMode || player.isMagicDashing;
   const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
   const isWalking = player.animationState === 'run' || player.animationState === 'dash';

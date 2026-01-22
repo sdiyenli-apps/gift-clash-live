@@ -21,9 +21,15 @@ const ROCKET_ATTACK_RANGE = 350; // Ranged attack distance
 const BOSS_FIREBALL_INTERVAL = 4; // Faster boss attacks
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
 const BOSS_KEEP_DISTANCE = 400; // Boss combat distance
-const HERO_FIXED_SCREEN_X = 28; // Hero position on screen - moved left for TikTok wider FOV
+const HERO_FIXED_SCREEN_X = 150; // Hero in CENTER of screen for better visibility
 const ENEMY_ATTACK_DELAY = 2; // Enemies wait 2 seconds before attacking
 const PARTICLE_LIFETIME = 3; // Particles reset after 3 seconds
+const EVASION_CHANCE = 1 / 15; // 1 in 15 attacks are evaded
+
+// Ground Y positions for spread positioning
+const GROUND_Y_TOP = GROUND_Y + 40; // Above hero position
+const GROUND_Y_MIDDLE = GROUND_Y; // Hero's ground level
+const GROUND_Y_BOTTOM = GROUND_Y - 30; // Below hero position
 
 // Boss attack types
 type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield';
@@ -157,6 +163,8 @@ interface ExtendedGameState extends GameState {
   gameStartTime: number;
   // Particle reset timer
   particleResetTimer: number;
+  // Evasion popup system
+  evasionPopup: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -223,6 +231,7 @@ const INITIAL_STATE: ExtendedGameState = {
   allyCharges: 2,
   gameStartTime: Date.now(),
   particleResetTimer: PARTICLE_LIFETIME,
+  evasionPopup: null,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -296,7 +305,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       const giantSize = 1.3 + Math.random() * 0.5;
       width = Math.floor(90 * giantSize); height = Math.floor(100 * giantSize); health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
     } else if (typeRoll < 0.875) {
-      // DRONE - flying enemy - uses projectiles (NOT bombs)
+      // DRONE - flying enemy - uses BOMBS ONLY (no projectiles)
       enemyType = 'drone';
       const droneSize = 0.8 + Math.random() * 0.3;
       width = Math.floor(50 * droneSize); height = Math.floor(50 * droneSize);
@@ -321,7 +330,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         type: enemyType as 'drone',
         isDying: false,
         deathTimer: 0,
-        attackCooldown: isSpiralDrone ? 0.5 : 0, // Spiral drones shoot faster
+        attackCooldown: 0,
         animationPhase: Math.random() * Math.PI * 2,
         isSpawning: true,
         spawnTimer: 0.8,
@@ -331,6 +340,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         spiralAngle: 0,
         spiralCenterX: x,
         spiralCenterY,
+        bombCooldown: 1.5 + Math.random() * 2, // Drones now use bombs!
       };
       enemies.push(droneEnemy);
       continue;
@@ -368,10 +378,14 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       continue;
     }
     
+    // Spread ground enemies across different Y positions
+    const groundLevels = [GROUND_Y_TOP, GROUND_Y_MIDDLE, GROUND_Y_BOTTOM];
+    const enemyGroundY = groundLevels[Math.floor(Math.random() * groundLevels.length)];
+    
     enemies.push({
       id: `enemy-${x}-${Math.random()}`,
       x,
-      y: GROUND_Y,
+      y: enemyGroundY,
       width,
       height,
       health,
@@ -385,6 +399,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       animationPhase: Math.random() * Math.PI * 2,
       isSpawning: true,
       spawnTimer: 0.8,
+      groundY: enemyGroundY, // Store assigned ground level
     });
   }
   
@@ -715,7 +730,7 @@ export const useGameState = () => {
   };
 
   // Create support units - mech and walker allies that fight alongside hero
-  // Stagger positions based on existing support unit count to prevent overlap
+  // One positioned ABOVE hero, one BELOW hero on the ground
   const createSupportUnits = (playerX: number, playerY: number, playerMaxHealth: number, playerShield: number, existingCount: number): SupportUnit[] => {
     const supportUnits: SupportUnit[] = [];
     // Half of hero's stats
@@ -725,11 +740,11 @@ export const useGameState = () => {
     // Stagger offset based on existing allies to prevent overlap
     const staggerOffset = existingCount * 80;
     
-    // Mech unit - LARGE TANK (2.5x size) - positioned IN FRONT of hero
+    // Mech unit - LARGE TANK (2.5x size) - positioned ABOVE hero (higher Y)
     supportUnits.push({
       id: `support-mech-${Date.now()}-${Math.random()}`,
       x: playerX + 60 + staggerOffset,
-      y: playerY,
+      y: GROUND_Y_TOP, // Above hero's ground level
       width: 130, // 2.5x width - LARGER
       height: 140, // 2.5x height - LARGER
       health: halfMaxHealth,
@@ -743,11 +758,11 @@ export const useGameState = () => {
       landingTimer: 1.0,
     });
     
-    // Walker unit - LARGER size (1.5x), positioned further in front
+    // Walker unit - LARGER size (1.5x), positioned BELOW hero (lower Y)
     supportUnits.push({
       id: `support-walker-${Date.now()}-${Math.random()}`,
       x: playerX + 200 + staggerOffset,
-      y: playerY,
+      y: GROUND_Y_BOTTOM, // Below hero's ground level
       width: 75, // 1.5x width - LARGER
       height: 85, // 1.5x height - LARGER
       health: halfMaxHealth,
@@ -788,32 +803,32 @@ export const useGameState = () => {
           break;
           
         case 'shoot':
-          // Hero fires BULLET FROM ARMOR - shoots from chest/armor area toward ground enemies
-          const heroScreenX = 60; // Hero's fixed screen position
-          const heroWorldX = prev.cameraX + heroScreenX + 45; // Start from hero's armor/chest center
-          // Bullet comes from ARMOR position (mid-chest area) - targets ground level
-          const armorY = prev.player.y + PLAYER_HEIGHT * 0.5; // From armor/chest area (center)
+          // Hero fires BULLET FROM CENTER OF BODY - middle of sprite
+          const heroScreenX = HERO_FIXED_SCREEN_X; // Hero's fixed screen position (center)
+          const heroWorldX = prev.cameraX + heroScreenX + PLAYER_WIDTH / 2; // Center of hero
+          // Bullet comes from CENTER of body (middle of sprite)
+          const bodyMiddleY = prev.player.y + PLAYER_HEIGHT * 0.5; // Center of body
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
-            x: heroWorldX, // Start from armor
-            y: armorY, // Armor height
+            x: heroWorldX, // Start from center
+            y: bodyMiddleY, // Body center height
             velocityX: 800, // Fast bullet
-            velocityY: -8, // Slight downward angle to hit ground enemies
+            velocityY: 0, // Straight horizontal shot
             damage: prev.player.isMagicDashing ? 150 : 60,
             type: prev.player.isMagicDashing ? 'ultra' : 'mega',
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          // Muzzle flash particles at armor origin - cyan glow
+          // Muzzle flash particles at body center - cyan glow
           newState.particles = [...prev.particles, 
-            ...createParticles(heroWorldX, armorY, 15, 'muzzle', '#00ffff'),
-            ...createParticles(heroWorldX + 5, armorY, 6, 'spark', '#ffffff'),
+            ...createParticles(heroWorldX, bodyMiddleY, 15, 'muzzle', '#00ffff'),
+            ...createParticles(heroWorldX + 5, bodyMiddleY, 6, 'spark', '#ffffff'),
           ];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 150);
           newState.score += 20;
           
           // ALLIES ALSO ATTACK when fire gift is pressed - BULLETS ONLY!
-          // Each ally fires bullet projectiles at nearest enemy (any type)
+          // Each ally fires bullet projectiles from CENTER OF BODY at nearest enemy
           const activeAllyUnits = prev.supportUnits.filter(u => !u.isLanding && !u.isSelfDestructing && u.health > 0);
           activeAllyUnits.forEach((unit, idx) => {
             // Find ALL enemies in range - allies use bullets for everything
@@ -822,8 +837,9 @@ export const useGameState = () => {
               e.x > unit.x - 50 && e.x < unit.x + 600
             ).sort((a, b) => Math.abs(a.x - unit.x) - Math.abs(b.x - unit.x));
             
-            const startX = unit.x + unit.width + 5;
-            const startY = GROUND_Y + 40;
+            // Bullet originates from CENTER of ally body
+            const startX = unit.x + unit.width / 2; // Center X
+            const startY = unit.y + unit.height / 2; // Center Y
             
             // Fire BULLET at nearest enemy
             if (allEnemies.length > 0) {
@@ -849,7 +865,7 @@ export const useGameState = () => {
                 };
                 newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                 
-                // Bullet muzzle flash
+                // Bullet muzzle flash at body center
                 newState.particles = [...newState.particles, 
                   ...createParticles(startX, startY, 3, 'spark', unit.type === 'mech' ? '#ffaa00' : '#00ffaa'),
                 ];
@@ -1646,6 +1662,13 @@ export const useGameState = () => {
           newState.bossTransformFlash = Math.max(0, prev.bossTransformFlash - delta * 3);
         }
         
+        // Evasion popup timer decay
+        if (prev.evasionPopup && prev.evasionPopup.timer > 0) {
+          newState.evasionPopup = { ...prev.evasionPopup, timer: prev.evasionPopup.timer - delta };
+          if (newState.evasionPopup.timer <= 0) {
+            newState.evasionPopup = null;
+          }
+        }
         // PARTICLE RESET TIMER - Reset all particles every 3 seconds
         newState.particleResetTimer = prev.particleResetTimer - delta;
         if (newState.particleResetTimer <= 0) {
@@ -2213,13 +2236,23 @@ export const useGameState = () => {
               }
             }
 
-            // 2) If not blocked by ally, check player collision
+            // 2) If not blocked by ally, check player collision with EVASION CHANCE
             if (
               laser.x < newState.player.x + PLAYER_WIDTH + 5 &&
               laser.x + laserWidth > newState.player.x - 5 &&
               laser.y < newState.player.y + PLAYER_HEIGHT + 10 &&
               laser.y + laserHeight > newState.player.y - 10
             ) {
+              // EVASION CHECK - 1 in 15 attacks are evaded!
+              if (Math.random() < EVASION_CHANCE) {
+                // Hero evades!
+                newState.evasionPopup = { x: newState.player.x + PLAYER_WIDTH/2, y: newState.player.y, timer: 1.0, target: 'hero' };
+                lasersToRemove.add(laser.id);
+                newState.particles = [...newState.particles, ...createParticles(laser.x, laser.y, 8, 'dash', '#00ff00')];
+                showSpeechBubble("EVADED! 💨", 'excited');
+                return;
+              }
+              
               const dmg = laser.damage ?? 0;
 
               // ARMOR ABSORBS DAMAGE FIRST!
@@ -2598,7 +2631,7 @@ export const useGameState = () => {
           const canMeleeAttack = isCloseForSlash && isOnScreen;
           const canRangedAttack = isCloseForRocket && isOnScreen;
 
-          // SPIRAL DRONE - flies in circles while shooting!
+          // SPIRAL DRONE - flies in circles while DROPPING BOMBS!
           if ((enemy.type === 'drone' || enemy.type === 'flyer') && enemy.isSpiralDrone) {
             const spiralSpeed = 3.0; // Rotation speed
             const spiralRadius = 60; // Size of spiral
@@ -2612,34 +2645,20 @@ export const useGameState = () => {
             const spiralX = centerX + Math.cos(newSpiralAngle) * spiralRadius;
             const spiralY = centerY + Math.sin(newSpiralAngle) * spiralRadius;
             
-            // Shoot while spiraling - every 0.6 seconds
-            if (enemy.attackCooldown <= 0 && enemy.x < prev.cameraX + 600) {
-              // Prefer targeting a support unit; otherwise target hero
-              const targetUnit = (newState.supportUnits || [])
-                .filter(u => !u.isLanding && !u.isSelfDestructing && u.health > 0 && u.x < spiralX)
-                .sort((a, b) => (spiralX - a.x) - (spiralX - b.x))[0];
-
-              const originX = spiralX;
-              const originY = spiralY + enemy.height / 2;
-              const targetX = targetUnit ? (targetUnit.x + targetUnit.width / 2) : (prev.player.x + PLAYER_WIDTH / 2);
-              const targetY = targetUnit ? (targetUnit.y + targetUnit.height / 2) : (prev.player.y + PLAYER_HEIGHT / 2);
-
-              const dx = targetX - originX;
-              const dy = targetY - originY;
-              const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-              const speed = 520;
-
-              const laser: Projectile = {
-                id: `spiral-laser-${Date.now()}-${Math.random()}`,
-                x: originX,
-                y: originY,
-                velocityX: (dx / dist) * speed,
-                velocityY: (dy / dist) * speed,
-                damage: 5,
-                type: 'normal',
+            // DROP BOMB while spiraling - every 1.5 seconds
+            const bombCooldown = (enemy.bombCooldown || 0) - delta;
+            if (bombCooldown <= 0 && enemy.x < prev.cameraX + 600 && spiralX > prev.player.x) {
+              // Drop a bomb from center of body
+              const newBomb: Bomb = {
+                id: `spiral-bomb-${Date.now()}-${Math.random()}`,
+                x: spiralX + enemy.width / 2, // Center of body
+                y: spiralY + enemy.height / 2, // Center of body
+                velocityY: -180, // Falls down
+                damage: enemy.damage,
+                timer: 5,
               };
-              newState.enemyLasers = [...newState.enemyLasers, laser];
-              newState.particles = [...newState.particles, ...createParticles(originX, originY, 3, 'muzzle', '#ff00ff')];
+              newState.bombs = [...(newState.bombs || []), newBomb];
+              newState.particles = [...newState.particles, ...createParticles(spiralX + enemy.width/2, spiralY + enemy.height/2, 5, 'muzzle', '#ff8800')];
               
               return {
                 ...enemy,
@@ -2647,7 +2666,7 @@ export const useGameState = () => {
                 y: spiralY,
                 spiralAngle: newSpiralAngle,
                 spiralCenterX: centerX,
-                attackCooldown: 0.6,
+                bombCooldown: 1.5 + Math.random() * 0.5, // Bomb cooldown
                 animationPhase: newAnimPhase,
               };
             }
@@ -2658,12 +2677,12 @@ export const useGameState = () => {
               y: spiralY,
               spiralAngle: newSpiralAngle,
               spiralCenterX: centerX,
-              attackCooldown: Math.max(0, enemy.attackCooldown - delta),
+              bombCooldown: Math.max(0, bombCooldown),
               animationPhase: newAnimPhase,
             };
           }
 
-          // DRONE VERTICAL FLYING PATTERN - fly up and down the screen (non-spiral)
+          // DRONE VERTICAL FLYING PATTERN - fly back and forth, slow to bomb, retreat
           if (enemy.type === 'drone' || enemy.type === 'flyer') {
             // Vertical movement - drones fly UP and DOWN the screen
             const verticalSpeed = 2.5;
@@ -2677,6 +2696,7 @@ export const useGameState = () => {
             // RETREAT BEHAVIOR - zoom back HALFWAY, then attack again!
             const RETREAT_DISTANCE = 100; // Distance at which flying enemies retreat
             const RETREAT_SPEED = 400; // How fast they zoom back
+            const BOMB_AOE_RANGE = 120; // AOE range for bombs
             
             if (enemy.isRetreating) {
               // Calculate halfway point between current position and original
@@ -2690,14 +2710,14 @@ export const useGameState = () => {
               const distToHalfway = Math.sqrt(dxToHalfway * dxToHalfway + dyToHalfway * dyToHalfway);
               
               if (distToHalfway < 40) {
-                // Reached halfway position, stop retreating and prepare to attack again
+                // Reached halfway position, stop retreating and prepare to bomb again
                 return { 
                   ...enemy, 
                   x: halfwayX, 
                   y: halfwayY, 
                   isRetreating: false,
                   animationPhase: newAnimPhase,
-                  attackCooldown: 0.8, // Short cooldown before attacking again
+                  bombCooldown: 1.0 + Math.random() * 0.5, // Short cooldown before bombing again
                 };
               }
               
@@ -2713,39 +2733,27 @@ export const useGameState = () => {
               };
             }
             
-            // Check if close to hero and ready to attack - ATTACK FIRST then retreat!
-            if (distToHero < RETREAT_DISTANCE && distToHero > 0 && enemy.attackCooldown <= 0) {
-              // Prefer targeting a support unit in front of the hero; otherwise target hero
-              const targetUnit = (newState.supportUnits || [])
-                .filter(u => !u.isLanding && !u.isSelfDestructing && u.health > 0 && u.x < enemy.x)
-                .sort((a, b) => (enemy.x - a.x) - (enemy.x - b.x))[0];
-
-              const originX = enemy.x - 8;
-              const originY = targetY + enemy.height / 2;
-              const targetX = targetUnit ? (targetUnit.x + targetUnit.width / 2) : (prev.player.x + PLAYER_WIDTH / 2);
-              const targetY2 = targetUnit ? (targetUnit.y + targetUnit.height / 2) : (prev.player.y + PLAYER_HEIGHT / 2);
-
-              const dx = targetX - originX;
-              const dy = targetY2 - originY;
-              const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-              const speed = 650;
-
-              // Fire attack before retreating!
-              const enemyLaser: Projectile = {
-                id: `elaser-${Date.now()}-${Math.random()}`,
-                x: originX,
-                y: originY,
-                velocityX: (dx / dist) * speed,
-                velocityY: (dy / dist) * speed,
-                damage: 8,
-                type: 'normal',
-              };
-              newState.enemyLasers = [...newState.enemyLasers, enemyLaser];
+            // Check if close to hero and ready to DROP BOMB - then retreat!
+            const bombCooldown = (enemy.bombCooldown || 0) - delta;
+            if (distToHero < BOMB_AOE_RANGE && distToHero > 0 && bombCooldown <= 0) {
+              // Drop bomb from CENTER OF BODY
+              const centerX = enemy.x + enemy.width / 2;
+              const centerY = enemy.y + enemy.height / 2;
               
-              // Attack particles
+              const newBomb: Bomb = {
+                id: `drone-bomb-${Date.now()}-${Math.random()}`,
+                x: centerX, // Center of body
+                y: centerY, // Center of body
+                velocityY: -180, // Falls down
+                damage: enemy.damage,
+                timer: 5,
+              };
+              newState.bombs = [...(newState.bombs || []), newBomb];
+              
+              // Bomb drop particles from body center
               newState.particles = [
                 ...newState.particles,
-                ...createParticles(originX, originY, 8, 'muzzle', '#00ffff'),
+                ...createParticles(centerX, centerY, 8, 'muzzle', '#ff8800'),
               ];
               
               // Now retreat!
@@ -2754,7 +2762,7 @@ export const useGameState = () => {
                 y: targetY,
                 isRetreating: true,
                 animationPhase: newAnimPhase,
-                attackCooldown: 1.0, // Cooldown for next attack
+                bombCooldown: 1.5 + Math.random() * 0.5, // Cooldown for next bomb
                 originalX: enemy.originalX ?? enemy.x + 150, // Store original position if not set
                 originalY: enemy.originalY ?? targetY,
               };
@@ -2770,7 +2778,7 @@ export const useGameState = () => {
               y: targetY,
               x: enemy.x + horizontalMove,
               animationPhase: newAnimPhase,
-              attackCooldown: Math.max(0, enemy.attackCooldown - delta),
+              bombCooldown: Math.max(0, bombCooldown),
             };
           }
           
@@ -2839,22 +2847,25 @@ export const useGameState = () => {
             const bombCooldown = (enemy.bombCooldown || 0) - delta;
             
             if (isAboveHero && bombCooldown <= 0 && isOnScreen) {
-              // Drop a bomb then retreat!
+              // Drop a bomb from CENTER OF BODY then retreat!
+              const centerX = enemy.x + enemy.width / 2;
+              const centerY = enemy.y + enemy.height / 2;
+              
               const newBomb: Bomb = {
                 id: `bomb-${Date.now()}-${Math.random()}`,
-                x: enemy.x + enemy.width / 2,
-                y: enemy.y,
+                x: centerX, // Center of body
+                y: centerY, // Center of body
                 velocityY: -180, // Falls down
                 damage: enemy.damage,
                 timer: 5,
               };
               newState.bombs = [...(newState.bombs || []), newBomb];
               
-              // Bomb drop visual
+              // Bomb drop visual from body center
               newState.particles = [
                 ...newState.particles,
-                ...createParticles(enemy.x + enemy.width / 2, enemy.y - 10, 12, 'spark', '#ff8800'),
-                ...createParticles(enemy.x + enemy.width / 2, enemy.y, 6, 'muzzle', '#ffaa00'),
+                ...createParticles(centerX, centerY, 12, 'spark', '#ff8800'),
+                ...createParticles(centerX, centerY, 6, 'muzzle', '#ffaa00'),
               ];
               
               // Now retreat after bombing!
@@ -2942,13 +2953,16 @@ export const useGameState = () => {
             const isCloseToHero = distToHero < RETREAT_DISTANCE && distToHero > 0;
             
             if (isCloseToHero && attackCooldown <= 0 && isOnScreen) {
-              // Fire PROJECTILE instead of beam then retreat!
+              // Fire PROJECTILE from CENTER OF BODY then retreat!
+              const centerX = enemy.x + enemy.width / 2;
+              const centerY = targetY + enemy.height / 2;
+              
               const jetProjectile: Projectile = {
                 id: `jetrobot-proj-${Date.now()}-${Math.random()}`,
-                x: enemy.x - 10,
-                y: targetY + enemy.height / 2,
+                x: centerX, // Center of body
+                y: centerY, // Center of body
                 velocityX: -650,
-                velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - targetY - enemy.height / 2) * 0.4,
+                velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - centerY) * 0.4,
                 damage: 10,
                 type: 'mega',
               };
@@ -2956,7 +2970,7 @@ export const useGameState = () => {
               
               newState.particles = [
                 ...newState.particles,
-                ...createParticles(enemy.x, targetY + enemy.height / 2, 12, 'spark', '#00ffff'),
+                ...createParticles(centerX, centerY, 12, 'spark', '#00ffff'),
               ];
               
               // Now retreat halfway!
@@ -3055,13 +3069,16 @@ export const useGameState = () => {
 
           // SENTINEL LASER ATTACK - powerful ground mech with screen flash!
           if (enemy.type === 'sentinel' && canRangedAttack && enemy.attackCooldown <= 0 && Math.random() > 0.5) {
-            // Sentinel fires POWERFUL laser with screen flash effect!
+            // Sentinel fires POWERFUL laser from CENTER OF BODY with screen flash effect!
+            const centerX = enemy.x + enemy.width / 2;
+            const centerY = currentY + enemy.height / 2;
+            
             const sentinelLaser: Projectile = {
               id: `sentinel-laser-${Date.now()}-${Math.random()}`,
-              x: enemy.x - 10,
-              y: currentY + enemy.height * 0.4,
+              x: centerX, // Center of body
+              y: centerY, // Center of body
               velocityX: -600,
-              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - currentY - enemy.height * 0.4) * 0.3,
+              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - centerY) * 0.3,
               damage: 18,
               type: 'ultra',
             };
@@ -3071,11 +3088,11 @@ export const useGameState = () => {
             newState.redFlash = 0.4;
             newState.screenShake = 0.35;
             
-            // Hot pink laser muzzle flash particles
+            // Hot pink laser muzzle flash particles at center
             newState.particles = [
               ...newState.particles, 
-              ...createParticles(enemy.x - 5, currentY + enemy.height * 0.4, 15, 'laser', '#ff0066'),
-              ...createParticles(enemy.x - 5, currentY + enemy.height * 0.4, 10, 'muzzle', '#ff00ff'),
+              ...createParticles(centerX, centerY, 15, 'laser', '#ff0066'),
+              ...createParticles(centerX, centerY, 10, 'muzzle', '#ff00ff'),
             ];
             
             return { 
@@ -3087,25 +3104,28 @@ export const useGameState = () => {
             };
           }
 
-          // ROCKET/RANGED ATTACK - when further from hero
           if (canRangedAttack && enemy.attackCooldown <= 0 && Math.random() > 0.6 && enemy.type !== 'sentinel') {
-            // Different projectile based on enemy type
+            // Different projectile based on enemy type - FIRE FROM CENTER OF BODY
             const isHeavy = enemy.type === 'mech' || enemy.type === 'tank';
             const rocketSpeed = isHeavy ? -380 : -450;
             const rocketDamage = isHeavy ? 14 : 9;
             
+            // Center of body calculation
+            const centerX = enemy.x + enemy.width / 2;
+            const centerY = currentY + enemy.height / 2;
+            
             const rocket: Projectile = {
               id: `rocket-${Date.now()}-${Math.random()}`,
-              x: enemy.x - 10,
-              y: currentY + enemy.height / 2,
+              x: centerX, // Center of body
+              y: centerY, // Center of body
               velocityX: rocketSpeed,
-              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - currentY - enemy.height / 2) * 0.5,
+              velocityY: (prev.player.y + PLAYER_HEIGHT / 2 - centerY) * 0.5,
               damage: rocketDamage,
               type: isHeavy ? 'mega' : 'normal',
             };
             newState.enemyLasers = [...newState.enemyLasers, rocket];
             
-            // Rocket launch particles
+            // Rocket launch particles at body center
             newState.particles = [
               ...newState.particles, 
               ...createParticles(enemy.x - 5, currentY + enemy.height / 2, 8, 'muzzle', '#ff8800'),
