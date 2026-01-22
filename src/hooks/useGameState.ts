@@ -11,7 +11,7 @@ const GROUND_Y = 160; // Original ground level
 const PLAYER_WIDTH = 32;
 const PLAYER_HEIGHT = 48;
 const BASE_LEVEL_LENGTH = 12000;
-const MAX_WAVES = 1000;
+const MAX_WAVES = 10;
 const HELP_REQUEST_DELAY = 8000;
 const KILL_RADIUS = 70;
 const ENEMY_MIN_DISTANCE = 100;
@@ -21,7 +21,7 @@ const ROCKET_ATTACK_RANGE = 350;
 const BOSS_FIREBALL_INTERVAL = 4;
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
 const BOSS_KEEP_DISTANCE = 400;
-const HERO_FIXED_SCREEN_X = 50; // Hero on LEFT side of screen (moved slightly left)
+const HERO_FIXED_SCREEN_X = 30; // Hero on FAR LEFT side of screen
 const ENEMY_ATTACK_DELAY = 2;
 const PARTICLE_LIFETIME = 3;
 const EVASION_CHANCE = 1 / 15;
@@ -613,29 +613,29 @@ export const useGameState = () => {
   const lastUpdateRef = useRef<number>(Date.now());
   const helpRequestTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // PERFORMANCE: Aggressive particle limits
-  const MAX_PARTICLES = 6;
-  const MAX_SUPPORT_PROJECTILES = 3;
+  // PERFORMANCE: Aggressive particle and FX limits - reduce lag
+  const MAX_PARTICLES = 4;
+  const MAX_SUPPORT_PROJECTILES = 2;
 
   // Particle pool - reuse particle objects instead of creating new ones
   const particlePoolRef = useRef<Particle[]>([]);
   
   const createParticles = useCallback((x: number, y: number, count: number, type: Particle['type'], color?: string): Particle[] => {
-    // PERFORMANCE: Skip particle creation entirely for non-essential types
-    if (type === 'spark' || type === 'muzzle') return [];
+    // PERFORMANCE: Skip ALL non-essential particle creation to reduce lag
+    if (type === 'spark' || type === 'magic' || type === 'neon') return [];
     
     const colors = ['#ff00ff', '#00ffff', '#ffff00'];
     
-    // Only create 1 particle max
+    // Only create 1 particle max with very short life
     const particle: Particle = {
       id: `p-${Date.now()}`,
       x,
       y,
-      velocityX: (Math.random() - 0.5) * 100,
-      velocityY: (Math.random() - 0.8) * 100,
+      velocityX: (Math.random() - 0.5) * 80,
+      velocityY: (Math.random() - 0.8) * 80,
       color: color || colors[Math.floor(Math.random() * colors.length)],
-      size: 3 + Math.random() * 2,
-      life: 0.05 + Math.random() * 0.08, // Very short lifespan (50-130ms)
+      size: 2 + Math.random() * 2,
+      life: 0.03 + Math.random() * 0.05, // Extremely short lifespan (30-80ms)
       type,
     };
     return [particle];

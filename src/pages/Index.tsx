@@ -246,16 +246,16 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Main Game Content - TikTok Live 9:16 optimized with space for TikTok UI */}
-      <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-12 pb-0">
-        {/* Game Arena - Full width for standard smartphone screens */}
+      {/* Main Game Content - TikTok Live 9:16 optimized - FULL WIDTH */}
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-10 pb-0">
+        {/* Game Arena - FULL WIDTH - fills entire screen width */}
         <div 
-          className="flex-1 min-h-0 relative overflow-hidden mx-auto w-full"
+          className="flex-1 min-h-0 relative overflow-hidden w-full"
           style={{ 
-            maxHeight: 'calc(100dvh - 120px)',
-            maxWidth: '100%', // Full width for smartphones
-            width: '100%',
-            transform: 'scale(0.75)', // Slightly larger scale for better visibility
+            maxHeight: 'calc(100dvh - 100px)',
+            width: '100vw',
+            marginLeft: 'calc(-50vw + 50%)', // Expand to full viewport width
+            transform: 'scale(0.78)',
             transformOrigin: 'center top',
           }}
         >

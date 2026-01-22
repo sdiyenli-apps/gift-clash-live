@@ -99,15 +99,16 @@ export const Arena = ({ gameState }: ArenaProps) => {
   
   return (
     <div 
-      className="w-full h-full rounded-lg overflow-hidden relative"
+      className="w-full h-full overflow-hidden relative"
       style={{
         boxShadow: isBossFight 
           ? '0 0 20px rgba(255,0,0,0.5), inset 0 0 30px rgba(255,0,0,0.15)' 
           : player.isMagicDashing 
             ? '0 0 15px rgba(255,0,255,0.4), inset 0 0 25px rgba(255,0,255,0.15)' 
-            : 'inset 0 0 20px rgba(0, 255, 255, 0.08)',
+            : 'none',
         transform: `translate(${shakeX}px, ${shakeY}px)`,
         background: '#0a0a15',
+        borderRadius: 0,
       }}
     >
       {/* Mini-map - positioned at top for visibility */}
