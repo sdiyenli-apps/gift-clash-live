@@ -57,7 +57,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: parallaxX,
-              bottom: 118, // Aligned with floor level
+              bottom: 78, // Aligned with movement zone floor level
               width: 80 + ((x * 3) % 60),
               height,
               background: `linear-gradient(180deg, ${currentZone.color}22, transparent)`,
@@ -92,7 +92,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             left: screenX,
             bottom: 0,
             width: 102,
-            height: 80,
+            height: 80, // Matches movement zone floor
           }}
         >
           {/* Main ground */}
@@ -198,7 +198,7 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
             className="absolute"
             style={{
               left: screenX,
-              bottom: 118, // Aligned with floor level
+              bottom: 78, // Aligned with movement zone floor level
               width: obstacle.width,
               height: obstacle.height,
             }}
@@ -275,27 +275,27 @@ export const Level = ({ obstacles, cameraX, distance, levelLength, isUltraMode }
         />
       </div>
       
-      {/* Zone name indicator */}
+      {/* Zone name indicator - HALF SIZE, TOP RIGHT CORNER */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentZone.name}
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="absolute top-20 left-1/2 -translate-x-1/2 z-20"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 20 }}
+          className="absolute top-2 right-2 z-20"
         >
           <div 
-            className="px-6 py-2 rounded-lg backdrop-blur-sm border"
+            className="px-2 py-0.5 rounded backdrop-blur-sm border"
             style={{
               background: `${currentZone.color}22`,
               borderColor: `${currentZone.color}66`,
             }}
           >
             <span 
-              className="font-bold text-sm tracking-widest"
+              className="font-bold text-[8px] tracking-wide"
               style={{ color: currentZone.color }}
             >
-              ZONE {zoneIndex + 1}: {currentZone.name}
+              Z{zoneIndex + 1}: {currentZone.name}
             </span>
           </div>
         </motion.div>

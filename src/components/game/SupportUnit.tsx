@@ -35,11 +35,11 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   // Check if currently attacking (cooldown just started)
   const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : 0.4);
   
-  // Calculate bottom position - account for self-destruct flying up and larger units
-  // Adjusted for TikTok view - allies positioned left near hero, moved down 10px
-  const baseBottom = isMech ? 120 : 135; // Ground level aligned with hero (down 10px)
-  const selfDestructYOffset = isSelfDestructing ? (unit.y - 160) : 0; // unit.y tracks actual Y during self-destruct
-  const leftOffset = -50; // Move allies further left to be near hero
+  // Allies positioned in movement zone - one above hero, one below
+  // Movement zone Y range: 80 (bottom) to 150 (top)
+  const baseBottom = isMech ? 130 : 100; // Mech above hero, Walker below (within zone)
+  const selfDestructYOffset = isSelfDestructing ? (unit.y - 100) : 0;
+  const leftOffset = -30; // Allies near hero on left
   
   return (
     <motion.div
