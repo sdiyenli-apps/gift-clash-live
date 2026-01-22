@@ -315,9 +315,10 @@ const Index = () => {
                 disabled={gameState.phase !== 'playing'}
                 collectedAllyPowerups={gameState.collectedAllyPowerups || 0}
                 collectedUltPowerups={gameState.collectedUltPowerups || 0}
-                allyCharges={gameState.allyCharges || 0}
+                collectedTankPowerups={gameState.collectedTankPowerups || 0}
                 onUseAlly={() => handleTriggerGift('robot')}
                 onUseUlt={() => handleTriggerGift('galaxy')}
+                onUseTank={() => handleTriggerGift('tank_special')}
               />
             </div>
           </div>

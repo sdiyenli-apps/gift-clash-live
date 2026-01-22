@@ -59,7 +59,7 @@ export interface SupportUnit {
   maxHealth: number;
   shield: number;
   maxShield: number;
-  type: 'mech' | 'walker';
+  type: 'mech' | 'walker' | 'tank'; // Tank is rare drop with armor + laser
   timer: number; // Seconds remaining
   attackCooldown: number;
   isLanding?: boolean;
@@ -67,6 +67,8 @@ export interface SupportUnit {
   isSelfDestructing?: boolean; // Flying forward to explode
   selfDestructTimer?: number;
   targetEnemyId?: string; // Enemy being targeted for self-destruct
+  hasArmor?: boolean; // Tank has 5 second armor
+  armorTimer?: number;
 }
 
 export interface Enemy {
@@ -113,7 +115,7 @@ export interface Enemy {
   armorUsed?: boolean;
   // Elite enemy system - drops powerups when killed
   isElite?: boolean;
-  eliteDropType?: 'ally' | 'ult'; // What powerup this elite drops
+  eliteDropType?: 'ally' | 'ult' | 'tank'; // What powerup this elite drops
 }
 
 // Bomb dropped by bomber enemies

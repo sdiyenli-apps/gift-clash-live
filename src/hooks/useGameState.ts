@@ -133,7 +133,7 @@ interface Powerup {
   id: string;
   x: number;
   y: number;
-  type: 'ally' | 'ult';
+  type: 'ally' | 'ult' | 'tank'; // Tank is rare drop
   timer: number; // Time before despawn
 }
 
@@ -169,10 +169,11 @@ interface ExtendedGameState extends GameState {
   gameStartTime: number;
   particleResetTimer: number;
   evasionPopup: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
-  // Powerup system - elites drop ally/ult powerups
+  // Powerup system - elites drop ally/ult/tank powerups
   powerups: Powerup[];
-  collectedAllyPowerups: number; // Collected this wave
-  collectedUltPowerups: number; // Collected this wave
+  collectedAllyPowerups: number; // Collected this wave (usable)
+  collectedUltPowerups: number; // Collected this wave (usable)
+  collectedTankPowerups: number; // Collected tank powerups (usable)
   elitesSpawnedThisWave: number; // Track elite spawns (max 4 per wave)
 }
 
@@ -245,24 +246,40 @@ const INITIAL_STATE: ExtendedGameState = {
   powerups: [],
   collectedAllyPowerups: 0,
   collectedUltPowerups: 0,
+  collectedTankPowerups: 0,
   elitesSpawnedThisWave: 0,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
 const ENEMY_TYPES = ['robot', 'drone', 'mech', 'ninja', 'tank', 'giant', 'bomber', 'sentinel'] as const;
-// Each enemy type gets roughly equal chance (12.5% each for 8 types)
-const EQUAL_SPAWN_CHANCE = 1 / 8; // ~12.5% each
 
-// Enemy size multipliers for variety
-const ENEMY_SIZE_MULTIPLIERS: Record<string, number> = {
-  robot: 0.9 + Math.random() * 0.3,    // 0.9-1.2x
-  drone: 0.8 + Math.random() * 0.3,    // 0.8-1.1x
-  mech: 1.0 + Math.random() * 0.4,     // 1.0-1.4x
-  ninja: 0.85 + Math.random() * 0.2,   // 0.85-1.05x
-  tank: 1.1 + Math.random() * 0.4,     // 1.1-1.5x
-  giant: 1.3 + Math.random() * 0.5,    // 1.3-1.8x
-  bomber: 0.9 + Math.random() * 0.25,  // 0.9-1.15x - ONLY BOMBER USES BOMBS
-  sentinel: 1.0 + Math.random() * 0.35, // 1.0-1.35x
+// Enemy sizes based on type - calculated relative to screen (arena ~400px height, ~600px width)
+// Base sizes are designed so smallest fits ~8% of height, largest ~25% of height
+const ENEMY_BASE_SIZES: Record<string, { width: number; height: number }> = {
+  robot: { width: 45, height: 52 },     // Small ground unit
+  drone: { width: 38, height: 38 },     // Small flying unit  
+  mech: { width: 55, height: 60 },      // Medium ground unit
+  ninja: { width: 40, height: 48 },     // Small fast unit
+  tank: { width: 70, height: 65 },      // Large slow unit
+  giant: { width: 90, height: 100 },    // Very large unit
+  bomber: { width: 50, height: 45 },    // Medium flying unit
+  sentinel: { width: 75, height: 80 },  // Large ranged unit
+  boss: { width: 180, height: 180 },    // Boss unit base
+  jetrobot: { width: 55, height: 50 },  // Medium flying unit
+  flyer: { width: 42, height: 42 },     // Small flying unit
+};
+
+// Get scaled enemy size based on wave and type
+const getEnemySize = (type: string, wave: number, isElite: boolean = false) => {
+  const base = ENEMY_BASE_SIZES[type] || { width: 50, height: 55 };
+  // Wave scaling: enemies get slightly larger each wave (max 1.3x at wave 100)
+  const waveScale = 1 + Math.min(wave * 0.003, 0.3);
+  // Elite enemies are 1.3x larger
+  const eliteScale = isElite ? 1.3 : 1;
+  return {
+    width: Math.floor(base.width * waveScale * eliteScale),
+    height: Math.floor(base.height * waveScale * eliteScale),
+  };
 };
 
 const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[], levelLength: number, gameStartTime: number } => {
@@ -287,42 +304,46 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     if (typeRoll < 0.125) {
       // ROBOT - ground unit
       enemyType = 'robot';
-      const robotSize = 0.9 + Math.random() * 0.3;
-      width = Math.floor(50 * robotSize); height = Math.floor(58 * robotSize); health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
+      const size = getEnemySize('robot', wave);
+      width = size.width; height = size.height;
+      health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
     } else if (typeRoll < 0.25) {
       // MECH - ground unit
       enemyType = 'mech';
-      const mechSize = 1.0 + Math.random() * 0.4;
-      width = Math.floor(55 * mechSize); height = Math.floor(60 * mechSize);
+      const size = getEnemySize('mech', wave);
+      width = size.width; height = size.height;
       health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; damage = 16 + wave;
     } else if (typeRoll < 0.375) {
       // TANK - ground unit
       enemyType = 'tank';
-      const tankSize = 1.1 + Math.random() * 0.4;
-      width = Math.floor(70 * tankSize); height = Math.floor(65 * tankSize); health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; damage = 22 + wave;
+      const size = getEnemySize('tank', wave);
+      width = size.width; height = size.height;
+      health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; damage = 22 + wave;
     } else if (typeRoll < 0.5) {
       // SENTINEL - Large ground mech - uses projectiles now
       enemyType = 'sentinel';
-      const sentinelSize = 1.0 + Math.random() * 0.35;
-      width = Math.floor(75 * sentinelSize); height = Math.floor(80 * sentinelSize);
+      const size = getEnemySize('sentinel', wave);
+      width = size.width; height = size.height;
       health = 220 * (1 + waveBonus);
       speed = 35 + wave * 1.5; 
       damage = 25 + wave;
     } else if (typeRoll < 0.625) {
       // NINJA - ground unit (fast)
       enemyType = 'ninja';
-      const ninjaSize = 0.85 + Math.random() * 0.2;
-      width = Math.floor(45 * ninjaSize); height = Math.floor(52 * ninjaSize); health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; damage = 12 + wave;
+      const size = getEnemySize('ninja', wave);
+      width = size.width; height = size.height;
+      health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; damage = 12 + wave;
     } else if (typeRoll < 0.75) {
       // GIANT - large ground unit
       enemyType = 'giant';
-      const giantSize = 1.3 + Math.random() * 0.5;
-      width = Math.floor(90 * giantSize); height = Math.floor(100 * giantSize); health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
+      const size = getEnemySize('giant', wave);
+      width = size.width; height = size.height;
+      health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
     } else if (typeRoll < 0.875) {
       // DRONE - flying enemy - uses BOMBS ONLY (no projectiles)
       enemyType = 'drone';
-      const droneSize = 0.8 + Math.random() * 0.3;
-      width = Math.floor(50 * droneSize); height = Math.floor(50 * droneSize);
+      const size = getEnemySize('drone', wave);
+      width = size.width; height = size.height;
       health = 32 * (1 + waveBonus * 0.5); 
       speed = 90 + wave * 3; 
       damage = 7 + Math.floor(wave / 2);
@@ -361,8 +382,8 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     } else {
       // BOMBER - ONLY enemy type that drops bombs!
       enemyType = 'bomber';
-      const bomberSize = 0.9 + Math.random() * 0.25;
-      width = Math.floor(55 * bomberSize); height = Math.floor(50 * bomberSize); 
+      const size = getEnemySize('bomber', wave);
+      width = size.width; height = size.height;
       health = 50 * (1 + waveBonus * 0.6); 
       speed = 60 + wave * 2; 
       damage = 15 + wave;
@@ -396,19 +417,22 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     const groundLevels = [GROUND_Y_TOP, GROUND_Y_MIDDLE, GROUND_Y_BOTTOM];
     const enemyGroundY = groundLevels[Math.floor(Math.random() * groundLevels.length)];
     
-    // Check if this should be an ELITE enemy (4 per wave max - 2 ally drops, 2 ult drops)
+    // Check if this should be an ELITE enemy (5 per wave max - 2 ally, 2 ult, 1 tank)
     const currentEliteCount = enemies.filter(e => e.isElite).length;
-    const shouldBeElite = currentEliteCount < 4 && Math.random() < 0.08; // ~8% chance, capped at 4
-    let eliteDropType: 'ally' | 'ult' | undefined = undefined;
+    const shouldBeElite = currentEliteCount < 5 && Math.random() < 0.08; // ~8% chance, capped at 5
+    let eliteDropType: 'ally' | 'ult' | 'tank' | undefined = undefined;
     
     if (shouldBeElite) {
-      // Alternate between ally and ult drops
+      // Distribute drops: 2 ally, 2 ult, 1 tank (rare)
       const allyElites = enemies.filter(e => e.isElite && e.eliteDropType === 'ally').length;
       const ultElites = enemies.filter(e => e.isElite && e.eliteDropType === 'ult').length;
+      const tankElites = enemies.filter(e => e.isElite && e.eliteDropType === 'tank').length;
       if (allyElites < 2) {
         eliteDropType = 'ally';
       } else if (ultElites < 2) {
         eliteDropType = 'ult';
+      } else if (tankElites < 1) {
+        eliteDropType = 'tank'; // Rare tank drop
       }
     }
     
@@ -679,7 +703,6 @@ export const useGameState = () => {
         bossFireballTimer: BOSS_FIREBALL_INTERVAL,
         bossMegaAttackUsed: false,
         redFlash: 0,
-        armorTimer: 0,
         enemyLasers: [],
         chickens: [],
         magicFlash: 0,
@@ -692,6 +715,14 @@ export const useGameState = () => {
         // Reset game timing
         gameStartTime,
         particleResetTimer: PARTICLE_LIFETIME,
+        // Reset support units and projectiles for clean start
+        supportUnits: [],
+        supportProjectiles: [],
+        bombs: [],
+        empGrenades: [],
+        powerups: [],
+        // Keep collected powerups between waves (they persist)
+        // Powerups are not reset, allowing players to save them
       }));
       showSpeechBubble(`WAVE ${nextWave} BEGINS! 🔥💪`, 'excited');
     }
@@ -809,6 +840,28 @@ export const useGameState = () => {
     });
     
     return supportUnits;
+  };
+
+  // Create tank support unit - rare drop with armor and lasers
+  const createTankSupport = (playerX: number, playerY: number): SupportUnit => {
+    return {
+      id: `support-tank-${Date.now()}-${Math.random()}`,
+      x: playerX + 100,
+      y: GROUND_Y,
+      width: 100,
+      height: 70,
+      health: 150,
+      maxHealth: 150,
+      shield: 0,
+      maxShield: 0,
+      type: 'tank',
+      timer: 10, // 10 seconds duration
+      attackCooldown: 0,
+      isLanding: true,
+      landingTimer: 0.8,
+      hasArmor: true, // Starts with armor
+      armorTimer: 5, // 5 seconds of armor
+    };
   };
 
   // Process gift actions
@@ -942,6 +995,13 @@ export const useGameState = () => {
           break;
           
         case 'magic_dash':
+          // Check if ULT powerup is available (collected from elite kills)
+          if ((prev.collectedUltPowerups || 0) <= 0) {
+            showSpeechBubble("🚀 NO ULT POWERUPS! KILL ELITES! 🚀", 'normal');
+            break;
+          }
+          
+          newState.collectedUltPowerups = (prev.collectedUltPowerups || 0) - 1; // Deduct powerup
           newState.player = {
             ...prev.player,
             isMagicDashing: true,
@@ -970,7 +1030,7 @@ export const useGameState = () => {
           }
           newState.neonLasers = [...prev.neonLasers.slice(-4), ...newNeonLasers]; // Limit total
           
-          showSpeechBubble("🦁 RAWWWWR! NEON FURY! 🦁", 'excited');
+          showSpeechBubble(`🦁 SPACESHIP MODE! [${newState.collectedUltPowerups} left] 🦁`, 'excited');
           break;
 
         case 'spawn_enemies' as GiftAction:
@@ -1018,9 +1078,9 @@ export const useGameState = () => {
           break;
 
         case 'summon_support' as GiftAction:
-          // Check if ally is available (has charges)
-          if (prev.allyCharges <= 0) {
-            showSpeechBubble("🤖 ALLIES RECHARGING... 🤖", 'normal');
+          // Check if ally powerup is available (collected from elite kills)
+          if ((prev.collectedAllyPowerups || 0) <= 0) {
+            showSpeechBubble("🤖 NO ALLY POWERUPS! KILL ELITES! 🤖", 'normal');
             break;
           }
           
@@ -1031,20 +1091,49 @@ export const useGameState = () => {
             break;
           }
           
+          // Deduct powerup
+          newState.collectedAllyPowerups = (prev.collectedAllyPowerups || 0) - 1;
+          
           // Summon BOTH mech and walker - one of each type
           const allySupportUnits = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield, activeAllies);
           // Only add up to 2 total active allies
           const unitsToAdd = allySupportUnits.slice(0, 2 - activeAllies);
           newState.supportUnits = [...prev.supportUnits, ...unitsToAdd];
-          newState.allyCharges = prev.allyCharges - 1;
-          newState.allyCooldown = 10;
           newState.particles = [
             ...prev.particles, 
             ...createParticles(prev.player.x - 50, 400, 8, 'magic', '#00ff88'),
           ];
           newState.screenShake = 0.3;
           newState.score += 200;
-          showSpeechBubble(`🤖 ALLIES DEPLOYED! [${newState.allyCharges}/2] 🤖`, 'excited');
+          showSpeechBubble(`🤖 ALLIES DEPLOYED! [${newState.collectedAllyPowerups} left] 🤖`, 'excited');
+          break;
+          
+        // Hidden action for tank - triggered from UI
+        case 'summon_tank' as unknown as GiftAction:
+          // Check if tank powerup is available (rare drop from elite kills)
+          if ((prev.collectedTankPowerups || 0) <= 0) {
+            showSpeechBubble("🔫 NO TANK POWERUPS! RARE DROP! 🔫", 'normal');
+            break;
+          }
+          
+          // Only 1 tank can be active at once
+          const activeTanks = prev.supportUnits.filter(u => u.type === 'tank' && !u.isSelfDestructing).length;
+          if (activeTanks >= 1) {
+            showSpeechBubble("🔫 TANK ALREADY DEPLOYED! 🔫", 'normal');
+            break;
+          }
+          
+          // Deduct powerup and spawn tank
+          newState.collectedTankPowerups = (prev.collectedTankPowerups || 0) - 1;
+          const tankUnit = createTankSupport(prev.player.x, prev.player.y);
+          newState.supportUnits = [...prev.supportUnits, tankUnit];
+          newState.particles = [
+            ...prev.particles, 
+            ...createParticles(prev.player.x + 100, 400, 12, 'explosion', '#ff8800'),
+          ];
+          newState.screenShake = 0.5;
+          newState.score += 300;
+          showSpeechBubble(`🔫 TANK DEPLOYED! [${newState.collectedTankPowerups} left] 🔫`, 'excited');
           break;
       }
       
@@ -1720,13 +1809,16 @@ export const useGameState = () => {
             // Collected!
             if (powerup.type === 'ally') {
               newState.collectedAllyPowerups = (prev.collectedAllyPowerups || 0) + 1;
-              newState.allyCharges = Math.min(2, (prev.allyCharges || 0) + 1);
               showSpeechBubble("🤖 ALLY POWERUP! 🤖", 'excited');
-            } else {
+            } else if (powerup.type === 'ult') {
               newState.collectedUltPowerups = (prev.collectedUltPowerups || 0) + 1;
               showSpeechBubble("🚀 ULT POWERUP! 🚀", 'excited');
+            } else if (powerup.type === 'tank') {
+              newState.collectedTankPowerups = (prev.collectedTankPowerups || 0) + 1;
+              showSpeechBubble("🔫 TANK POWERUP! RARE! 🔫", 'excited');
             }
-            newState.particles = [...newState.particles, ...createParticles(powerup.x, powerup.y, 20, 'magic', powerup.type === 'ally' ? '#00ff88' : '#ff00ff')];
+            const particleColor = powerup.type === 'ally' ? '#00ff88' : powerup.type === 'tank' ? '#ff8800' : '#ff00ff';
+            newState.particles = [...newState.particles, ...createParticles(powerup.x, powerup.y, 20, 'magic', particleColor)];
             return false;
           }
           // Despawn timer

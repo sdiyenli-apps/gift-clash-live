@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { SupportUnit as SupportUnitType } from '@/types/game';
 import supportMech from '@/assets/support-mech.gif';
 import supportWalker from '@/assets/support-walker.gif';
+import supportTank from '@/assets/support-tank.gif';
 
 interface SupportUnitProps {
   unit: SupportUnitType;
@@ -13,18 +14,28 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   
   if (screenX < -150 || screenX > 750) return null;
   
-  const sprite = unit.type === 'mech' ? supportMech : supportWalker;
-  const glowColor = unit.type === 'mech' ? '#ff8800' : '#00ff88';
+  // Get sprite based on type
+  const getSprite = () => {
+    switch (unit.type) {
+      case 'tank': return supportTank;
+      case 'mech': return supportMech;
+      default: return supportWalker;
+    }
+  };
+  
+  const sprite = getSprite();
+  const glowColor = unit.type === 'mech' ? '#ff8800' : unit.type === 'tank' ? '#ff6600' : '#00ff88';
   const healthPercent = (unit.health / unit.maxHealth) * 100;
   const shieldPercent = unit.maxShield > 0 ? (unit.shield / unit.maxShield) * 100 : 0;
   
-  // Allies sized LARGER for visibility - Metal Slug style proportions
+  // Size based on type
   const isMech = unit.type === 'mech';
-  const baseScale = 0.80; // Allies scaled up for visibility
+  const isTank = unit.type === 'tank';
+  const baseScale = 0.80;
   const displayWidth = unit.width * baseScale;
   const displayHeight = unit.height * baseScale;
   
-  // Landing animation - starts from top of screen
+  // Landing animation
   const isLanding = unit.isLanding && (unit.landingTimer || 0) > 0;
   const landProgress = isLanding ? 1 - ((unit.landingTimer || 0) / 1.2) : 1;
   
@@ -32,13 +43,15 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   const isSelfDestructing = unit.isSelfDestructing;
   const selfDestructProgress = isSelfDestructing ? 1 - ((unit.selfDestructTimer || 1) / 1.0) : 0;
   
-  // Check if currently attacking (cooldown just started)
-  const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : 0.4);
+  // Check if attacking
+  const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : unit.type === 'tank' ? 0.3 : 0.4);
   
-  // Allies positioned LOWER - one above hero, one below
-  const baseBottom = isMech ? 100 : 70; // Much lower positions
+  // Tank has armor indicator
+  const hasArmor = unit.hasArmor && (unit.armorTimer || 0) > 0;
+  
+  const baseBottom = isMech ? 100 : isTank ? 85 : 70;
   const selfDestructYOffset = isSelfDestructing ? (unit.y - 100) : 0;
-  const leftOffset = -30; // Allies near hero on left
+  const leftOffset = -30;
   
   return (
     <motion.div
@@ -48,7 +61,7 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
         bottom: isLanding ? baseBottom + 300 * (1 - landProgress) : baseBottom + selfDestructYOffset,
         width: displayWidth,
         height: displayHeight,
-        zIndex: 24, // Allies on same layer as enemies
+        zIndex: 24,
       }}
       initial={{ opacity: 0, y: -200 }}
       animate={{ 
@@ -74,10 +87,37 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
         />
       )}
       
-      {/* SELF-DESTRUCT MODE - Warning effects */}
+      {/* TANK ARMOR INDICATOR */}
+      {isTank && hasArmor && (
+        <>
+          <motion.div
+            className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-black px-2 py-0.5 rounded whitespace-nowrap"
+            style={{
+              background: 'linear-gradient(135deg, #00aaff, #0066ff)',
+              color: '#fff',
+              boxShadow: '0 0 12px #00aaff',
+            }}
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 0.5, repeat: Infinity }}
+          >
+            🛡️ ARMOR {Math.ceil(unit.armorTimer || 0)}s
+          </motion.div>
+          
+          <motion.div
+            className="absolute inset-0 -m-2 rounded-lg pointer-events-none"
+            style={{
+              border: '3px solid rgba(0,170,255,0.8)',
+              boxShadow: '0 0 20px rgba(0,170,255,0.6), inset 0 0 15px rgba(0,170,255,0.3)',
+            }}
+            animate={{ opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 0.4, repeat: Infinity }}
+          />
+        </>
+      )}
+      
+      {/* SELF-DESTRUCT MODE */}
       {isSelfDestructing && (
         <>
-          {/* Danger warning */}
           <motion.div
             className="absolute -top-10 left-1/2 -translate-x-1/2 text-xs font-black px-2 py-0.5 rounded whitespace-nowrap"
             style={{
@@ -85,16 +125,12 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
               color: '#fff',
               boxShadow: '0 0 15px #ff0000',
             }}
-            animate={{ 
-              scale: [1, 1.2, 1],
-              opacity: [1, 0.7, 1],
-            }}
+            animate={{ scale: [1, 1.2, 1], opacity: [1, 0.7, 1] }}
             transition={{ duration: 0.15, repeat: Infinity }}
           >
             💥 SELF-DESTRUCT 💥
           </motion.div>
           
-          {/* Energy buildup glow */}
           <motion.div
             className="absolute inset-0 -m-4 rounded-full pointer-events-none"
             style={{
@@ -105,7 +141,6 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             transition={{ duration: 0.2, repeat: Infinity }}
           />
           
-          {/* Fire trail behind */}
           <motion.div
             className="absolute left-0 top-1/2 -translate-y-1/2"
             style={{
@@ -119,46 +154,27 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             animate={{ opacity: [0.8, 1, 0.8], scaleY: [0.8, 1.2, 0.8] }}
             transition={{ duration: 0.1, repeat: Infinity }}
           />
-          
-          {/* Sparks */}
-          {[...Array(5)].map((_, i) => (
-            <motion.div
-              key={`spark-${i}`}
-              className="absolute rounded-full"
-              style={{
-                width: 4,
-                height: 4,
-                background: i % 2 === 0 ? '#ffff00' : '#ff4400',
-                left: -10 - i * 8,
-                top: '50%',
-              }}
-              animate={{
-                x: [0, -30 - Math.random() * 30],
-                y: [(i - 2) * 10, (i - 2) * 20],
-                opacity: [1, 0],
-              }}
-              transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.05 }}
-            />
-          ))}
         </>
       )}
       
-      {/* ATTACK EFFECTS - Muzzle flash from TORSO CENTER */}
+      {/* ATTACK EFFECTS - Laser for tank, bullets for others */}
       {isAttacking && !isSelfDestructing && !isLanding && (
         <>
-          {/* Large muzzle flash glow at torso */}
+          {/* Muzzle flash */}
           <motion.div
             className="absolute"
             style={{
-              right: isMech ? -30 : -25,
-              top: '50%', // Torso center
+              right: isTank ? -40 : isMech ? -30 : -25,
+              top: '50%',
               transform: 'translateY(-50%)',
-              width: isMech ? 50 : 40,
-              height: isMech ? 50 : 40,
-              background: isMech 
-                ? 'radial-gradient(circle, #fff, #ffaa00, #ff6600, transparent)'
-                : 'radial-gradient(circle, #fff, #00ffaa, #00ff88, transparent)',
-              borderRadius: '50%',
+              width: isTank ? 60 : isMech ? 50 : 40,
+              height: isTank ? 20 : isMech ? 50 : 40,
+              background: isTank 
+                ? 'linear-gradient(90deg, #ff0066, #ff00ff, #00ffff)'
+                : isMech 
+                  ? 'radial-gradient(circle, #fff, #ffaa00, #ff6600, transparent)'
+                  : 'radial-gradient(circle, #fff, #00ffaa, #00ff88, transparent)',
+              borderRadius: isTank ? '50%' : '50%',
               filter: 'blur(3px)',
             }}
             initial={{ scale: 0, opacity: 0 }}
@@ -166,40 +182,37 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             transition={{ duration: 0.12 }}
           />
           
-          {/* PROJECTILE muzzle flash from torso - NO BEAM, just bullet effect */}
-          <motion.div
-            className="absolute"
-            style={{
-              right: isMech ? -20 : -18,
-              top: '50%', // Torso center
-              transform: 'translateY(-50%)',
-              width: isMech ? 12 : 10,
-              height: isMech ? 12 : 10,
-              background: isMech
-                ? 'radial-gradient(circle, #fff, #ffaa00, #ff6600)'
-                : 'radial-gradient(circle, #fff, #00ff88, #00aa55)',
-              borderRadius: '50%',
-              boxShadow: isMech
-                ? '0 0 15px #ff8800, 0 0 25px #ff4400'
-                : '0 0 12px #00ff88, 0 0 20px #00ffaa',
-            }}
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: [0, 1.5, 0.8], opacity: [0, 1, 0] }}
-            transition={{ duration: 0.12 }}
-          />
+          {/* Tank laser beam effect */}
+          {isTank && (
+            <motion.div
+              className="absolute"
+              style={{
+                right: -80,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: 120,
+                height: 8,
+                background: 'linear-gradient(90deg, #ff0066, #ff00ff, transparent)',
+                boxShadow: '0 0 15px #ff0066, 0 0 30px #ff00ff',
+              }}
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: [0, 1, 0.8], opacity: [0, 1, 0] }}
+              transition={{ duration: 0.15 }}
+            />
+          )}
           
-          {/* Energy rings from torso */}
+          {/* Energy rings */}
           {[0, 1, 2].map(i => (
             <motion.div
               key={`ring-${i}`}
               className="absolute rounded-full"
               style={{
                 right: -10 - i * 20,
-                top: '50%', // Torso center
+                top: '50%',
                 transform: 'translateY(-50%)',
                 width: 16,
                 height: 16,
-                border: `2px solid ${isMech ? '#ffaa00' : '#00ff88'}`,
+                border: `2px solid ${isTank ? '#ff0066' : isMech ? '#ffaa00' : '#00ff88'}`,
                 opacity: 0.8 - i * 0.2,
               }}
               initial={{ scale: 0.5, opacity: 1 }}
@@ -208,36 +221,15 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
             />
           ))}
           
-          {/* Small sparks for bullet fire from torso */}
-          {[...Array(3)].map((_, i) => (
-            <motion.div
-              key={`attack-spark-${i}`}
-              className="absolute rounded-full"
-              style={{
-                right: -15,
-                top: `${45 + i * 5}%`, // Around torso center
-                width: 4,
-                height: 4,
-                background: isMech ? '#ffff00' : '#00ffff',
-                boxShadow: `0 0 5px ${isMech ? '#ff8800' : '#00ff88'}`,
-              }}
-              animate={{
-                x: [0, 30 + Math.random() * 20],
-                y: [(i - 1) * 6, (i - 1) * 12],
-                opacity: [1, 0],
-                scale: [1, 0.3],
-              }}
-              transition={{ duration: 0.18, delay: i * 0.02 }}
-            />
-          ))}
-          
-          {/* Recoil flash on unit */}
+          {/* Recoil flash */}
           <motion.div
             className="absolute inset-0 rounded-lg pointer-events-none"
             style={{
-              background: isMech 
-                ? 'radial-gradient(ellipse at right, rgba(255,136,0,0.4), transparent 60%)'
-                : 'radial-gradient(ellipse at right, rgba(0,255,136,0.3), transparent 60%)',
+              background: isTank 
+                ? 'radial-gradient(ellipse at right, rgba(255,0,102,0.4), transparent 60%)'
+                : isMech 
+                  ? 'radial-gradient(ellipse at right, rgba(255,136,0,0.4), transparent 60%)'
+                  : 'radial-gradient(ellipse at right, rgba(0,255,136,0.3), transparent 60%)',
             }}
             initial={{ opacity: 0 }}
             animate={{ opacity: [0, 0.8, 0] }}
@@ -246,13 +238,13 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
         </>
       )}
       
-      {/* Support unit sprite - faces RIGHT toward enemies */}
+      {/* Support unit sprite */}
       <motion.div
         className="relative w-full h-full"
         animate={{ 
           y: isSelfDestructing ? [0, -5, 0] : [0, -3, 0],
           rotate: isSelfDestructing ? [0, 5, -5, 0] : isAttacking ? [0, -2, 0] : 0,
-          x: isAttacking ? [0, 3, 0] : 0, // Recoil effect
+          x: isAttacking ? [0, 3, 0] : 0,
         }}
         transition={{ duration: isSelfDestructing ? 0.1 : isAttacking ? 0.1 : 0.4, repeat: Infinity }}
       >
@@ -263,29 +255,33 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
           style={{
             filter: isSelfDestructing 
               ? `drop-shadow(0 0 20px #ff4400) brightness(${1 + selfDestructProgress * 0.5})`
-              : isAttacking
-                ? `drop-shadow(0 0 15px ${glowColor}) brightness(1.2)`
-                : `drop-shadow(0 0 12px ${glowColor})`,
+              : hasArmor
+                ? `drop-shadow(0 0 15px #00aaff) brightness(1.1)`
+                : isAttacking
+                  ? `drop-shadow(0 0 15px ${glowColor}) brightness(1.2)`
+                  : `drop-shadow(0 0 12px ${glowColor})`,
           }}
         />
         
-        {/* Ally indicator - hide during self-destruct */}
+        {/* Unit type indicator */}
         {!isSelfDestructing && (
           <motion.div
             className="absolute -top-6 left-1/2 -translate-x-1/2 text-xs font-black px-2 py-0.5 rounded"
             style={{
-              background: 'linear-gradient(135deg, #00ff88, #00aa55)',
-              color: '#000',
+              background: isTank 
+                ? 'linear-gradient(135deg, #ff8800, #ff6600)'
+                : 'linear-gradient(135deg, #00ff88, #00aa55)',
+              color: isTank ? '#fff' : '#000',
               boxShadow: `0 0 8px ${glowColor}`,
             }}
             animate={{ y: [0, -2, 0] }}
             transition={{ duration: 0.5, repeat: Infinity }}
           >
-            ALLY
+            {isTank ? 'TANK' : 'ALLY'}
           </motion.div>
         )}
         
-        {/* Health/Shield bar - changes to red during self-destruct */}
+        {/* Health bar */}
         <div className="absolute -bottom-4 left-0 right-0 h-2 bg-black/60 rounded-full overflow-hidden">
           <div
             className="h-full transition-all duration-200"
@@ -308,7 +304,7 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
           )}
         </div>
         
-        {/* Timer indicator - countdown during self-destruct */}
+        {/* Timer indicator */}
         <div
           className="absolute -bottom-7 left-1/2 -translate-x-1/2 text-xs font-bold"
           style={{ 

@@ -1,14 +1,15 @@
 import { motion } from 'framer-motion';
-import { TIKTOK_GIFTS, GIFT_ACTION_INFO } from '@/types/game';
+import { TIKTOK_GIFTS } from '@/types/game';
 
 interface GiftPanelProps {
   onTriggerGift: (giftId: string) => void;
   disabled: boolean;
   collectedAllyPowerups?: number;
   collectedUltPowerups?: number;
-  allyCharges?: number;
+  collectedTankPowerups?: number;
   onUseAlly?: () => void;
   onUseUlt?: () => void;
+  onUseTank?: () => void;
 }
 
 export const GiftPanel = ({ 
@@ -16,9 +17,10 @@ export const GiftPanel = ({
   disabled, 
   collectedAllyPowerups = 0, 
   collectedUltPowerups = 0,
-  allyCharges = 0,
+  collectedTankPowerups = 0,
   onUseAlly,
   onUseUlt,
+  onUseTank,
 }: GiftPanelProps) => {
   const gifts = Object.values(TIKTOK_GIFTS);
 
@@ -45,7 +47,7 @@ export const GiftPanel = ({
       }}
     >
       {/* Gift Grid + Powerup Buttons */}
-      <div className="grid grid-cols-8 gap-1.5 sm:gap-2">
+      <div className="grid grid-cols-9 gap-1.5 sm:gap-2">
         {/* Regular gift buttons (6) */}
         {gifts.map(gift => {
           const style = getGiftStyle(gift.action);
@@ -63,19 +65,19 @@ export const GiftPanel = ({
                 border: `2px solid ${style.border}`,
                 boxShadow: style.glow,
                 opacity: disabled ? 0.5 : 1,
-                minHeight: '44px',
-                minWidth: '44px',
+                minHeight: '40px',
+                minWidth: '40px',
               }}
             >
               <motion.div 
-                className="text-xl sm:text-2xl"
+                className="text-lg sm:text-xl"
                 animate={{ scale: [1, 1.12, 1] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               >
                 {gift.emoji}
               </motion.div>
               <span 
-                className="text-[6px] sm:text-[7px] font-bold mt-0.5 opacity-80 uppercase tracking-tight"
+                className="text-[5px] sm:text-[6px] font-bold mt-0.5 opacity-80 uppercase tracking-tight"
                 style={{ color: style.border.replace('0.6', '1') }}
               >
                 {gift.action === 'emp_grenade' ? 'EMP' : 
@@ -91,42 +93,42 @@ export const GiftPanel = ({
         
         {/* ALLY Powerup Button */}
         <motion.button
-          whileHover={{ scale: allyCharges > 0 ? 1.08 : 1 }}
-          whileTap={{ scale: allyCharges > 0 ? 0.88 : 1 }}
-          onClick={() => allyCharges > 0 && onUseAlly?.()}
-          disabled={disabled || allyCharges <= 0}
+          whileHover={{ scale: collectedAllyPowerups > 0 ? 1.08 : 1 }}
+          whileTap={{ scale: collectedAllyPowerups > 0 ? 0.88 : 1 }}
+          onClick={() => collectedAllyPowerups > 0 && onUseAlly?.()}
+          disabled={disabled || collectedAllyPowerups <= 0}
           className="relative rounded-xl flex flex-col items-center justify-center aspect-square touch-manipulation"
           style={{
-            background: allyCharges > 0 ? 'rgba(0,255,136,0.3)' : 'rgba(50,50,50,0.5)',
-            border: `2px solid ${allyCharges > 0 ? 'rgba(0,255,136,0.8)' : 'rgba(100,100,100,0.4)'}`,
-            boxShadow: allyCharges > 0 ? '0 0 15px rgba(0,255,136,0.5)' : 'none',
+            background: collectedAllyPowerups > 0 ? 'rgba(0,255,136,0.3)' : 'rgba(50,50,50,0.5)',
+            border: `2px solid ${collectedAllyPowerups > 0 ? 'rgba(0,255,136,0.8)' : 'rgba(100,100,100,0.4)'}`,
+            boxShadow: collectedAllyPowerups > 0 ? '0 0 15px rgba(0,255,136,0.5)' : 'none',
             opacity: disabled ? 0.5 : 1,
-            minHeight: '44px',
-            minWidth: '44px',
+            minHeight: '40px',
+            minWidth: '40px',
           }}
         >
           <motion.div 
-            className="text-xl sm:text-2xl"
-            animate={allyCharges > 0 ? { scale: [1, 1.15, 1] } : {}}
+            className="text-lg sm:text-xl"
+            animate={collectedAllyPowerups > 0 ? { scale: [1, 1.15, 1] } : {}}
             transition={{ duration: 0.8, repeat: Infinity }}
           >
             🤖
           </motion.div>
           <span 
-            className="text-[6px] sm:text-[7px] font-bold mt-0.5 uppercase"
-            style={{ color: allyCharges > 0 ? '#00ff88' : '#666' }}
+            className="text-[5px] sm:text-[6px] font-bold mt-0.5 uppercase"
+            style={{ color: collectedAllyPowerups > 0 ? '#00ff88' : '#666' }}
           >
             ALLY
           </span>
           {/* Collected count badge */}
           <div 
-            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-4 h-4 flex items-center justify-center"
+            className="absolute -top-1 -right-1 rounded-full text-[7px] font-black w-3.5 h-3.5 flex items-center justify-center"
             style={{
-              background: allyCharges > 0 ? '#00ff88' : '#444',
+              background: collectedAllyPowerups > 0 ? '#00ff88' : '#444',
               color: '#000',
             }}
           >
-            {allyCharges}
+            {collectedAllyPowerups}
           </div>
         </motion.button>
         
@@ -142,26 +144,26 @@ export const GiftPanel = ({
             border: `2px solid ${collectedUltPowerups > 0 ? 'rgba(255,0,255,0.8)' : 'rgba(100,100,100,0.4)'}`,
             boxShadow: collectedUltPowerups > 0 ? '0 0 15px rgba(255,0,255,0.5)' : 'none',
             opacity: disabled ? 0.5 : 1,
-            minHeight: '44px',
-            minWidth: '44px',
+            minHeight: '40px',
+            minWidth: '40px',
           }}
         >
           <motion.div 
-            className="text-xl sm:text-2xl"
+            className="text-lg sm:text-xl"
             animate={collectedUltPowerups > 0 ? { rotate: [0, 360] } : {}}
             transition={{ duration: 3, repeat: Infinity }}
           >
             🚀
           </motion.div>
           <span 
-            className="text-[6px] sm:text-[7px] font-bold mt-0.5 uppercase"
+            className="text-[5px] sm:text-[6px] font-bold mt-0.5 uppercase"
             style={{ color: collectedUltPowerups > 0 ? '#ff66ff' : '#666' }}
           >
             ULT
           </span>
           {/* Collected count badge */}
           <div 
-            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-4 h-4 flex items-center justify-center"
+            className="absolute -top-1 -right-1 rounded-full text-[7px] font-black w-3.5 h-3.5 flex items-center justify-center"
             style={{
               background: collectedUltPowerups > 0 ? '#ff00ff' : '#444',
               color: '#fff',
@@ -170,14 +172,55 @@ export const GiftPanel = ({
             {collectedUltPowerups}
           </div>
         </motion.button>
+        
+        {/* TANK Powerup Button - Rare */}
+        <motion.button
+          whileHover={{ scale: collectedTankPowerups > 0 ? 1.08 : 1 }}
+          whileTap={{ scale: collectedTankPowerups > 0 ? 0.88 : 1 }}
+          onClick={() => collectedTankPowerups > 0 && onUseTank?.()}
+          disabled={disabled || collectedTankPowerups <= 0}
+          className="relative rounded-xl flex flex-col items-center justify-center aspect-square touch-manipulation"
+          style={{
+            background: collectedTankPowerups > 0 ? 'rgba(255,136,0,0.3)' : 'rgba(50,50,50,0.5)',
+            border: `2px solid ${collectedTankPowerups > 0 ? 'rgba(255,136,0,0.8)' : 'rgba(100,100,100,0.4)'}`,
+            boxShadow: collectedTankPowerups > 0 ? '0 0 15px rgba(255,136,0,0.5)' : 'none',
+            opacity: disabled ? 0.5 : 1,
+            minHeight: '40px',
+            minWidth: '40px',
+          }}
+        >
+          <motion.div 
+            className="text-lg sm:text-xl"
+            animate={collectedTankPowerups > 0 ? { x: [-2, 2, -2] } : {}}
+            transition={{ duration: 0.3, repeat: Infinity }}
+          >
+            🔫
+          </motion.div>
+          <span 
+            className="text-[5px] sm:text-[6px] font-bold mt-0.5 uppercase"
+            style={{ color: collectedTankPowerups > 0 ? '#ff8800' : '#666' }}
+          >
+            TANK
+          </span>
+          {/* Collected count badge */}
+          <div 
+            className="absolute -top-1 -right-1 rounded-full text-[7px] font-black w-3.5 h-3.5 flex items-center justify-center"
+            style={{
+              background: collectedTankPowerups > 0 ? '#ff8800' : '#444',
+              color: '#000',
+            }}
+          >
+            {collectedTankPowerups}
+          </div>
+        </motion.button>
       </div>
 
       {/* Legend */}
-      <div className="mt-1.5 pt-1.5 border-t border-white/15 flex justify-center gap-2 text-[8px] sm:text-[9px] text-gray-300">
+      <div className="mt-1.5 pt-1.5 border-t border-white/15 flex justify-center gap-2 text-[7px] sm:text-[8px] text-gray-300">
         <span className="flex items-center gap-0.5"><span className="opacity-70">🌹</span>Move</span>
         <span className="flex items-center gap-0.5"><span className="opacity-70">🫰</span>Shoot</span>
         <span className="flex items-center gap-0.5"><span className="opacity-70">⚡</span>EMP</span>
-        <span className="flex items-center gap-0.5 text-yellow-400"><span className="opacity-70">⭐</span>Kill ELITES for 🤖/🚀</span>
+        <span className="flex items-center gap-0.5 text-yellow-400"><span className="opacity-70">⭐</span>Kill ELITES!</span>
       </div>
     </div>
   );
