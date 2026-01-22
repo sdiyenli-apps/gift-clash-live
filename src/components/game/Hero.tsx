@@ -10,19 +10,22 @@ interface HeroProps {
 }
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
-  // Fixed screen position - hero on LEFT side in the movement zone
-  const screenX = 60; // Left side of arena
+  // Fixed screen position - hero on LEFT side
+  const screenX = 60;
   const isEmpowered = isUltraMode || player.isMagicDashing;
   const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
   const isWalking = player.animationState === 'run' || player.animationState === 'dash';
   const isShooting = player.isShooting;
+  
+  // Check if hero is in spaceship mode (during magic dash/ULT)
+  const isSpaceshipMode = player.isMagicDashing;
 
   // Hero sized LARGER for visibility - Metal Slug style proportions
-  const heroWidth = 80;
-  const heroHeight = 85;
+  const heroWidth = isSpaceshipMode ? 100 : 80;
+  const heroHeight = isSpaceshipMode ? 60 : 85;
   
-  // Hero positioned lower on ground (reduced from 110)
-  const flyingHeight = player.isMagicDashing ? 250 : 95; // Lower ground position
+  // Hero positioned lower on ground (reduced to 85), flies high in spaceship mode
+  const flyingHeight = isSpaceshipMode ? 200 : 85;
 
   return (
     <motion.div
@@ -128,114 +131,217 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
         />
       )}
       
-      {/* Hero Character - Captain Squirbert with walking animation */}
+      {/* Hero Character - Normal or SPACESHIP mode during ULT */}
       <motion.div
         className="relative w-full h-full"
       >
-        {/* Shadow */}
+        {/* Shadow - smaller during spaceship mode */}
         <motion.div 
           className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-full opacity-40"
           style={{ 
             background: 'radial-gradient(ellipse, #000, transparent)',
-            width: 50,
-            height: 10,
+            width: isSpaceshipMode ? 70 : 50,
+            height: isSpaceshipMode ? 15 : 10,
           }}
           animate={{
-            scaleX: isWalking ? [1, 0.9, 1] : 1,
+            scaleX: isWalking || isSpaceshipMode ? [1, 0.9, 1] : 1,
           }}
           transition={{ duration: 0.25, repeat: Infinity }}
         />
         
-        {/* Captain Squirbert Image with Walking Animation */}
-        <motion.div
-          className="relative w-full h-full overflow-hidden rounded-lg"
-          style={{
-            filter: isUltraMode || player.isMagicDashing
-              ? 'drop-shadow(0 0 20px #ff00ff) drop-shadow(0 0 35px #00ffff) brightness(1.2)' 
-              : 'drop-shadow(0 0 12px #00ccff) drop-shadow(0 0 20px #0088ff)',
-          }}
-          animate={
-            player.animationState === 'hurt' 
-              ? { x: [-3, 3, -3, 0] } 
-              : isWalking || isEmpowered
-                ? { 
-                    y: [0, -4, 0], // Bobbing up and down
-                    rotate: [-2, 2, -2], // Slight rotation for walking feel
-                  }
-                : {}
-          }
-          transition={
-            isWalking || isEmpowered
-              ? { duration: 0.25, repeat: Infinity, ease: 'easeInOut' }
-              : { duration: 0.1 }
-          }
-        >
-          <motion.img
-            src={heroSprite}
-            alt="Hero"
-            className="w-full h-full object-contain"
-            style={{
-              imageRendering: 'pixelated',
-              // Hero faces right (GIF already faces right direction)
-            }}
-            // Walking/running animation - bob and lean
-            animate={
-              isShooting 
-                ? { scaleX: [1, 0.95, 1], x: [-2, 0] } // Recoil on shoot
-                : isWalking || isEmpowered
-                  ? {
-                      scaleY: [1, 0.97, 1],
-                      scaleX: [1, 1.03, 1],
-                      rotate: [-1, 1, -1],
-                    }
-                  : { scaleY: 1, scaleX: 1 }
-            }
-            transition={{ 
-              duration: isShooting ? 0.1 : 0.15, 
-              repeat: isShooting ? 0 : Infinity,
-              ease: 'easeInOut'
-            }}
-          />
-          
-          {/* Power glow overlay */}
+        {/* SPACESHIP MODE - Transforms hero into a spaceship during ULT */}
+        {isSpaceshipMode ? (
           <motion.div
-            className="absolute inset-0 rounded-lg pointer-events-none"
-            style={{
-              background: isEmpowered
-                ? 'radial-gradient(ellipse at center, rgba(255,0,255,0.2) 0%, transparent 60%)'
-                : 'radial-gradient(ellipse at center, transparent 40%, rgba(0,200,255,0.1) 100%)',
-              mixBlendMode: 'overlay',
-            }}
-            animate={{ opacity: [0.3, 0.6, 0.3] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          />
-          
-          {/* Damage flash */}
-          {player.animationState === 'hurt' && (
-            <motion.div
-              className="absolute inset-0 bg-red-500/50 rounded-lg"
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 0 }}
-              transition={{ duration: 0.1 }}
+            className="relative w-full h-full"
+            initial={{ scale: 0, rotate: -180 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ duration: 0.3, type: 'spring' }}
+          >
+            {/* Spaceship body */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: 'linear-gradient(135deg, #00ffff 0%, #0088ff 30%, #4400ff 60%, #ff00ff 100%)',
+                clipPath: 'polygon(100% 50%, 70% 15%, 20% 20%, 0% 50%, 20% 80%, 70% 85%)',
+                boxShadow: '0 0 30px #00ffff, 0 0 60px #ff00ff',
+              }}
             />
-          )}
-          
-          {/* Magic dash overlay */}
-          {player.isMagicDashing && (
+            {/* Cockpit */}
+            <div
+              className="absolute rounded-full"
+              style={{
+                width: '30%',
+                height: '40%',
+                left: '50%',
+                top: '30%',
+                background: 'radial-gradient(circle, #fff 0%, #00ffff 50%, #0066ff 100%)',
+                boxShadow: 'inset 0 0 10px #fff, 0 0 15px #00ffff',
+              }}
+            />
+            {/* Engine glow */}
+            <motion.div
+              className="absolute"
+              style={{
+                left: -20,
+                top: '35%',
+                width: 40,
+                height: '30%',
+                background: 'linear-gradient(90deg, transparent, #ff00ff, #ffff00, #fff)',
+                filter: 'blur(4px)',
+                borderRadius: 10,
+              }}
+              animate={{ 
+                scaleX: [1, 1.5, 1],
+                opacity: [0.8, 1, 0.8],
+              }}
+              transition={{ duration: 0.1, repeat: Infinity }}
+            />
+            {/* Wing lights */}
+            {[0, 1].map(i => (
+              <motion.div
+                key={`wing-${i}`}
+                className="absolute rounded-full"
+                style={{
+                  width: 8,
+                  height: 8,
+                  right: '25%',
+                  top: i === 0 ? '15%' : '75%',
+                  background: '#ff0000',
+                  boxShadow: '0 0 10px #ff0000',
+                }}
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.15 }}
+              />
+            ))}
+            {/* Hero inside cockpit (tiny) */}
+            <img
+              src={heroSprite}
+              alt="Hero"
+              className="absolute"
+              style={{
+                width: 20,
+                height: 25,
+                left: '52%',
+                top: '28%',
+                transform: 'translateX(-50%)',
+                filter: 'brightness(1.2)',
+                imageRendering: 'pixelated',
+              }}
+            />
+            {/* Energy trail */}
+            {[...Array(5)].map((_, i) => (
+              <motion.div
+                key={`trail-${i}`}
+                className="absolute rounded-full"
+                style={{
+                  width: 10 - i * 1.5,
+                  height: 10 - i * 1.5,
+                  left: -15 - i * 12,
+                  top: '45%',
+                  background: i % 2 === 0 ? '#ff00ff' : '#00ffff',
+                  filter: 'blur(2px)',
+                }}
+                animate={{ 
+                  x: [0, -20],
+                  opacity: [0.8, 0],
+                  scale: [1, 0.5],
+                }}
+                transition={{ duration: 0.2, repeat: Infinity, delay: i * 0.03 }}
+              />
+            ))}
+            {/* ULT MODE text */}
+            <motion.div
+              className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap font-black text-xs px-2 py-0.5 rounded"
+              style={{
+                background: 'linear-gradient(135deg, #ff00ff, #00ffff)',
+                color: '#fff',
+                textShadow: '0 0 5px #000',
+                boxShadow: '0 0 15px #ff00ff',
+              }}
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 0.3, repeat: Infinity }}
+            >
+              🚀 SPACESHIP MODE 🚀
+            </motion.div>
+          </motion.div>
+        ) : (
+          /* Normal Hero - Captain Squirbert Image with Walking Animation */
+          <motion.div
+            className="relative w-full h-full overflow-hidden rounded-lg"
+            style={{
+              filter: isUltraMode
+                ? 'drop-shadow(0 0 20px #ff00ff) drop-shadow(0 0 35px #00ffff) brightness(1.2)' 
+                : 'drop-shadow(0 0 12px #00ccff) drop-shadow(0 0 20px #0088ff)',
+            }}
+            animate={
+              player.animationState === 'hurt' 
+                ? { x: [-3, 3, -3, 0] } 
+                : isWalking || isEmpowered
+                  ? { 
+                      y: [0, -4, 0],
+                      rotate: [-2, 2, -2],
+                    }
+                  : {}
+            }
+            transition={
+              isWalking || isEmpowered
+                ? { duration: 0.25, repeat: Infinity, ease: 'easeInOut' }
+                : { duration: 0.1 }
+            }
+          >
+            <motion.img
+              src={heroSprite}
+              alt="Hero"
+              className="w-full h-full object-contain"
+              style={{
+                imageRendering: 'pixelated',
+              }}
+              // Walking/running animation - bob and lean
+              animate={
+                isShooting 
+                  ? { scaleX: [1, 0.95, 1], x: [-2, 0] }
+                  : isWalking || isEmpowered
+                    ? {
+                        scaleY: [1, 0.97, 1],
+                        scaleX: [1, 1.03, 1],
+                        rotate: [-1, 1, -1],
+                      }
+                    : { scaleY: 1, scaleX: 1 }
+              }
+              transition={{ 
+                duration: isShooting ? 0.1 : 0.15, 
+                repeat: isShooting ? 0 : Infinity,
+                ease: 'easeInOut'
+              }}
+            />
+            
+            {/* Power glow overlay */}
             <motion.div
               className="absolute inset-0 rounded-lg pointer-events-none"
               style={{
-                background: 'radial-gradient(circle, rgba(255,0,255,0.3), transparent)',
-                mixBlendMode: 'screen',
+                background: isEmpowered
+                  ? 'radial-gradient(ellipse at center, rgba(255,0,255,0.2) 0%, transparent 60%)'
+                  : 'radial-gradient(ellipse at center, transparent 40%, rgba(0,200,255,0.1) 100%)',
+                mixBlendMode: 'overlay',
               }}
-              animate={{ opacity: [0.2, 0.6, 0.2] }}
-              transition={{ duration: 0.15, repeat: Infinity }}
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
             />
-          )}
-        </motion.div>
+            
+            {/* Damage flash */}
+            {player.animationState === 'hurt' && (
+              <motion.div
+                className="absolute inset-0 bg-red-500/50 rounded-lg"
+                initial={{ opacity: 1 }}
+                animate={{ opacity: 0 }}
+                transition={{ duration: 0.1 }}
+              />
+            )}
+          </motion.div>
+        )}
         
-      {/* Shooting muzzle flash - FROM ARMOR/CHEST POSITION */}
-      {player.isShooting && (
+        {/* Shooting muzzle flash - FROM ARMOR/CHEST POSITION */}
+        {player.isShooting && !isSpaceshipMode && (
         <>
           {/* Muzzle flash at armor */}
           <motion.div

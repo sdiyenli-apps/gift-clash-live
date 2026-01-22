@@ -91,28 +91,49 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
       ? getDroneSprite(enemy.droneVariant)
       : ENEMY_SPRITES[enemy.type];
   
-  // Scale enemies SMALLER for wider FOV - Metal Slug style proportions
+  // Scale enemies based on their STRENGTH (health + damage)
+  // Stronger enemies are bigger, weaker enemies are smaller
   const isGiant = enemy.type === 'giant' || enemy.isGiant;
   
-  // Boss grows bigger with each phase, giants are 1.3x larger (reduced from 1.5x)
-  const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.2) : 1; // Reduced scaling
-  const giantScale = isGiant ? 1.3 : 1;
-  const baseScale = 0.7; // All enemies scaled down 30% for wider FOV
-  const scaleFactor = baseScale * bossPhaseScale * giantScale;
+  // Calculate strength-based scale multiplier
+  // Base scale varies by enemy type and their actual stats
+  const strengthRatio = (enemy.maxHealth + enemy.damage * 5) / 200; // Normalize to ~1.0 for average
+  const strengthScale = Math.max(0.5, Math.min(1.5, 0.6 + strengthRatio * 0.4)); // Range 0.5-1.5
+  
+  // Boss grows bigger with each phase, giants get extra scale
+  const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.2) : 1;
+  const giantScale = isGiant ? 1.4 : 1;
+  
+  // Type-based base sizes (before strength scaling)
+  const typeSizeMultiplier: Record<string, number> = {
+    robot: 0.7,
+    drone: 0.6,
+    mech: 0.85,
+    ninja: 0.6,
+    tank: 1.0,
+    sentinel: 1.1,
+    giant: 1.3,
+    bomber: 0.65,
+    flyer: 0.6,
+    jetrobot: 0.75,
+    boss: 1.0,
+  };
+  
+  const baseTypeScale = typeSizeMultiplier[enemy.type] || 0.7;
+  const scaleFactor = baseTypeScale * strengthScale * bossPhaseScale * giantScale;
   const displayWidth = enemy.width * scaleFactor;
   const displayHeight = enemy.height * scaleFactor;
   
-  // Flying enemies (drones) hover higher - GROUND UNITS stay in movement zone!
+  // Flying enemies (drones) hover higher - GROUND UNITS positioned lower
   const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer';
   const isGroundUnit = !isFlying && enemy.type !== 'boss';
   const flyOffset = isFlying ? (enemy.flyHeight || 50) : 0;
   
-  // Ground units positioned lower on screen (within movement area)
-  // Enemy groundY values: 80 (bottom), 115 (middle), 150 (top) - map to lower screen positions
+  // Ground units positioned LOWER on screen
   const enemyGroundY = enemy.groundY || 115;
   const baseBottom = isFlying 
-    ? 150 + flyOffset  // Flying units above ground
-    : 78 + (enemyGroundY - 80) * 0.5; // Ground units spread lower (78-113 range)
+    ? 140 + flyOffset  // Flying units above ground
+    : 65 + (enemyGroundY - 80) * 0.4; // Ground units spread lower (65-93 range)
   
   // Portal spawn animation OR drop-from-top animation for jet robots
   const isSpawning = enemy.isSpawning && (enemy.spawnTimer ?? 0) > 0;
@@ -122,7 +143,7 @@ export const EnemySprite = ({ enemy, cameraX }: EnemyProps) => {
   
   // Calculate drop position - starts from top of screen
   const dropStartY = 400;
-  const dropEndY = 150 + flyOffset;
+  const dropEndY = 140 + flyOffset;
   const currentDropY = isDropping ? dropStartY - (dropStartY - dropEndY) * dropProgress : baseBottom;
   
   return (
