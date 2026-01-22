@@ -201,6 +201,10 @@ const ExplosionSprite = forwardRef<HTMLDivElement, { explosion: Explosion; camer
     const screenX = explosion.x - cameraX;
     if (screenX < -100 || screenX > 1100) return null;
     
+    // Check if this is a tank explosion (larger size = tank)
+    const isTankExplosion = explosion.size >= 100;
+    const aoeRadius = isTankExplosion ? 120 : 0; // Match the AOE_RADIUS from game logic
+    
     return (
       <motion.div
         ref={ref}
@@ -216,58 +220,86 @@ const ExplosionSprite = forwardRef<HTMLDivElement, { explosion: Explosion; camer
         exit={{ opacity: 0 }}
         transition={{ duration: 0.6 }}
       >
+        {/* TANK AOE RADIUS INDICATOR */}
+        {isTankExplosion && (
+          <motion.div
+            className="absolute rounded-full pointer-events-none"
+            style={{
+              left: '50%',
+              top: '50%',
+              width: aoeRadius * 2,
+              height: aoeRadius * 2,
+              marginLeft: -aoeRadius,
+              marginTop: -aoeRadius,
+              border: '3px solid rgba(255,100,0,0.8)',
+              background: 'radial-gradient(circle, rgba(255,150,0,0.3), rgba(255,50,0,0.1), transparent 70%)',
+              boxShadow: '0 0 30px rgba(255,100,0,0.6), inset 0 0 40px rgba(255,200,0,0.3)',
+            }}
+            initial={{ scale: 0, opacity: 1 }}
+            animate={{ scale: [0, 1.2, 1], opacity: [1, 0.8, 0] }}
+            transition={{ duration: 0.5, ease: 'easeOut' }}
+          />
+        )}
+        
         {/* Core explosion - bright white center */}
         <div 
           className="absolute inset-0 rounded-full"
           style={{
-            background: 'radial-gradient(circle, #ffffff 0%, #ffff00 20%, #ff8800 40%, #ff4400 60%, #ff0000 80%, transparent 100%)',
-            filter: 'blur(3px)',
+            background: isTankExplosion 
+              ? 'radial-gradient(circle, #ffffff 0%, #ffcc00 15%, #ff8800 35%, #ff4400 55%, #ff0000 75%, transparent 100%)'
+              : 'radial-gradient(circle, #ffffff 0%, #ffff00 20%, #ff8800 40%, #ff4400 60%, #ff0000 80%, transparent 100%)',
+            filter: isTankExplosion ? 'blur(5px)' : 'blur(3px)',
           }}
         />
         
-        {/* Outer glow */}
+        {/* Outer glow - bigger for tank */}
         <motion.div
-          className="absolute -inset-4 rounded-full"
+          className="absolute rounded-full"
           style={{
-            background: 'radial-gradient(circle, rgba(255,100,0,0.6), transparent 70%)',
+            inset: isTankExplosion ? -20 : -4,
+            background: isTankExplosion 
+              ? 'radial-gradient(circle, rgba(255,150,0,0.7), rgba(255,50,0,0.4) 50%, transparent 80%)'
+              : 'radial-gradient(circle, rgba(255,100,0,0.6), transparent 70%)',
           }}
-          animate={{ scale: [1, 1.5], opacity: [0.8, 0] }}
-          transition={{ duration: 0.4 }}
+          animate={{ scale: [1, 1.8], opacity: [0.9, 0] }}
+          transition={{ duration: isTankExplosion ? 0.5 : 0.4 }}
         />
         
-        {/* Explosion rings */}
-        {[0, 1, 2].map(i => (
+        {/* Explosion rings - more for tank */}
+        {[0, 1, 2, ...(isTankExplosion ? [3, 4] : [])].map(i => (
           <motion.div
             key={i}
             className="absolute inset-0 rounded-full"
             style={{
-              border: `3px solid ${i === 0 ? '#ffff00' : i === 1 ? '#ff8800' : '#ff0000'}`,
-              boxShadow: `0 0 10px ${i === 0 ? '#ffff00' : i === 1 ? '#ff8800' : '#ff0000'}`,
+              border: `${isTankExplosion ? 4 : 3}px solid ${i === 0 ? '#ffff00' : i === 1 ? '#ff8800' : i === 2 ? '#ff4400' : '#ff0000'}`,
+              boxShadow: `0 0 ${isTankExplosion ? 15 : 10}px ${i === 0 ? '#ffff00' : i === 1 ? '#ff8800' : i === 2 ? '#ff4400' : '#ff0000'}`,
             }}
             initial={{ scale: 0.5, opacity: 1 }}
             animate={{ scale: 1.5 + i * 0.5, opacity: 0 }}
-            transition={{ duration: 0.4, delay: i * 0.08 }}
+            transition={{ duration: isTankExplosion ? 0.5 : 0.4, delay: i * 0.06 }}
           />
         ))}
         
-        {/* Sparks flying out */}
-        {[...Array(8)].map((_, i) => (
+        {/* Sparks flying out - more for tank */}
+        {[...Array(isTankExplosion ? 12 : 8)].map((_, i) => (
           <motion.div
             key={`spark-${i}`}
-            className="absolute w-2 h-2 rounded-full"
+            className="absolute rounded-full"
             style={{
               left: '50%',
               top: '50%',
+              width: isTankExplosion ? 4 : 2,
+              height: isTankExplosion ? 4 : 2,
               background: i % 2 === 0 ? '#ffff00' : '#ff6600',
-              boxShadow: `0 0 6px ${i % 2 === 0 ? '#ffff00' : '#ff6600'}`,
+              boxShadow: `0 0 ${isTankExplosion ? 10 : 6}px ${i % 2 === 0 ? '#ffff00' : '#ff6600'}`,
             }}
             initial={{ x: 0, y: 0, opacity: 1 }}
             animate={{
-              x: Math.cos(i * Math.PI / 4) * explosion.size,
-              y: Math.sin(i * Math.PI / 4) * explosion.size,
+              x: Math.cos(i * Math.PI / (isTankExplosion ? 6 : 4)) * explosion.size * (isTankExplosion ? 1.5 : 1),
+              y: Math.sin(i * Math.PI / (isTankExplosion ? 6 : 4)) * explosion.size * (isTankExplosion ? 1.5 : 1),
               opacity: 0,
             }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
+            transition={{ duration: isTankExplosion ? 0.6 : 0.5, ease: 'easeOut' }}
           />
         ))}
       </motion.div>
