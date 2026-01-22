@@ -217,6 +217,21 @@ const Index = () => {
                   ✨{gameState.player.magicDashTimer.toFixed(0)}
                 </motion.div>
               )}
+              {/* EMP Cooldown indicator */}
+              {gameState.empCooldown > 0 && (
+                <motion.div
+                  className="px-2 py-0.5 rounded-full font-bold text-[10px]"
+                  style={{
+                    background: 'rgba(0,255,255,0.3)',
+                    border: '1px solid rgba(0,255,255,0.5)',
+                    color: '#00ffff',
+                  }}
+                  animate={{ opacity: [1, 0.7, 1] }}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                >
+                  ⚡{gameState.empCooldown.toFixed(0)}
+                </motion.div>
+              )}
             </>
           )}
           <motion.button
