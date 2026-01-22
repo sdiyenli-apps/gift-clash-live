@@ -21,10 +21,12 @@ const ROCKET_ATTACK_RANGE = 350; // Ranged attack distance
 const BOSS_FIREBALL_INTERVAL = 4; // Faster boss attacks
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
 const BOSS_KEEP_DISTANCE = 400; // Boss combat distance
-const HERO_FIXED_SCREEN_X = 80; // Hero on LEFT side of screen for wider battlefield view
+const HERO_FIXED_SCREEN_X = 70; // Hero on LEFT side of screen for wider battlefield view (moved left)
 const ENEMY_ATTACK_DELAY = 2; // Enemies wait 2 seconds before attacking
 const PARTICLE_LIFETIME = 3; // Particles reset after 3 seconds
 const EVASION_CHANCE = 1 / 15; // 1 in 15 attacks are evaded
+const ARMOR_ACTIVATION_THRESHOLD = 0.2; // Enemies can activate armor at 20% HP
+const ARMOR_DURATION = 3; // 3 seconds of enemy armor
 
 // Ground Y positions for spread positioning
 const GROUND_Y_TOP = GROUND_Y + 40; // Above hero position
@@ -951,13 +953,21 @@ export const useGameState = () => {
             break;
           }
           
-          // Hero THROWS an EMP grenade HIGH into the sky
+          // Hero THROWS an EMP grenade TO CENTER OF SCREEN - only damages drones!
+          // Calculate center of screen position
+          const screenCenterX = prev.cameraX + 290; // Center of visible screen
+          const screenCenterY = 200; // Center height
+          
+          // Calculate velocity to arc toward center
+          const dx = screenCenterX - (prev.player.x + PLAYER_WIDTH / 2);
+          const arcHeight = 300; // High arc
+          
           const grenade: EMPGrenade = {
             id: `emp-${Date.now()}`,
             x: prev.player.x + PLAYER_WIDTH / 2,
             y: prev.player.y + PLAYER_HEIGHT + 30,
-            velocityX: 180,
-            velocityY: 650,
+            velocityX: dx / 1.8, // Velocity to reach center in ~1.8s
+            velocityY: arcHeight, // High initial upward velocity for arc
             timer: 1.8,
           };
           newState.empGrenades = [...prev.empGrenades, grenade];
@@ -970,7 +980,7 @@ export const useGameState = () => {
           ];
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 300);
           newState.score += 100;
-          showSpeechBubble(`⚡ GRENADE UP! [${newState.empCharges}/2] ⚡`, 'excited');
+          showSpeechBubble(`⚡ EMP TO CENTER! [${newState.empCharges}/2] ⚡`, 'excited');
           break;
 
         case 'summon_support' as GiftAction:
@@ -1497,17 +1507,20 @@ export const useGameState = () => {
           }))
           .filter(g => g.timer > 0);
         
-        // Check for EMP grenade explosions
+        // Check for EMP grenade explosions - ONLY DAMAGES DRONES!
         prev.empGrenades.forEach(grenade => {
           if (grenade.timer <= delta) {
-            // EXPLODE! Kill ALL FLYING ENEMIES and JET ROBOTS on screen
-            const flyingEnemiesKilled = newState.enemies.filter(e => 
-              (e.type === 'drone' || e.type === 'bomber' || e.type === 'flyer' || e.type === 'jetrobot' || e.isFlying || e.empOnly) && 
+            // EXPLODE AT CENTER! Kill only DRONES (flying enemies only) within explosion radius
+            const EMP_EXPLOSION_RADIUS = 250; // Large explosion at center
+            
+            const dronesKilled = newState.enemies.filter(e => 
+              (e.type === 'drone' || e.type === 'bomber' || e.type === 'flyer') && 
               !e.isDying && !e.isSpawning &&
-              e.x > prev.cameraX - 100 && e.x < prev.cameraX + 700
+              Math.abs(e.x - grenade.x) < EMP_EXPLOSION_RADIUS &&
+              (e.isFlying || e.flyHeight)
             );
             
-            flyingEnemiesKilled.forEach(enemy => {
+            dronesKilled.forEach(enemy => {
               const enemyIdx = newState.enemies.findIndex(e => e.id === enemy.id);
               if (enemyIdx !== -1) {
                 newState.enemies[enemyIdx] = {
@@ -1515,7 +1528,7 @@ export const useGameState = () => {
                   isDying: true,
                   deathTimer: 0.5,
                 };
-                const scoreMap: Record<string, number> = { drone: 75, bomber: 120, flyer: 80, jetrobot: 150 };
+                const scoreMap: Record<string, number> = { drone: 75, bomber: 120, flyer: 80 };
                 newState.score += scoreMap[enemy.type] || 75;
                 newState.particles = [...newState.particles, ...createParticles(
                   enemy.x + enemy.width/2, enemy.y + enemy.height/2, 
@@ -1524,7 +1537,7 @@ export const useGameState = () => {
               }
             });
             
-            // Big EMP explosion effect at grenade position - MASSIVE visual
+            // Big EMP explosion effect at grenade position - MASSIVE visual at CENTER
             newState.particles = [
               ...newState.particles,
               ...createParticles(grenade.x, grenade.y, 50, 'spark', '#00ffff'),
@@ -1534,21 +1547,10 @@ export const useGameState = () => {
             newState.screenShake = 1.0;
             newState.magicFlash = 0.8;
             
-            if (flyingEnemiesKilled.length > 0) {
-              const types = flyingEnemiesKilled.map(e => e.type);
-              const hasJetRobot = types.includes('jetrobot');
-              const hasBomber = types.includes('bomber');
-              const hasDrone = types.includes('drone');
-              const msg = hasJetRobot 
-                ? `⚡ JET ROBOTS FRIED! ${flyingEnemiesKilled.length} DOWN! ⚡`
-                : hasBomber && hasDrone 
-                  ? `⚡ EMP! ${flyingEnemiesKilled.length} FLYERS DOWN! ⚡`
-                  : hasBomber 
-                    ? `⚡ BOMBERS FRIED! ${flyingEnemiesKilled.length} DOWN! ⚡`
-                    : `⚡ BOOM! ${flyingEnemiesKilled.length} DRONES FRIED! ⚡`;
-              showSpeechBubble(msg, 'excited');
+            if (dronesKilled.length > 0) {
+              showSpeechBubble(`⚡ CENTER BLAST! ${dronesKilled.length} DRONES DOWN! ⚡`, 'excited');
             } else {
-              showSpeechBubble("⚡ EMP BLAST! SKY CLEAR! ⚡", 'funny');
+              showSpeechBubble("⚡ EMP AT CENTER! DRONES BEWARE! ⚡", 'funny');
             }
           }
         });
@@ -2331,9 +2333,18 @@ export const useGameState = () => {
                   return; // Shield absorbed hit
                 }
                 
+                // ENEMY ARMOR - if ground enemy has active armor, reduce damage by 80%
+                let actualDamage = proj.damage;
+                if (enemy.hasArmor && enemy.armorTimer && enemy.armorTimer > 0) {
+                  actualDamage = proj.damage * 0.2; // Only 20% damage gets through
+                  newState.particles = [...newState.particles, ...createParticles(
+                    proj.x, proj.y, 10, 'spark', '#ff00ff'
+                  )];
+                }
+                
                 newState.enemies[enemyIdx] = {
                   ...newState.enemies[enemyIdx],
-                  health: newState.enemies[enemyIdx].health - proj.damage,
+                  health: newState.enemies[enemyIdx].health - actualDamage,
                 };
                 
                 // ENHANCED IMPACT FX - more particles and screen feedback
@@ -2395,7 +2406,7 @@ export const useGameState = () => {
         
         newState.projectiles = newState.projectiles.filter(p => !hitProjectiles.has(p.id));
         
-        // Update dying and spawning enemies
+        // Update dying and spawning enemies, and handle ENEMY ARMOR ACTIVATION
         newState.enemies = newState.enemies
           .map(e => {
             if (e.isDying) return { ...e, deathTimer: e.deathTimer - delta };
@@ -2414,6 +2425,34 @@ export const useGameState = () => {
               }
               return { ...e, dropTimer: newDropTimer };
             }
+            
+            // ENEMY ARMOR SYSTEM - Ground enemies can activate 3-second armor at 20% HP
+            const isGroundEnemy = !e.isFlying && e.type !== 'drone' && e.type !== 'bomber' && e.type !== 'flyer' && e.type !== 'jetrobot' && e.type !== 'boss';
+            const healthPercent = e.health / e.maxHealth;
+            
+            // Check if should activate armor (20% HP, not already used, is ground enemy)
+            if (isGroundEnemy && healthPercent <= ARMOR_ACTIVATION_THRESHOLD && !e.armorUsed && !e.hasArmor) {
+              // Activate armor!
+              newState.particles = [...newState.particles, ...createParticles(
+                e.x + e.width / 2, e.y + e.height / 2, 20, 'spark', '#ff00ff'
+              )];
+              return { 
+                ...e, 
+                hasArmor: true, 
+                armorTimer: ARMOR_DURATION, 
+                armorUsed: true 
+              };
+            }
+            
+            // Update armor timer if active
+            if (e.hasArmor && e.armorTimer !== undefined && e.armorTimer > 0) {
+              const newArmorTimer = e.armorTimer - delta;
+              if (newArmorTimer <= 0) {
+                return { ...e, hasArmor: false, armorTimer: 0 };
+              }
+              return { ...e, armorTimer: newArmorTimer };
+            }
+            
             return e;
           })
           .filter(e => !e.isDying || e.deathTimer > 0);

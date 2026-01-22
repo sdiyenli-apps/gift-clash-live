@@ -36,10 +36,10 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : 0.4);
   
   // Calculate bottom position - account for self-destruct flying up and larger units
-  // Adjusted for TikTok view - allies positioned left near hero
-  const baseBottom = isMech ? 130 : 145; // Ground level aligned with hero
+  // Adjusted for TikTok view - allies positioned left near hero, moved down 10px
+  const baseBottom = isMech ? 120 : 135; // Ground level aligned with hero (down 10px)
   const selfDestructYOffset = isSelfDestructing ? (unit.y - 160) : 0; // unit.y tracks actual Y during self-destruct
-  const leftOffset = -40; // Move allies further left to be near hero
+  const leftOffset = -50; // Move allies further left to be near hero
   
   return (
     <motion.div

@@ -386,72 +386,136 @@ export const Arena = ({ gameState, notifications = [] }: ArenaProps) => {
           );
         })}
         
-        {/* BOMBS - Dropped by bomber enemies */}
+        {/* BOMBS - Dropped by bomber enemies - ENHANCED VISIBILITY */}
         {bombs.map(bomb => {
           const screenX = bomb.x - cameraX;
           if (screenX < -50 || screenX > 800) return null;
           
+          // Check if bomb is close to ground (about to explode)
+          const isNearGround = bomb.y <= 200;
+          const isAboutToExplode = bomb.y <= 180;
+          
           return (
             <motion.div
               key={bomb.id}
-              className="absolute pointer-events-none z-35"
+              className="absolute pointer-events-none z-40"
               style={{
                 left: screenX,
                 bottom: bomb.y,
-                width: 20,
-                height: 24,
+                width: 32,
+                height: 38,
               }}
             >
+              {/* Outer warning glow - MUCH MORE VISIBLE */}
+              <motion.div
+                className="absolute -inset-6 rounded-full"
+                style={{
+                  background: isAboutToExplode
+                    ? 'radial-gradient(circle, rgba(255,0,0,0.8), rgba(255,68,0,0.5), transparent)'
+                    : 'radial-gradient(circle, rgba(255,100,0,0.6), rgba(255,68,0,0.3), transparent)',
+                  filter: 'blur(6px)',
+                }}
+                animate={{ 
+                  scale: isAboutToExplode ? [1, 2, 1] : [1, 1.4, 1], 
+                  opacity: [0.6, 1, 0.6] 
+                }}
+                transition={{ duration: isAboutToExplode ? 0.1 : 0.2, repeat: Infinity }}
+              />
+              
               {/* Bomb body */}
               <motion.div
                 className="w-full h-full relative"
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 0.3, repeat: Infinity }}
+                animate={{ rotate: [0, 15, -15, 0], scale: isAboutToExplode ? [1, 1.2, 1] : 1 }}
+                transition={{ duration: 0.2, repeat: Infinity }}
               >
-                {/* Bomb casing */}
+                {/* Bomb casing - LARGER and more visible */}
                 <div
                   className="w-full h-full rounded-b-full rounded-t-lg"
                   style={{
-                    background: 'linear-gradient(135deg, #333 0%, #111 50%, #222 100%)',
-                    border: '2px solid #ff6600',
-                    boxShadow: '0 0 12px #ff6600, inset 0 2px 4px rgba(255,255,255,0.2)',
+                    background: 'linear-gradient(135deg, #444 0%, #111 50%, #333 100%)',
+                    border: isAboutToExplode ? '3px solid #ff0000' : '3px solid #ff6600',
+                    boxShadow: isAboutToExplode 
+                      ? '0 0 25px #ff0000, 0 0 50px rgba(255,0,0,0.8), inset 0 2px 6px rgba(255,255,255,0.3)'
+                      : '0 0 20px #ff6600, 0 0 40px rgba(255,100,0,0.6), inset 0 2px 6px rgba(255,255,255,0.3)',
                   }}
                 />
                 {/* Fuse */}
                 <div
-                  className="absolute -top-2 left-1/2 -translate-x-1/2 w-1 h-3"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 w-1.5 h-4"
                   style={{
-                    background: '#666',
-                    borderRadius: '2px',
+                    background: '#555',
+                    borderRadius: '3px',
                   }}
                 />
-                {/* Spark on fuse */}
+                {/* Spark on fuse - BIGGER */}
                 <motion.div
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full"
+                  className="absolute -top-5 left-1/2 -translate-x-1/2 w-4 h-4 rounded-full"
                   style={{
-                    background: 'radial-gradient(circle, #fff, #ff8800, #ff4400)',
-                    boxShadow: '0 0 8px #ff8800, 0 0 15px #ff4400',
+                    background: isAboutToExplode 
+                      ? 'radial-gradient(circle, #fff, #ff0000, #ff4400)'
+                      : 'radial-gradient(circle, #fff, #ff8800, #ff4400)',
+                    boxShadow: isAboutToExplode
+                      ? '0 0 15px #ff0000, 0 0 30px #ff4400'
+                      : '0 0 12px #ff8800, 0 0 20px #ff4400',
                   }}
-                  animate={{ scale: [1, 1.5, 1], opacity: [1, 0.7, 1] }}
-                  transition={{ duration: 0.15, repeat: Infinity }}
+                  animate={{ scale: [1, 2, 1], opacity: [1, 0.7, 1] }}
+                  transition={{ duration: 0.1, repeat: Infinity }}
                 />
-                {/* Warning icon */}
+                {/* Warning icon - LARGER */}
                 <div
-                  className="absolute inset-0 flex items-center justify-center text-xs font-bold"
-                  style={{ color: '#ff6600', textShadow: '0 0 4px #ff6600' }}
+                  className="absolute inset-0 flex items-center justify-center text-sm font-bold"
+                  style={{ color: '#ff6600', textShadow: '0 0 6px #ff6600' }}
                 >
                   💣
                 </div>
               </motion.div>
               
-              {/* Trail effect */}
+              {/* Fire trail effect - LONGER and brighter */}
               <motion.div
-                className="absolute -top-4 left-1/2 -translate-x-1/2 w-3 h-8"
+                className="absolute -top-6 left-1/2 -translate-x-1/2 w-4 h-12"
                 style={{
-                  background: 'linear-gradient(180deg, transparent, rgba(255,100,0,0.5), rgba(255,200,0,0.3))',
-                  filter: 'blur(2px)',
+                  background: 'linear-gradient(180deg, transparent, rgba(255,100,0,0.7), rgba(255,200,0,0.5), rgba(255,255,0,0.3))',
+                  filter: 'blur(3px)',
                 }}
+                animate={{ opacity: [0.8, 1, 0.8], scaleY: [1, 1.3, 1] }}
+                transition={{ duration: 0.15, repeat: Infinity }}
               />
+              
+              {/* Sparks around bomb */}
+              {[0, 1, 2].map(i => (
+                <motion.div
+                  key={`bomb-spark-${i}`}
+                  className="absolute w-2 h-2 rounded-full"
+                  style={{
+                    background: '#ffff00',
+                    boxShadow: '0 0 6px #ffff00',
+                    left: '50%',
+                    top: -8 - i * 6,
+                  }}
+                  animate={{ 
+                    x: [(i - 1) * 8, (i - 1) * 12, (i - 1) * 8],
+                    opacity: [1, 0.5, 0],
+                    scale: [1, 0.5, 0]
+                  }}
+                  transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.08 }}
+                />
+              ))}
+              
+              {/* DANGER text when close to ground */}
+              {isNearGround && (
+                <motion.div
+                  className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] font-black whitespace-nowrap px-1 rounded"
+                  style={{
+                    background: 'rgba(255,0,0,0.9)',
+                    color: '#fff',
+                    textShadow: '0 0 4px #000',
+                  }}
+                  animate={{ opacity: [1, 0.5, 1], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 0.15, repeat: Infinity }}
+                >
+                  ⚠️ BOMB! ⚠️
+                </motion.div>
+              )}
             </motion.div>
           );
         })}

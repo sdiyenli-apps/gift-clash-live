@@ -11,7 +11,8 @@ interface HeroProps {
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
   // Fixed screen position - hero on LEFT side for wider battlefield view
-  const screenX = 80; // Left-center position for TikTok Live
+  // Moved down 10px (lower bottom value = lower on screen)
+  const screenX = 70; // Slightly more left for TikTok Live
   const isEmpowered = isUltraMode || player.isMagicDashing;
   const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
   const isWalking = player.animationState === 'run' || player.animationState === 'dash';
@@ -22,7 +23,8 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
   const heroHeight = 85;
   
   // Hero flies during magic dash - elevated position (adjusted for TikTok view)
-  const flyingHeight = player.isMagicDashing ? 280 : 120; // Ground level adjusted
+  // Moved down 10px from 120 to 110 for ground level
+  const flyingHeight = player.isMagicDashing ? 270 : 110; // Ground level adjusted down 10px
 
   return (
     <motion.div
