@@ -16,6 +16,10 @@ const Index = () => {
   // Resize/move controls for arena
   const [arenaScale, setArenaScale] = useState(0.78);
   const [arenaOffsetY, setArenaOffsetY] = useState(0);
+  // Resize/move controls for HUD
+  const [hudScale, setHudScale] = useState(1);
+  const [hudOffsetX, setHudOffsetX] = useState(8);
+  const [hudOffsetY, setHudOffsetY] = useState(8);
   const [showControls, setShowControls] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { gameState, startGame, startNextWave, handleGift } = useGameState();
@@ -218,19 +222,22 @@ const Index = () => {
         <div 
           className="absolute top-24 right-2 z-40 p-3 rounded-xl pointer-events-auto"
           style={{
-            background: 'rgba(0,0,0,0.9)',
+            background: 'rgba(0,0,0,0.95)',
             backdropFilter: 'blur(12px)',
             border: '1px solid rgba(255,255,255,0.3)',
+            maxHeight: '70vh',
+            overflowY: 'auto',
           }}
         >
-          <div className="text-white text-xs font-bold mb-2">Arena Controls</div>
-          <div className="flex flex-col gap-2">
+          {/* Arena Controls */}
+          <div className="text-cyan-400 text-xs font-bold mb-2">🎮 Arena</div>
+          <div className="flex flex-col gap-2 mb-4">
             <div className="flex items-center gap-2">
               <span className="text-white text-[10px] w-10">Size:</span>
               <input
                 type="range"
-                min="0.4"
-                max="1.2"
+                min="0.3"
+                max="1.5"
                 step="0.02"
                 value={arenaScale}
                 onChange={(e) => setArenaScale(parseFloat(e.target.value))}
@@ -239,11 +246,11 @@ const Index = () => {
               <span className="text-cyan-400 text-[10px] w-8">{Math.round(arenaScale * 100)}%</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-white text-[10px] w-10">Move:</span>
+              <span className="text-white text-[10px] w-10">Y:</span>
               <input
                 type="range"
-                min="-100"
-                max="200"
+                min="-150"
+                max="300"
                 step="5"
                 value={arenaOffsetY}
                 onChange={(e) => setArenaOffsetY(parseFloat(e.target.value))}
@@ -251,18 +258,69 @@ const Index = () => {
               />
               <span className="text-cyan-400 text-[10px] w-8">{arenaOffsetY}px</span>
             </div>
-            <motion.button
-              onClick={() => { setArenaScale(0.78); setArenaOffsetY(0); }}
-              className="text-[10px] text-gray-400 hover:text-white mt-1"
-              whileTap={{ scale: 0.95 }}
-            >
-              Reset
-            </motion.button>
           </div>
+
+          {/* HUD Controls */}
+          <div className="text-yellow-400 text-xs font-bold mb-2">🎁 Gift HUD</div>
+          <div className="flex flex-col gap-2 mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-white text-[10px] w-10">Size:</span>
+              <input
+                type="range"
+                min="0.5"
+                max="1.5"
+                step="0.05"
+                value={hudScale}
+                onChange={(e) => setHudScale(parseFloat(e.target.value))}
+                className="w-20 accent-yellow-400"
+              />
+              <span className="text-yellow-400 text-[10px] w-8">{Math.round(hudScale * 100)}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white text-[10px] w-10">X:</span>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="2"
+                value={hudOffsetX}
+                onChange={(e) => setHudOffsetX(parseFloat(e.target.value))}
+                className="w-20 accent-yellow-400"
+              />
+              <span className="text-yellow-400 text-[10px] w-8">{hudOffsetX}px</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white text-[10px] w-10">Y:</span>
+              <input
+                type="range"
+                min="0"
+                max="200"
+                step="2"
+                value={hudOffsetY}
+                onChange={(e) => setHudOffsetY(parseFloat(e.target.value))}
+                className="w-20 accent-yellow-400"
+              />
+              <span className="text-yellow-400 text-[10px] w-8">{hudOffsetY}px</span>
+            </div>
+          </div>
+
+          <motion.button
+            onClick={() => { 
+              setArenaScale(0.78); 
+              setArenaOffsetY(0); 
+              setHudScale(1); 
+              setHudOffsetX(8); 
+              setHudOffsetY(8); 
+            }}
+            className="text-[10px] text-gray-400 hover:text-white w-full text-center py-1 border border-gray-600 rounded"
+            whileTap={{ scale: 0.95 }}
+          >
+            Reset All
+          </motion.button>
         </div>
       )}
 
-      {/* Main Game Content - TikTok Live 9:16 optimized - FULL WIDTH */}
+
       <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-10 pb-0">
         {/* Game Arena - FULL WIDTH - fills entire screen width */}
         <div 
@@ -296,13 +354,17 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - positioned in TikTok green zone (bottom-left, not full width) */}
+        {/* Bottom HUD - positioned with user controls */}
         {gameState.phase === 'playing' && (
           <div 
-            className="absolute bottom-2 left-2 z-20"
+            className="absolute z-20"
             style={{
-              width: 'calc(80% - 16px)',
-              maxWidth: '600px',
+              bottom: `${hudOffsetY}px`,
+              left: `${hudOffsetX}px`,
+              width: 'calc(85% - 16px)',
+              maxWidth: '650px',
+              transform: `scale(${hudScale})`,
+              transformOrigin: 'bottom left',
               paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
             }}
           >
