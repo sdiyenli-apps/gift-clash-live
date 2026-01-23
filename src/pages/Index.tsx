@@ -354,38 +354,37 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - positioned with user controls */}
-        {gameState.phase === 'playing' && (
-          <div 
-            className="absolute z-20"
-            style={{
-              bottom: `${hudOffsetY}px`,
-              left: `${hudOffsetX}px`,
-              width: 'calc(85% - 16px)',
-              maxWidth: '650px',
-              transform: `scale(${hudScale})`,
-              transformOrigin: 'bottom left',
-              paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
-            }}
-          >
-            <GiftPanel 
-              onTriggerGift={handleTriggerGift}
-              disabled={gameState.phase !== 'playing'}
-              collectedAllyPowerups={gameState.collectedAllyPowerups || 0}
-              collectedUltPowerups={gameState.collectedUltPowerups || 0}
-              collectedTankPowerups={gameState.collectedTankPowerups || 0}
-              onUseAlly={handleUseAlly}
-              onUseUlt={handleUseUlt}
-              onUseTank={handleUseTank}
-              health={gameState.player.health}
-              maxHealth={gameState.player.maxHealth}
-              shield={gameState.player.shield}
-              isMagicDashing={gameState.player.isMagicDashing}
-              magicDashTimer={gameState.player.magicDashTimer}
-              empCooldown={gameState.empCooldown}
-            />
-          </div>
-        )}
+        {/* Bottom HUD - ALWAYS visible for positioning, slightly dimmed when not playing */}
+        <div 
+          className="absolute z-20"
+          style={{
+            bottom: `${hudOffsetY}px`,
+            left: `${hudOffsetX}px`,
+            width: 'calc(85% - 16px)',
+            maxWidth: '650px',
+            transform: `scale(${hudScale})`,
+            transformOrigin: 'bottom left',
+            paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
+            opacity: gameState.phase === 'playing' ? 1 : 0.7,
+          }}
+        >
+          <GiftPanel 
+            onTriggerGift={handleTriggerGift}
+            disabled={gameState.phase !== 'playing'}
+            collectedAllyPowerups={gameState.collectedAllyPowerups || 0}
+            collectedUltPowerups={gameState.collectedUltPowerups || 0}
+            collectedTankPowerups={gameState.collectedTankPowerups || 0}
+            onUseAlly={handleUseAlly}
+            onUseUlt={handleUseUlt}
+            onUseTank={handleUseTank}
+            health={gameState.player.health}
+            maxHealth={gameState.player.maxHealth}
+            shield={gameState.player.shield}
+            isMagicDashing={gameState.player.isMagicDashing}
+            magicDashTimer={gameState.player.magicDashTimer}
+            empCooldown={gameState.empCooldown}
+          />
+        </div>
       </main>
     </div>
   );
