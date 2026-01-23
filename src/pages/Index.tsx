@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useGameState } from '@/hooks/useGameState';
 import { useTikTokSimulator } from '@/hooks/useTikTokSimulator';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useLayoutSettings } from '@/hooks/useLayoutSettings';
 import { Arena } from '@/components/game/Arena';
 import { GiftPanel } from '@/components/game/GiftPanel';
 import { GameOverlay } from '@/components/game/GameOverlay';
@@ -13,12 +14,17 @@ const Index = () => {
   // ALL HOOKS FIRST - Never place computed values between hooks
   const [autoSimulate] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
-  const [arenaScale, setArenaScale] = useState(0.78);
-  const [arenaOffsetY, setArenaOffsetY] = useState(0);
-  const [hudScale, setHudScale] = useState(1);
-  const [hudOffsetX, setHudOffsetX] = useState(8);
-  const [hudOffsetY, setHudOffsetY] = useState(8);
   const [showControls, setShowControls] = useState(false);
+  
+  // Layout settings with localStorage persistence
+  const {
+    arenaScale, setArenaScale,
+    arenaOffsetY, setArenaOffsetY,
+    hudScale, setHudScale,
+    hudOffsetX, setHudOffsetX,
+    hudOffsetY, setHudOffsetY,
+    resetSettings,
+  } = useLayoutSettings();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const { gameState, startGame, startNextWave, handleGift, triggerSummon } = useGameState();
@@ -271,13 +277,7 @@ const Index = () => {
           </div>
 
           <motion.button
-            onClick={() => { 
-              setArenaScale(0.78); 
-              setArenaOffsetY(0); 
-              setHudScale(1); 
-              setHudOffsetX(8); 
-              setHudOffsetY(8); 
-            }}
+            onClick={resetSettings}
             className="text-[10px] text-gray-400 hover:text-white w-full text-center py-1 border border-gray-600 rounded"
             whileTap={{ scale: 0.95 }}
           >
