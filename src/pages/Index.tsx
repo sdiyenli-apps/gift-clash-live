@@ -231,32 +231,32 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - TikTok Live green zone at very bottom */}
+        {/* Bottom HUD - positioned in TikTok green zone (bottom-left, not full width) */}
         {gameState.phase === 'playing' && (
           <div 
-            className="absolute bottom-0 left-0 right-0 z-20 px-1"
+            className="absolute bottom-2 left-2 z-20"
             style={{
-              paddingBottom: 'max(env(safe-area-inset-bottom), 2px)',
+              width: 'calc(80% - 16px)',
+              maxWidth: '600px',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
             }}
           >
-            <div className="w-full max-w-lg mx-auto">
-              <GiftPanel 
-                onTriggerGift={handleTriggerGift}
-                disabled={gameState.phase !== 'playing'}
-                collectedAllyPowerups={gameState.collectedAllyPowerups || 0}
-                collectedUltPowerups={gameState.collectedUltPowerups || 0}
-                collectedTankPowerups={gameState.collectedTankPowerups || 0}
-                onUseAlly={handleUseAlly}
-                onUseUlt={handleUseUlt}
-                onUseTank={handleUseTank}
-                health={gameState.player.health}
-                maxHealth={gameState.player.maxHealth}
-                shield={gameState.player.shield}
-                isMagicDashing={gameState.player.isMagicDashing}
-                magicDashTimer={gameState.player.magicDashTimer}
-                empCooldown={gameState.empCooldown}
-              />
-            </div>
+            <GiftPanel 
+              onTriggerGift={handleTriggerGift}
+              disabled={gameState.phase !== 'playing'}
+              collectedAllyPowerups={gameState.collectedAllyPowerups || 0}
+              collectedUltPowerups={gameState.collectedUltPowerups || 0}
+              collectedTankPowerups={gameState.collectedTankPowerups || 0}
+              onUseAlly={handleUseAlly}
+              onUseUlt={handleUseUlt}
+              onUseTank={handleUseTank}
+              health={gameState.player.health}
+              maxHealth={gameState.player.maxHealth}
+              shield={gameState.player.shield}
+              isMagicDashing={gameState.player.isMagicDashing}
+              magicDashTimer={gameState.player.magicDashTimer}
+              empCooldown={gameState.empCooldown}
+            />
           </div>
         )}
       </main>
