@@ -174,17 +174,6 @@ const Index = () => {
     } as any);
   }, [gameState.phase, playSound, handleGift]);
 
-  const handleUseEmp = useCallback(() => {
-    if (gameState.phase !== 'playing') return;
-    playSound('gift');
-    handleGift({
-      id: `emp-${Date.now()}`,
-      gift: { id: 'emp_grenade', name: 'EMP', tier: 'medium', diamonds: 0, emoji: '⚡', action: 'emp_grenade' },
-      username: 'Hero',
-      timestamp: Date.now(),
-      action: 'emp_grenade',
-    } as any);
-  }, [gameState.phase, playSound, handleGift]);
 
   return (
     <div 
@@ -248,27 +237,27 @@ const Index = () => {
               <span className="text-white text-[10px] w-10">Size:</span>
               <input
                 type="range"
-                min="0.2"
-                max="2.0"
+                min="0.1"
+                max="4.0"
                 step="0.02"
                 value={arenaScale}
                 onChange={(e) => setArenaScale(parseFloat(e.target.value))}
-                className="w-24 accent-cyan-400"
+                className="w-28 accent-cyan-400"
               />
-              <span className="text-cyan-400 text-[10px] w-8">{Math.round(arenaScale * 100)}%</span>
+              <span className="text-cyan-400 text-[10px] w-10">{Math.round(arenaScale * 100)}%</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-white text-[10px] w-10">Y:</span>
               <input
                 type="range"
-                min="-300"
-                max="500"
+                min="-600"
+                max="1000"
                 step="5"
                 value={arenaOffsetY}
                 onChange={(e) => setArenaOffsetY(parseFloat(e.target.value))}
-                className="w-24 accent-cyan-400"
+                className="w-28 accent-cyan-400"
               />
-              <span className="text-cyan-400 text-[10px] w-8">{arenaOffsetY}px</span>
+              <span className="text-cyan-400 text-[10px] w-10">{arenaOffsetY}px</span>
             </div>
           </div>
 
@@ -279,40 +268,40 @@ const Index = () => {
               <span className="text-white text-[10px] w-10">Size:</span>
               <input
                 type="range"
-                min="0.3"
-                max="2.0"
+                min="0.2"
+                max="4.0"
                 step="0.05"
                 value={hudScale}
                 onChange={(e) => setHudScale(parseFloat(e.target.value))}
-                className="w-24 accent-yellow-400"
+                className="w-28 accent-yellow-400"
               />
-              <span className="text-yellow-400 text-[10px] w-8">{Math.round(hudScale * 100)}%</span>
+              <span className="text-yellow-400 text-[10px] w-10">{Math.round(hudScale * 100)}%</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-white text-[10px] w-10">X:</span>
               <input
                 type="range"
-                min="-100"
-                max="300"
+                min="-200"
+                max="600"
                 step="2"
                 value={hudOffsetX}
                 onChange={(e) => setHudOffsetX(parseFloat(e.target.value))}
-                className="w-24 accent-yellow-400"
+                className="w-28 accent-yellow-400"
               />
-              <span className="text-yellow-400 text-[10px] w-8">{hudOffsetX}px</span>
+              <span className="text-yellow-400 text-[10px] w-10">{hudOffsetX}px</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="text-white text-[10px] w-10">Y:</span>
               <input
                 type="range"
-                min="-50"
-                max="400"
+                min="-100"
+                max="800"
                 step="2"
                 value={hudOffsetY}
                 onChange={(e) => setHudOffsetY(parseFloat(e.target.value))}
-                className="w-24 accent-yellow-400"
+                className="w-28 accent-yellow-400"
               />
-              <span className="text-yellow-400 text-[10px] w-8">{hudOffsetY}px</span>
+              <span className="text-yellow-400 text-[10px] w-10">{hudOffsetY}px</span>
             </div>
           </div>
 
@@ -389,9 +378,6 @@ const Index = () => {
             onUseAlly={handleUseAlly}
             onUseUlt={handleUseUlt}
             onUseTank={handleUseTank}
-            onUseEmp={handleUseEmp}
-            empCharges={gameState.empCharges || 2}
-            empCooldown={gameState.empCooldown || 0}
             health={gameState.player.health}
             maxHealth={gameState.player.maxHealth}
             shield={gameState.player.shield}
