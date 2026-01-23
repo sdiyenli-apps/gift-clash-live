@@ -65,18 +65,18 @@ export const WaveTransition = ({ isVisible, currentWave, maxWaves, score, onNext
 
             {/* Title */}
             <motion.h1
-              className="font-black text-3xl sm:text-4xl mb-2"
+              className="font-black text-2xl sm:text-3xl mb-1"
               style={{
                 background: isFinalVictory 
                   ? 'linear-gradient(135deg, #ffd700, #ff8800, #ffd700)'
                   : 'linear-gradient(135deg, #00ffff, #ff00ff, #ffff00)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                textShadow: 'none',
               }}
             >
               {isFinalVictory ? '🏆 VICTORY! 🏆' : `WAVE ${currentWave} CLEARED!`}
             </motion.h1>
+            <p className="text-xs text-cyan-300 font-bold mb-2">Captain Squirbert : Community Hero</p>
 
             {/* Wave Progress */}
             <div className="mb-4">

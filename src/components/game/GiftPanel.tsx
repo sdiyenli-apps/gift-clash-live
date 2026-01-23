@@ -7,12 +7,9 @@ interface GiftPanelProps {
   collectedAllyPowerups?: number;
   collectedUltPowerups?: number;
   collectedTankPowerups?: number;
-  empCharges?: number;
-  empCooldown?: number;
   onUseAlly?: () => void;
   onUseUlt?: () => void;
   onUseTank?: () => void;
-  onUseEmp?: () => void;
   health?: number;
   maxHealth?: number;
   shield?: number;
@@ -24,12 +21,9 @@ export const GiftPanel = ({
   collectedAllyPowerups = 0, 
   collectedUltPowerups = 0,
   collectedTankPowerups = 0,
-  empCharges = 2,
-  empCooldown = 0,
   onUseAlly,
   onUseUlt,
   onUseTank,
-  onUseEmp,
   health = 100,
   maxHealth = 100,
   shield = 0,
@@ -59,211 +53,126 @@ export const GiftPanel = ({
 
   return (
     <div 
-      className="rounded-xl p-3"
+      className="rounded-lg p-2"
       style={{
-        background: 'rgba(0,0,0,0.9)',
-        backdropFilter: 'blur(16px)',
-        border: '2px solid rgba(255,255,255,0.2)',
-        boxShadow: '0 4px 24px rgba(0,0,0,0.8)',
+        background: 'rgba(0,0,0,0.85)',
+        border: '1px solid rgba(255,255,255,0.15)',
       }}
     >
-      {/* HP + Shield Bar Row */}
-      <div className="flex items-center gap-3 mb-3">
-        {/* HP Section */}
-        <div className="flex items-center gap-2 flex-1">
-          <span className="text-lg">❤️</span>
-          <div className="flex-1 h-6 bg-gray-900 rounded-full overflow-hidden relative border-2 border-gray-600">
+      {/* Compact HP + Shield Row */}
+      <div className="flex items-center gap-2 mb-1.5">
+        <div className="flex items-center gap-1 flex-1">
+          <span className="text-sm">❤️</span>
+          <div className="flex-1 h-4 bg-gray-900 rounded-full overflow-hidden relative border border-gray-700">
             <motion.div
               className={`h-full ${isCritical ? 'bg-red-500' : isLow ? 'bg-orange-500' : 'bg-green-500'}`}
               animate={{ width: `${healthPercent}%` }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
             />
-            {isCritical && (
-              <motion.div
-                className="absolute inset-0 bg-red-500/40"
-                animate={{ opacity: [0.3, 0.8, 0.3] }}
-                transition={{ duration: 0.4, repeat: Infinity }}
-              />
-            )}
           </div>
-          <span className={`text-base font-bold min-w-[36px] text-right ${isCritical ? 'text-red-400' : 'text-green-400'}`}>
+          <span className={`text-xs font-bold min-w-[28px] text-right ${isCritical ? 'text-red-400' : 'text-green-400'}`}>
             {Math.ceil(health)}
           </span>
         </div>
-
-        {/* Shield Section */}
-        <div className="flex items-center gap-2 w-28">
-          <span className="text-lg">🛡️</span>
-          <div className="flex-1 h-5 bg-gray-900 rounded-full overflow-hidden border-2 border-gray-600">
+        <div className="flex items-center gap-1 w-20">
+          <span className="text-sm">🛡️</span>
+          <div className="flex-1 h-3 bg-gray-900 rounded-full overflow-hidden border border-gray-700">
             <motion.div
-              className="h-full bg-red-500"
+              className="h-full bg-cyan-500"
               animate={{ width: `${Math.min(shield, 100)}%` }}
-              transition={{ duration: 0.3 }}
+              transition={{ duration: 0.2 }}
             />
           </div>
-          <span className="text-base font-bold text-red-400 min-w-[32px] text-right">
-            {Math.ceil(shield)}
-          </span>
+          <span className="text-xs font-bold text-cyan-400 min-w-[24px] text-right">{Math.ceil(shield)}</span>
         </div>
       </div>
 
-      {/* Gift Buttons Row - 6 gifts */}
-      <div className="flex items-center gap-1.5 mb-2">
+      {/* Gift Buttons - compact */}
+      <div className="flex items-center gap-1 mb-1.5">
         {gifts.map(gift => {
           const style = giftStyles[gift.action] || { border: '#888', bg: 'rgba(128,128,128,0.3)', color: '#888' };
-          
           return (
             <motion.button
               key={gift.id}
-              whileTap={{ scale: 0.88 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => onTriggerGift(gift.id)}
               disabled={disabled}
-              className="flex-1 rounded-lg flex flex-col items-center justify-center py-2 touch-manipulation"
+              className="flex-1 rounded flex flex-col items-center justify-center py-1 touch-manipulation"
               style={{
                 background: style.bg,
-                border: `3px solid ${style.border}`,
+                border: `2px solid ${style.border}`,
                 opacity: disabled ? 0.5 : 1,
-                minHeight: '52px',
-                boxShadow: `0 0 10px ${style.border}40`,
+                minHeight: '40px',
               }}
             >
-              <span className="text-xl">{gift.emoji}</span>
-              <span 
-                className="text-[8px] font-bold uppercase"
-                style={{ color: style.color }}
-              >
-                {giftLabels[gift.action]}
-              </span>
+              <span className="text-base">{gift.emoji}</span>
+              <span className="text-[7px] font-bold" style={{ color: style.color }}>{giftLabels[gift.action]}</span>
             </motion.button>
           );
         })}
       </div>
 
-      {/* Powerup Buttons Row - ALLY, ULT, TANK, EMP */}
-      <div className="flex items-center gap-1.5 mb-2">
-        {/* ALLY Button */}
+      {/* Powerups Row - ALLY, ULT, TANK only */}
+      <div className="flex items-center gap-1">
         <motion.button
-          whileTap={{ scale: collectedAllyPowerups > 0 ? 0.88 : 1 }}
+          whileTap={{ scale: collectedAllyPowerups > 0 ? 0.9 : 1 }}
           onClick={() => collectedAllyPowerups > 0 && onUseAlly?.()}
           disabled={disabled || collectedAllyPowerups <= 0}
-          className="relative flex-1 rounded-lg flex flex-col items-center justify-center py-1.5 touch-manipulation"
+          className="relative flex-1 rounded flex flex-col items-center justify-center py-1 touch-manipulation"
           style={{
-            background: collectedAllyPowerups > 0 ? 'rgba(100,150,255,0.4)' : 'rgba(60,60,60,0.6)',
-            border: `3px solid ${collectedAllyPowerups > 0 ? '#6496ff' : '#555'}`,
+            background: collectedAllyPowerups > 0 ? 'rgba(100,150,255,0.4)' : 'rgba(50,50,50,0.6)',
+            border: `2px solid ${collectedAllyPowerups > 0 ? '#6496ff' : '#444'}`,
             opacity: disabled ? 0.5 : 1,
-            minHeight: '44px',
-            boxShadow: collectedAllyPowerups > 0 ? '0 0 14px rgba(100,150,255,0.5)' : 'none',
+            minHeight: '36px',
           }}
         >
-          <span className="text-base">🤖</span>
-          <span 
-            className="text-[8px] font-bold uppercase"
-            style={{ color: collectedAllyPowerups > 0 ? '#6496ff' : '#666' }}
-          >
-            ALLY
-          </span>
+          <span className="text-sm">🤖</span>
+          <span className="text-[7px] font-bold" style={{ color: collectedAllyPowerups > 0 ? '#6496ff' : '#555' }}>ALLY</span>
           <div 
-            className="absolute -top-1 -right-1 rounded-full text-[9px] font-black w-4 h-4 flex items-center justify-center"
-            style={{ background: collectedAllyPowerups > 0 ? '#6496ff' : '#444', color: '#000' }}
-          >
-            {collectedAllyPowerups}
-          </div>
+            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center"
+            style={{ background: collectedAllyPowerups > 0 ? '#6496ff' : '#333', color: '#000' }}
+          >{collectedAllyPowerups}</div>
         </motion.button>
 
-        {/* ULT Button */}
         <motion.button
-          whileTap={{ scale: collectedUltPowerups > 0 ? 0.88 : 1 }}
+          whileTap={{ scale: collectedUltPowerups > 0 ? 0.9 : 1 }}
           onClick={() => collectedUltPowerups > 0 && onUseUlt?.()}
           disabled={disabled || collectedUltPowerups <= 0}
-          className="relative flex-1 rounded-lg flex flex-col items-center justify-center py-1.5 touch-manipulation"
+          className="relative flex-1 rounded flex flex-col items-center justify-center py-1 touch-manipulation"
           style={{
-            background: collectedUltPowerups > 0 ? 'rgba(0,200,100,0.4)' : 'rgba(60,60,60,0.6)',
-            border: `3px solid ${collectedUltPowerups > 0 ? '#00c864' : '#555'}`,
+            background: collectedUltPowerups > 0 ? 'rgba(0,200,100,0.4)' : 'rgba(50,50,50,0.6)',
+            border: `2px solid ${collectedUltPowerups > 0 ? '#00c864' : '#444'}`,
             opacity: disabled ? 0.5 : 1,
-            minHeight: '44px',
-            boxShadow: collectedUltPowerups > 0 ? '0 0 14px rgba(0,200,100,0.5)' : 'none',
+            minHeight: '36px',
           }}
         >
-          <span className="text-base">🚀</span>
-          <span 
-            className="text-[8px] font-bold uppercase"
-            style={{ color: collectedUltPowerups > 0 ? '#00c864' : '#666' }}
-          >
-            ULT
-          </span>
+          <span className="text-sm">🚀</span>
+          <span className="text-[7px] font-bold" style={{ color: collectedUltPowerups > 0 ? '#00c864' : '#555' }}>ULT</span>
           <div 
-            className="absolute -top-1 -right-1 rounded-full text-[9px] font-black w-4 h-4 flex items-center justify-center"
-            style={{ background: collectedUltPowerups > 0 ? '#00c864' : '#444', color: '#000' }}
-          >
-            {collectedUltPowerups}
-          </div>
+            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center"
+            style={{ background: collectedUltPowerups > 0 ? '#00c864' : '#333', color: '#000' }}
+          >{collectedUltPowerups}</div>
         </motion.button>
         
-        {/* TANK Button */}
         <motion.button
-          whileTap={{ scale: collectedTankPowerups > 0 ? 0.88 : 1 }}
+          whileTap={{ scale: collectedTankPowerups > 0 ? 0.9 : 1 }}
           onClick={() => collectedTankPowerups > 0 && onUseTank?.()}
           disabled={disabled || collectedTankPowerups <= 0}
-          className="relative flex-1 rounded-lg flex flex-col items-center justify-center py-1.5 touch-manipulation"
+          className="relative flex-1 rounded flex flex-col items-center justify-center py-1 touch-manipulation"
           style={{
-            background: collectedTankPowerups > 0 ? 'rgba(255,150,0,0.4)' : 'rgba(60,60,60,0.6)',
-            border: `3px solid ${collectedTankPowerups > 0 ? '#ff9600' : '#555'}`,
+            background: collectedTankPowerups > 0 ? 'rgba(255,150,0,0.4)' : 'rgba(50,50,50,0.6)',
+            border: `2px solid ${collectedTankPowerups > 0 ? '#ff9600' : '#444'}`,
             opacity: disabled ? 0.5 : 1,
-            minHeight: '44px',
-            boxShadow: collectedTankPowerups > 0 ? '0 0 14px rgba(255,150,0,0.5)' : 'none',
+            minHeight: '36px',
           }}
         >
-          <span className="text-base">🔫</span>
-          <span 
-            className="text-[8px] font-bold uppercase"
-            style={{ color: collectedTankPowerups > 0 ? '#ff9600' : '#666' }}
-          >
-            TANK
-          </span>
+          <span className="text-sm">🔫</span>
+          <span className="text-[7px] font-bold" style={{ color: collectedTankPowerups > 0 ? '#ff9600' : '#555' }}>TANK</span>
           <div 
-            className="absolute -top-1 -right-1 rounded-full text-[9px] font-black w-4 h-4 flex items-center justify-center"
-            style={{ background: collectedTankPowerups > 0 ? '#ff9600' : '#444', color: '#000' }}
-          >
-            {collectedTankPowerups}
-          </div>
+            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center"
+            style={{ background: collectedTankPowerups > 0 ? '#ff9600' : '#333', color: '#000' }}
+          >{collectedTankPowerups}</div>
         </motion.button>
-
-        {/* EMP Button */}
-        <motion.button
-          whileTap={{ scale: empCharges > 0 ? 0.88 : 1 }}
-          onClick={() => empCharges > 0 && onUseEmp?.()}
-          disabled={disabled || empCharges <= 0}
-          className="relative flex-1 rounded-lg flex flex-col items-center justify-center py-1.5 touch-manipulation"
-          style={{
-            background: empCharges > 0 ? 'rgba(0,255,200,0.4)' : 'rgba(60,60,60,0.6)',
-            border: `3px solid ${empCharges > 0 ? '#00ffc8' : '#555'}`,
-            opacity: disabled ? 0.5 : 1,
-            minHeight: '44px',
-            boxShadow: empCharges > 0 ? '0 0 14px rgba(0,255,200,0.5)' : 'none',
-          }}
-        >
-          <span className="text-base">⚡</span>
-          <span 
-            className="text-[8px] font-bold uppercase"
-            style={{ color: empCharges > 0 ? '#00ffc8' : '#666' }}
-          >
-            EMP
-          </span>
-          <div 
-            className="absolute -top-1 -right-1 rounded-full text-[9px] font-black w-4 h-4 flex items-center justify-center"
-            style={{ background: empCharges > 0 ? '#00ffc8' : '#444', color: '#000' }}
-          >
-            {empCooldown > 0 ? Math.ceil(empCooldown) : empCharges}
-          </div>
-        </motion.button>
-      </div>
-
-      {/* Legend Row */}
-      <div className="flex justify-center gap-4 text-[10px] text-gray-300 font-medium">
-        <span>🌹 Move</span>
-        <span>⚡ Shoot</span>
-        <span>⚡ EMP</span>
-        <span className="text-yellow-400">⭐ Kill ELITES!</span>
       </div>
     </div>
   );
