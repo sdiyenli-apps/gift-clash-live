@@ -380,9 +380,6 @@ const Index = () => {
             health={gameState.player.health}
             maxHealth={gameState.player.maxHealth}
             shield={gameState.player.shield}
-            isMagicDashing={gameState.player.isMagicDashing}
-            magicDashTimer={gameState.player.magicDashTimer}
-            empCooldown={gameState.empCooldown}
           />
         </div>
       </main>

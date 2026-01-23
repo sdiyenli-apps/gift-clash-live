@@ -13,9 +13,6 @@ interface GiftPanelProps {
   health?: number;
   maxHealth?: number;
   shield?: number;
-  isMagicDashing?: boolean;
-  magicDashTimer?: number;
-  empCooldown?: number;
 }
 
 export const GiftPanel = ({ 
