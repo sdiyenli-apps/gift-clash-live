@@ -13,6 +13,10 @@ import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
 const Index = () => {
   const [autoSimulate, setAutoSimulate] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
+  // Resize/move controls for arena
+  const [arenaScale, setArenaScale] = useState(0.78);
+  const [arenaOffsetY, setArenaOffsetY] = useState(0);
+  const [showControls, setShowControls] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const { gameState, startGame, startNextWave, handleGift } = useGameState();
   const { playSound } = useSoundEffects();
@@ -180,8 +184,20 @@ const Index = () => {
         {/* Left side - Empty (game name removed) */}
         <div className="flex items-center pointer-events-auto" />
 
-        {/* Right side - Audio only */}
+        {/* Right side - Audio + Controls toggle */}
         <div className="flex items-center gap-1 pointer-events-auto">
+          <motion.button
+            onClick={() => setShowControls(!showControls)}
+            className="w-7 h-7 rounded-full flex items-center justify-center text-sm touch-manipulation"
+            style={{
+              background: showControls ? 'rgba(0,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+              backdropFilter: 'blur(10px)',
+              border: showControls ? '1px solid rgba(0,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
+            }}
+            whileTap={{ scale: 0.9 }}
+          >
+            ⚙️
+          </motion.button>
           <motion.button
             onClick={() => setAudioOn(!audioOn)}
             className="w-7 h-7 rounded-full flex items-center justify-center text-sm touch-manipulation"
@@ -197,6 +213,55 @@ const Index = () => {
         </div>
       </header>
 
+      {/* Resize/Move Controls Panel */}
+      {showControls && (
+        <div 
+          className="absolute top-24 right-2 z-40 p-3 rounded-xl pointer-events-auto"
+          style={{
+            background: 'rgba(0,0,0,0.9)',
+            backdropFilter: 'blur(12px)',
+            border: '1px solid rgba(255,255,255,0.3)',
+          }}
+        >
+          <div className="text-white text-xs font-bold mb-2">Arena Controls</div>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-white text-[10px] w-10">Size:</span>
+              <input
+                type="range"
+                min="0.4"
+                max="1.2"
+                step="0.02"
+                value={arenaScale}
+                onChange={(e) => setArenaScale(parseFloat(e.target.value))}
+                className="w-20 accent-cyan-400"
+              />
+              <span className="text-cyan-400 text-[10px] w-8">{Math.round(arenaScale * 100)}%</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-white text-[10px] w-10">Move:</span>
+              <input
+                type="range"
+                min="-100"
+                max="200"
+                step="5"
+                value={arenaOffsetY}
+                onChange={(e) => setArenaOffsetY(parseFloat(e.target.value))}
+                className="w-20 accent-cyan-400"
+              />
+              <span className="text-cyan-400 text-[10px] w-8">{arenaOffsetY}px</span>
+            </div>
+            <motion.button
+              onClick={() => { setArenaScale(0.78); setArenaOffsetY(0); }}
+              className="text-[10px] text-gray-400 hover:text-white mt-1"
+              whileTap={{ scale: 0.95 }}
+            >
+              Reset
+            </motion.button>
+          </div>
+        </div>
+      )}
+
       {/* Main Game Content - TikTok Live 9:16 optimized - FULL WIDTH */}
       <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-10 pb-0">
         {/* Game Arena - FULL WIDTH - fills entire screen width */}
@@ -205,8 +270,8 @@ const Index = () => {
           style={{ 
             maxHeight: 'calc(100dvh - 100px)',
             width: '100vw',
-            marginLeft: 'calc(-50vw + 50%)', // Expand to full viewport width
-            transform: 'scale(0.78)',
+            marginLeft: 'calc(-50vw + 50%)',
+            transform: `scale(${arenaScale}) translateY(${arenaOffsetY}px)`,
             transformOrigin: 'center top',
           }}
         >

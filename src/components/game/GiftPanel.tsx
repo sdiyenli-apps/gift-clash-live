@@ -104,9 +104,8 @@ export const GiftPanel = ({
         </div>
       </div>
 
-      {/* Gift Buttons Row - 6 gifts + separator + 2 powerups */}
-      <div className="flex items-center gap-2 mb-2">
-        {/* 6 Gift buttons */}
+      {/* Gift Buttons Row - 6 gifts */}
+      <div className="flex items-center gap-1.5 mb-2">
         {gifts.map(gift => {
           const style = giftStyles[gift.action] || { border: '#888', bg: 'rgba(128,128,128,0.3)', color: '#888' };
           
@@ -116,18 +115,18 @@ export const GiftPanel = ({
               whileTap={{ scale: 0.88 }}
               onClick={() => onTriggerGift(gift.id)}
               disabled={disabled}
-              className="flex-1 rounded-lg flex flex-col items-center justify-center py-2.5 touch-manipulation"
+              className="flex-1 rounded-lg flex flex-col items-center justify-center py-2 touch-manipulation"
               style={{
                 background: style.bg,
                 border: `3px solid ${style.border}`,
                 opacity: disabled ? 0.5 : 1,
-                minHeight: '56px',
-                boxShadow: `0 0 12px ${style.border}40`,
+                minHeight: '52px',
+                boxShadow: `0 0 10px ${style.border}40`,
               }}
             >
-              <span className="text-2xl">{gift.emoji}</span>
+              <span className="text-xl">{gift.emoji}</span>
               <span 
-                className="text-[9px] font-bold uppercase mt-0.5"
+                className="text-[8px] font-bold uppercase"
                 style={{ color: style.color }}
               >
                 {giftLabels[gift.action]}
@@ -135,27 +134,56 @@ export const GiftPanel = ({
             </motion.button>
           );
         })}
-        
-        {/* Separator */}
-        <div className="w-0.5 h-12 bg-gray-500 mx-1" />
-        
+      </div>
+
+      {/* Powerup Buttons Row - ALLY, ULT, TANK */}
+      <div className="flex items-center gap-2 mb-2">
+        {/* ALLY Button */}
+        <motion.button
+          whileTap={{ scale: collectedAllyPowerups > 0 ? 0.88 : 1 }}
+          onClick={() => collectedAllyPowerups > 0 && onUseAlly?.()}
+          disabled={disabled || collectedAllyPowerups <= 0}
+          className="relative flex-1 rounded-lg flex flex-col items-center justify-center py-2 touch-manipulation"
+          style={{
+            background: collectedAllyPowerups > 0 ? 'rgba(100,150,255,0.4)' : 'rgba(60,60,60,0.6)',
+            border: `3px solid ${collectedAllyPowerups > 0 ? '#6496ff' : '#555'}`,
+            opacity: disabled ? 0.5 : 1,
+            minHeight: '48px',
+            boxShadow: collectedAllyPowerups > 0 ? '0 0 14px rgba(100,150,255,0.5)' : 'none',
+          }}
+        >
+          <span className="text-lg">🤖</span>
+          <span 
+            className="text-[9px] font-bold uppercase"
+            style={{ color: collectedAllyPowerups > 0 ? '#6496ff' : '#666' }}
+          >
+            ALLY
+          </span>
+          <div 
+            className="absolute -top-1.5 -right-1.5 rounded-full text-[10px] font-black w-5 h-5 flex items-center justify-center"
+            style={{ background: collectedAllyPowerups > 0 ? '#6496ff' : '#444', color: '#000' }}
+          >
+            {collectedAllyPowerups}
+          </div>
+        </motion.button>
+
         {/* ULT Button */}
         <motion.button
           whileTap={{ scale: collectedUltPowerups > 0 ? 0.88 : 1 }}
           onClick={() => collectedUltPowerups > 0 && onUseUlt?.()}
           disabled={disabled || collectedUltPowerups <= 0}
-          className="relative rounded-lg flex flex-col items-center justify-center py-2.5 px-4 touch-manipulation"
+          className="relative flex-1 rounded-lg flex flex-col items-center justify-center py-2 touch-manipulation"
           style={{
             background: collectedUltPowerups > 0 ? 'rgba(0,200,100,0.4)' : 'rgba(60,60,60,0.6)',
             border: `3px solid ${collectedUltPowerups > 0 ? '#00c864' : '#555'}`,
             opacity: disabled ? 0.5 : 1,
-            minHeight: '56px',
-            boxShadow: collectedUltPowerups > 0 ? '0 0 16px rgba(0,200,100,0.5)' : 'none',
+            minHeight: '48px',
+            boxShadow: collectedUltPowerups > 0 ? '0 0 14px rgba(0,200,100,0.5)' : 'none',
           }}
         >
-          <span className="text-xl">🚀</span>
+          <span className="text-lg">🚀</span>
           <span 
-            className="text-[9px] font-bold uppercase mt-0.5"
+            className="text-[9px] font-bold uppercase"
             style={{ color: collectedUltPowerups > 0 ? '#00c864' : '#666' }}
           >
             ULT
@@ -173,25 +201,25 @@ export const GiftPanel = ({
           whileTap={{ scale: collectedTankPowerups > 0 ? 0.88 : 1 }}
           onClick={() => collectedTankPowerups > 0 && onUseTank?.()}
           disabled={disabled || collectedTankPowerups <= 0}
-          className="relative rounded-lg flex flex-col items-center justify-center py-2.5 px-4 touch-manipulation"
+          className="relative flex-1 rounded-lg flex flex-col items-center justify-center py-2 touch-manipulation"
           style={{
-            background: collectedTankPowerups > 0 ? 'rgba(0,200,100,0.4)' : 'rgba(60,60,60,0.6)',
-            border: `3px solid ${collectedTankPowerups > 0 ? '#00c864' : '#555'}`,
+            background: collectedTankPowerups > 0 ? 'rgba(255,150,0,0.4)' : 'rgba(60,60,60,0.6)',
+            border: `3px solid ${collectedTankPowerups > 0 ? '#ff9600' : '#555'}`,
             opacity: disabled ? 0.5 : 1,
-            minHeight: '56px',
-            boxShadow: collectedTankPowerups > 0 ? '0 0 16px rgba(0,200,100,0.5)' : 'none',
+            minHeight: '48px',
+            boxShadow: collectedTankPowerups > 0 ? '0 0 14px rgba(255,150,0,0.5)' : 'none',
           }}
         >
-          <span className="text-xl">🔫</span>
+          <span className="text-lg">🔫</span>
           <span 
-            className="text-[9px] font-bold uppercase mt-0.5"
-            style={{ color: collectedTankPowerups > 0 ? '#00c864' : '#666' }}
+            className="text-[9px] font-bold uppercase"
+            style={{ color: collectedTankPowerups > 0 ? '#ff9600' : '#666' }}
           >
             TANK
           </span>
           <div 
             className="absolute -top-1.5 -right-1.5 rounded-full text-[10px] font-black w-5 h-5 flex items-center justify-center"
-            style={{ background: collectedTankPowerups > 0 ? '#00c864' : '#444', color: '#000' }}
+            style={{ background: collectedTankPowerups > 0 ? '#ff9600' : '#444', color: '#000' }}
           >
             {collectedTankPowerups}
           </div>
