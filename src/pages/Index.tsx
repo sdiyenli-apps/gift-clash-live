@@ -231,15 +231,15 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - TikTok Live green zone - compact gift panel with integrated health bar */}
+        {/* Bottom HUD - TikTok Live green zone at very bottom */}
         {gameState.phase === 'playing' && (
           <div 
-            className="absolute bottom-16 left-0 right-0 z-20 px-2"
+            className="absolute bottom-0 left-0 right-0 z-20 px-1"
             style={{
-              paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 2px)',
             }}
           >
-            <div className="w-full max-w-md mx-auto">
+            <div className="w-full max-w-lg mx-auto">
               <GiftPanel 
                 onTriggerGift={handleTriggerGift}
                 disabled={gameState.phase !== 'playing'}
