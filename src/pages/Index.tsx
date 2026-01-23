@@ -180,21 +180,8 @@ const Index = () => {
         {/* Left side - Empty (game name removed) */}
         <div className="flex items-center pointer-events-auto" />
 
-        {/* Right side - Score and Audio only (wave removed) */}
+        {/* Right side - Audio only */}
         <div className="flex items-center gap-1 pointer-events-auto">
-          {gameState.phase === 'playing' && (
-            <div 
-              className="px-2 py-0.5 rounded-full font-bold text-[10px] sm:text-xs"
-              style={{
-                background: 'rgba(0,0,0,0.8)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255,255,0,0.3)',
-                color: '#ffff00',
-              }}
-            >
-              ⭐{gameState.score.toLocaleString()}
-            </div>
-          )}
           <motion.button
             onClick={() => setAudioOn(!audioOn)}
             className="w-7 h-7 rounded-full flex items-center justify-center text-sm touch-manipulation"
@@ -244,71 +231,15 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - TikTok Live-style controls positioned compactly above comment section */}
+        {/* Bottom HUD - TikTok Live green zone - compact gift panel with integrated health bar */}
         {gameState.phase === 'playing' && (
           <div 
-            className="absolute bottom-24 left-0 right-0 z-20 px-2 space-y-1"
+            className="absolute bottom-16 left-0 right-0 z-20 px-2"
             style={{
-              background: 'linear-gradient(0deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.5) 80%, transparent 100%)',
-              paddingBottom: 'max(env(safe-area-inset-bottom), 8px)',
+              paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
             }}
           >
-            {/* Compact Health bar + Data elements row - Full width TikTok style */}
-            <div 
-              className="px-2 py-1.5 rounded-xl mx-auto w-full max-w-sm flex items-center gap-2"
-              style={{
-                background: 'rgba(0,0,0,0.8)',
-                border: '1px solid rgba(255,0,255,0.25)',
-                boxShadow: '0 0 10px rgba(255,0,255,0.15)',
-              }}
-            >
-              {/* Health bar (flex-1 to take remaining space) */}
-              <div className="flex-1">
-                <HealthBar 
-                  health={gameState.player.health}
-                  maxHealth={gameState.player.maxHealth}
-                  shield={gameState.player.shield}
-                />
-              </div>
-              
-              {/* Data elements next to health (wave indicator removed) */}
-              <div className="flex items-center gap-1 shrink-0">
-                {/* Magic Dash timer */}
-                {gameState.player.isMagicDashing && (
-                  <motion.div
-                    className="px-1.5 py-0.5 rounded text-[8px] font-bold"
-                    style={{
-                      background: 'rgba(255,0,255,0.3)',
-                      border: '1px solid rgba(255,0,255,0.5)',
-                      color: '#ff66ff',
-                    }}
-                    animate={{ opacity: [1, 0.5, 1] }}
-                    transition={{ duration: 0.2, repeat: Infinity }}
-                  >
-                    ✨{gameState.player.magicDashTimer.toFixed(0)}
-                  </motion.div>
-                )}
-                
-                {/* EMP Cooldown */}
-                {gameState.empCooldown > 0 && (
-                  <motion.div
-                    className="px-1.5 py-0.5 rounded text-[8px] font-bold"
-                    style={{
-                      background: 'rgba(0,255,255,0.3)',
-                      border: '1px solid rgba(0,255,255,0.5)',
-                      color: '#00ffff',
-                    }}
-                    animate={{ opacity: [1, 0.7, 1] }}
-                    transition={{ duration: 0.5, repeat: Infinity }}
-                  >
-                    ⚡{gameState.empCooldown.toFixed(0)}
-                  </motion.div>
-                )}
-              </div>
-            </div>
-            
-            {/* Compact Gift buttons - TikTok large touch targets */}
-            <div className="w-full max-w-sm mx-auto">
+            <div className="w-full max-w-md mx-auto">
               <GiftPanel 
                 onTriggerGift={handleTriggerGift}
                 disabled={gameState.phase !== 'playing'}
@@ -318,6 +249,12 @@ const Index = () => {
                 onUseAlly={handleUseAlly}
                 onUseUlt={handleUseUlt}
                 onUseTank={handleUseTank}
+                health={gameState.player.health}
+                maxHealth={gameState.player.maxHealth}
+                shield={gameState.player.shield}
+                isMagicDashing={gameState.player.isMagicDashing}
+                magicDashTimer={gameState.player.magicDashTimer}
+                empCooldown={gameState.empCooldown}
               />
             </div>
           </div>
