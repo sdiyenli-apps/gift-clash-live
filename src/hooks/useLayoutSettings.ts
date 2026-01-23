@@ -4,6 +4,7 @@ const STORAGE_KEY = 'squirbert-layout-settings';
 
 interface LayoutSettings {
   arenaScale: number;
+  arenaOffsetX: number;
   arenaOffsetY: number;
   hudScale: number;
   hudOffsetX: number;
@@ -12,6 +13,7 @@ interface LayoutSettings {
 
 const DEFAULT_SETTINGS: LayoutSettings = {
   arenaScale: 0.78,
+  arenaOffsetX: 0,
   arenaOffsetY: 0,
   hudScale: 1,
   hudOffsetX: 8,
@@ -53,6 +55,7 @@ export const useLayoutSettings = () => {
   return {
     ...settings,
     setArenaScale: (v: number) => updateSetting('arenaScale', v),
+    setArenaOffsetX: (v: number) => updateSetting('arenaOffsetX', v),
     setArenaOffsetY: (v: number) => updateSetting('arenaOffsetY', v),
     setHudScale: (v: number) => updateSetting('hudScale', v),
     setHudOffsetX: (v: number) => updateSetting('hudOffsetX', v),
