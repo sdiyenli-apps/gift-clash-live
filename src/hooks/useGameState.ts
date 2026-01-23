@@ -1063,7 +1063,7 @@ export const useGameState = () => {
           };
           newState.empGrenades = [...prev.empGrenades, grenade];
           newState.empCharges = prev.empCharges - 1; // Use a charge
-          newState.empCooldown = 10; // 10 second cooldown to recharge
+          newState.empCooldown = 5; // 5 second cooldown to recharge
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
           newState.particles = [
             ...prev.particles, 
@@ -1898,7 +1898,7 @@ export const useGameState = () => {
           newState.empCooldown = prev.empCooldown - delta;
           if (newState.empCooldown <= 0 && prev.empCharges < 2) {
             newState.empCharges = Math.min(2, prev.empCharges + 1);
-            newState.empCooldown = prev.empCharges < 1 ? 10 : 0;
+            newState.empCooldown = prev.empCharges < 1 ? 5 : 0;
           }
         }
         if (prev.allyCooldown > 0) {
