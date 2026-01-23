@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useGameState } from '@/hooks/useGameState';
 import { useTikTokSimulator } from '@/hooks/useTikTokSimulator';
@@ -10,17 +10,17 @@ import { WaveTransition } from '@/components/game/WaveTransition';
 import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
 
 const Index = () => {
-  const [autoSimulate, setAutoSimulate] = useState(false);
+  // ALL HOOKS FIRST - Never place computed values between hooks
+  const [autoSimulate] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
-  // Resize/move controls for arena
   const [arenaScale, setArenaScale] = useState(0.78);
   const [arenaOffsetY, setArenaOffsetY] = useState(0);
-  // Resize/move controls for HUD
   const [hudScale, setHudScale] = useState(1);
   const [hudOffsetX, setHudOffsetX] = useState(8);
   const [hudOffsetY, setHudOffsetY] = useState(8);
   const [showControls, setShowControls] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
   const { gameState, startGame, startNextWave, handleGift, triggerSummon } = useGameState();
   const { playSound } = useSoundEffects();
   
@@ -30,7 +30,43 @@ const Index = () => {
     'medium'
   );
 
-  // Handle audio toggle
+  // Memoize computed values to avoid recalculating every render
+  const droppingJetRobots = useMemo(() => 
+    gameState.enemies?.filter(e => e.type === 'jetrobot' && e.isDropping && e.dropTimer && e.dropTimer > 0.8) || [],
+    [gameState.enemies]
+  );
+  
+  const landedJetRobots = useMemo(() =>
+    gameState.enemies?.filter(e => e.type === 'jetrobot' && e.isDropping && e.dropTimer && e.dropTimer < 0.3 && e.dropTimer > 0.1) || [],
+    [gameState.enemies]
+  );
+
+  // ALL useCallbacks together
+  const handleTriggerGift = useCallback((giftId: string) => {
+    if (gameState.phase !== 'playing') return;
+    playSound('gift');
+    triggerGift(giftId, `Player_${Math.floor(Math.random() * 999)}`);
+  }, [gameState.phase, triggerGift, playSound]);
+
+  const handleSummonAlly = useCallback(() => {
+    if (gameState.phase !== 'playing') return;
+    playSound('gift');
+    triggerSummon('ally');
+  }, [gameState.phase, playSound, triggerSummon]);
+
+  const handleSummonUlt = useCallback(() => {
+    if (gameState.phase !== 'playing') return;
+    playSound('gift');
+    triggerSummon('ult');
+  }, [gameState.phase, playSound, triggerSummon]);
+
+  const handleSummonTank = useCallback(() => {
+    if (gameState.phase !== 'playing') return;
+    playSound('gift');
+    triggerSummon('tank');
+  }, [gameState.phase, playSound, triggerSummon]);
+
+  // ALL useEffects together
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio(gameTheme);
@@ -51,7 +87,6 @@ const Index = () => {
     };
   }, [audioOn]);
 
-  // Play sound effects
   useEffect(() => {
     if (gameState.player.isShooting) {
       playSound(gameState.player.isMagicDashing ? 'shootUltra' : 'shoot');
@@ -70,50 +105,31 @@ const Index = () => {
     }
   }, [gameState.fireballs?.length, gameState.isBossFight, playSound]);
 
-  // Play boss attack sounds based on attack type
   useEffect(() => {
     if (gameState.lastBossAttack) {
       switch (gameState.lastBossAttack) {
-        case 'laser_sweep':
-          playSound('laserSweep');
-          break;
-        case 'missile_barrage':
-          playSound('missileWarning');
-          break;
-        case 'ground_pound':
-          playSound('groundPound');
-          break;
-        case 'screen_attack':
-          playSound('screenAttack');
-          break;
-        case 'shield':
-          playSound('shieldBlock');
-          break;
+        case 'laser_sweep': playSound('laserSweep'); break;
+        case 'missile_barrage': playSound('missileWarning'); break;
+        case 'ground_pound': playSound('groundPound'); break;
+        case 'screen_attack': playSound('screenAttack'); break;
+        case 'shield': playSound('shieldBlock'); break;
       }
     }
   }, [gameState.lastBossAttack, playSound]);
 
-  // Play sound when enemies shoot
   useEffect(() => {
     if (gameState.enemyLasers?.length > 0) {
       const hasDroneLaser = gameState.enemyLasers.some(l => l.damage === 8);
-      if (hasDroneLaser) {
-        playSound('droneShoot');
-      } else {
-        playSound('enemyShoot');
-      }
+      playSound(hasDroneLaser ? 'droneShoot' : 'enemyShoot');
     }
   }, [gameState.enemyLasers?.length, playSound]);
 
-  // Play sound when shield blocks
   useEffect(() => {
     if (gameState.shieldBlockFlash && gameState.shieldBlockFlash > 0) {
       playSound('shieldBlock');
     }
   }, [gameState.shieldBlockFlash, playSound]);
 
-  // Play jet robot drop sounds when jet robots are dropping
-  const droppingJetRobots = gameState.enemies.filter(e => e.type === 'jetrobot' && e.isDropping && e.dropTimer && e.dropTimer > 0.8);
   useEffect(() => {
     if (droppingJetRobots.length > 0) {
       playSound('jetDrop');
@@ -121,39 +137,11 @@ const Index = () => {
     }
   }, [droppingJetRobots.length, playSound]);
 
-  // Play engine roar when jet robots finish dropping
-  const landedJetRobots = gameState.enemies.filter(e => e.type === 'jetrobot' && e.isDropping && e.dropTimer && e.dropTimer < 0.3 && e.dropTimer > 0.1);
   useEffect(() => {
     if (landedJetRobots.length > 0) {
       playSound('jetEngine');
     }
   }, [landedJetRobots.length, playSound]);
-
-  // Optimized gift trigger - immediate response
-  const handleTriggerGift = useCallback((giftId: string) => {
-    if (gameState.phase !== 'playing') return;
-    playSound('gift');
-    triggerGift(giftId, `Player_${Math.floor(Math.random() * 999)}`);
-  }, [gameState.phase, triggerGift, playSound]);
-
-  // Summon handlers - direct with 15s cooldown (handled in hook)
-  const handleSummonAlly = useCallback(() => {
-    if (gameState.phase !== 'playing') return;
-    playSound('gift');
-    triggerSummon('ally');
-  }, [gameState.phase, playSound, triggerSummon]);
-
-  const handleSummonUlt = useCallback(() => {
-    if (gameState.phase !== 'playing') return;
-    playSound('gift');
-    triggerSummon('ult');
-  }, [gameState.phase, playSound, triggerSummon]);
-
-  const handleSummonTank = useCallback(() => {
-    if (gameState.phase !== 'playing') return;
-    playSound('gift');
-    triggerSummon('tank');
-  }, [gameState.phase, playSound, triggerSummon]);
 
 
   return (
