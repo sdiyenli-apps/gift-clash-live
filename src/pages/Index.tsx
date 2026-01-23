@@ -4,7 +4,6 @@ import { useGameState } from '@/hooks/useGameState';
 import { useTikTokSimulator } from '@/hooks/useTikTokSimulator';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
 import { Arena } from '@/components/game/Arena';
-import { HealthBar } from '@/components/game/HealthBar';
 import { GiftPanel } from '@/components/game/GiftPanel';
 import { GameOverlay } from '@/components/game/GameOverlay';
 import { WaveTransition } from '@/components/game/WaveTransition';
@@ -22,7 +21,7 @@ const Index = () => {
   const [hudOffsetY, setHudOffsetY] = useState(8);
   const [showControls, setShowControls] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const { gameState, startGame, startNextWave, handleGift } = useGameState();
+  const { gameState, startGame, startNextWave, handleGift, triggerSummon } = useGameState();
   const { playSound } = useSoundEffects();
   
   const { triggerGift } = useTikTokSimulator(
@@ -137,42 +136,24 @@ const Index = () => {
     triggerGift(giftId, `Player_${Math.floor(Math.random() * 999)}`);
   }, [gameState.phase, triggerGift, playSound]);
 
-  // Powerup handlers - immediate action processing
-  const handleUseAlly = useCallback(() => {
+  // Summon handlers - direct with 15s cooldown (handled in hook)
+  const handleSummonAlly = useCallback(() => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');
-    handleGift({
-      id: `ally-${Date.now()}`,
-      gift: { id: 'ally_powerup', name: 'Ally', tier: 'large', diamonds: 0, emoji: '🤖', action: 'summon_support' },
-      username: 'Hero',
-      timestamp: Date.now(),
-      action: 'summon_support',
-    } as any);
-  }, [gameState.phase, playSound, handleGift]);
+    triggerSummon('ally');
+  }, [gameState.phase, playSound, triggerSummon]);
 
-  const handleUseUlt = useCallback(() => {
+  const handleSummonUlt = useCallback(() => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');
-    handleGift({
-      id: `ult-${Date.now()}`,
-      gift: { id: 'ult_powerup', name: 'ULT', tier: 'large', diamonds: 0, emoji: '🚀', action: 'magic_dash' },
-      username: 'Hero',
-      timestamp: Date.now(),
-      action: 'magic_dash',
-    } as any);
-  }, [gameState.phase, playSound, handleGift]);
+    triggerSummon('ult');
+  }, [gameState.phase, playSound, triggerSummon]);
 
-  const handleUseTank = useCallback(() => {
+  const handleSummonTank = useCallback(() => {
     if (gameState.phase !== 'playing') return;
     playSound('gift');
-    handleGift({
-      id: `tank-${Date.now()}`,
-      gift: { id: 'tank_powerup', name: 'Tank', tier: 'large', diamonds: 0, emoji: '🔫', action: 'summon_tank' as any },
-      username: 'Hero',
-      timestamp: Date.now(),
-      action: 'summon_tank' as any,
-    } as any);
-  }, [gameState.phase, playSound, handleGift]);
+    triggerSummon('tank');
+  }, [gameState.phase, playSound, triggerSummon]);
 
 
   return (
@@ -180,16 +161,12 @@ const Index = () => {
       className="h-[100dvh] w-screen flex flex-col overflow-hidden touch-none select-none"
       style={{
         background: 'linear-gradient(180deg, #0a0a12 0%, #12081c 100%)',
-        // TikTok Live optimized - smartphone vertical screen
         maxWidth: '100vw',
       }}
     >
-      {/* TikTok Live-style Header - Positioned to avoid TikTok UI elements */}
+      {/* TikTok Live-style Header */}
       <header className="absolute top-14 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
-        {/* Left side - Empty (game name removed) */}
         <div className="flex items-center pointer-events-auto" />
-
-        {/* Right side - Audio + Controls toggle */}
         <div className="flex items-center gap-1 pointer-events-auto">
           <motion.button
             onClick={() => setShowControls(!showControls)}
@@ -323,7 +300,7 @@ const Index = () => {
 
 
       <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-10 pb-0">
-        {/* Game Arena - FULL WIDTH - fills entire screen width */}
+        {/* Game Arena */}
         <div 
           className="flex-1 min-h-0 relative overflow-hidden w-full"
           style={{ 
@@ -355,7 +332,7 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - ALWAYS visible for positioning, slightly dimmed when not playing */}
+        {/* Bottom HUD */}
         <div 
           className="absolute z-20"
           style={{
@@ -372,12 +349,12 @@ const Index = () => {
           <GiftPanel 
             onTriggerGift={handleTriggerGift}
             disabled={gameState.phase !== 'playing'}
-            collectedAllyPowerups={gameState.collectedAllyPowerups || 0}
-            collectedUltPowerups={gameState.collectedUltPowerups || 0}
-            collectedTankPowerups={gameState.collectedTankPowerups || 0}
-            onUseAlly={handleUseAlly}
-            onUseUlt={handleUseUlt}
-            onUseTank={handleUseTank}
+            onSummonAlly={handleSummonAlly}
+            onSummonUlt={handleSummonUlt}
+            onSummonTank={handleSummonTank}
+            allyCooldown={gameState.allyCooldown || 0}
+            ultCooldown={gameState.ultCooldown || 0}
+            tankCooldown={gameState.tankCooldown || 0}
             health={gameState.player.health}
             maxHealth={gameState.player.maxHealth}
             shield={gameState.player.shield}

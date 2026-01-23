@@ -128,15 +128,6 @@ interface EMPGrenade {
   timer: number;
 }
 
-// Powerup dropped by elite enemies
-interface Powerup {
-  id: string;
-  x: number;
-  y: number;
-  type: 'ally' | 'ult' | 'tank'; // Tank is rare drop
-  timer: number; // Time before despawn
-}
-
 interface ExtendedGameState extends GameState {
   fireballs: Fireball[];
   bossFireballTimer: number;
@@ -164,17 +155,13 @@ interface ExtendedGameState extends GameState {
   supportProjectiles: Projectile[];
   empCooldown: number;
   empCharges: number;
-  allyCooldown: number;
-  allyCharges: number;
   gameStartTime: number;
   particleResetTimer: number;
   evasionPopup: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
-  // Powerup system - elites drop ally/ult/tank powerups
-  powerups: Powerup[];
-  collectedAllyPowerups: number; // Collected this wave (usable)
-  collectedUltPowerups: number; // Collected this wave (usable)
-  collectedTankPowerups: number; // Collected tank powerups (usable)
-  elitesSpawnedThisWave: number; // Track elite spawns (max 4 per wave)
+  // Summon cooldowns (15 seconds each)
+  allyCooldown: number;
+  ultCooldown: number;
+  tankCooldown: number;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -234,20 +221,16 @@ const INITIAL_STATE: ExtendedGameState = {
   // Support units
   supportUnits: [],
   supportProjectiles: [],
-  // Cooldowns - start ready (0 = ready, charges start at 0 - must collect powerups)
+  // Cooldowns - start ready (0 = ready)
   empCooldown: 0,
   empCharges: 2,
-  allyCooldown: 0,
-  allyCharges: 0, // Start with 0 - must collect from elites
   gameStartTime: Date.now(),
   particleResetTimer: PARTICLE_LIFETIME,
   evasionPopup: null,
-  // Powerup system
-  powerups: [],
-  collectedAllyPowerups: 0,
-  collectedUltPowerups: 0,
-  collectedTankPowerups: 0,
-  elitesSpawnedThisWave: 0,
+  // Summon cooldowns - all start ready
+  allyCooldown: 0,
+  ultCooldown: 0,
+  tankCooldown: 0,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -991,45 +974,6 @@ export const useGameState = () => {
           showSpeechBubble(`THANKS ${username.toUpperCase()}! HEALED! 💚`, 'normal');
           break;
           
-        case 'magic_dash':
-          // Check if ULT powerup is available (collected from elite kills)
-          if ((prev.collectedUltPowerups || 0) <= 0) {
-            showSpeechBubble("🚀 NO ULT POWERUPS! KILL ELITES! 🚀", 'normal');
-            break;
-          }
-          
-          newState.collectedUltPowerups = (prev.collectedUltPowerups || 0) - 1; // Deduct powerup
-          newState.player = {
-            ...prev.player,
-            isMagicDashing: true,
-            magicDashTimer: 6,
-          };
-          newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y, 30, 'ultra', '#ff00ff')];
-          newState.score += 300;
-          newState.screenShake = 1.0;
-          newState.magicFlash = 1.5; // BIG FLASH!
-          newState.redFlash = 0.3; // Extra flash
-          newState.chickens = [...prev.chickens, ...createAttackChickens(prev.player.x, prev.enemies)];
-          
-          // SPAWN NEON LASERS THAT BOUNCE OFF WALLS - reduced count for performance
-          const newNeonLasers: NeonLaser[] = [];
-          for (let i = 0; i < 6; i++) {
-            const angle = (i / 6) * Math.PI * 2;
-            newNeonLasers.push({
-              id: `neon-${Date.now()}-${i}`,
-              x: prev.player.x + PLAYER_WIDTH / 2,
-              y: prev.player.y + PLAYER_HEIGHT / 2,
-              velocityX: Math.cos(angle) * (400 + Math.random() * 200),
-              velocityY: Math.sin(angle) * (400 + Math.random() * 200),
-              bounces: 3,
-              life: 3,
-            });
-          }
-          newState.neonLasers = [...prev.neonLasers.slice(-4), ...newNeonLasers]; // Limit total
-          
-          showSpeechBubble(`🦁 SPACESHIP MODE! [${newState.collectedUltPowerups} left] 🦁`, 'excited');
-          break;
-
         case 'spawn_enemies' as GiftAction:
           // New gift that spawns dangerous enemies
           newState.enemies = [...prev.enemies, ...createDangerousEnemies(prev.player.x, 3, prev.enemies)];
@@ -1045,25 +989,22 @@ export const useGameState = () => {
           }
           
           // Hero THROWS an EMP grenade TO CENTER OF SCREEN - only damages drones!
-          // Calculate center of screen position
-          const screenCenterX = prev.cameraX + 290; // Center of visible screen
-          const screenCenterY = 200; // Center height
-          
-          // Calculate velocity to arc toward center
+          const screenCenterX = prev.cameraX + 290;
+          const screenCenterY = 200;
           const dx = screenCenterX - (prev.player.x + PLAYER_WIDTH / 2);
-          const arcHeight = 300; // High arc
+          const arcHeight = 300;
           
           const grenade: EMPGrenade = {
             id: `emp-${Date.now()}`,
             x: prev.player.x + PLAYER_WIDTH / 2,
             y: prev.player.y + PLAYER_HEIGHT + 30,
-            velocityX: dx / 1.8, // Velocity to reach center in ~1.8s
-            velocityY: arcHeight, // High initial upward velocity for arc
+            velocityX: dx / 1.8,
+            velocityY: arcHeight,
             timer: 1.8,
           };
           newState.empGrenades = [...prev.empGrenades, grenade];
-          newState.empCharges = prev.empCharges - 1; // Use a charge
-          newState.empCooldown = 5; // 5 second cooldown to recharge
+          newState.empCharges = prev.empCharges - 1;
+          newState.empCooldown = 5;
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
           newState.particles = [
             ...prev.particles, 
@@ -1072,65 +1013,6 @@ export const useGameState = () => {
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, isShooting: false, animationState: 'idle' } })), 300);
           newState.score += 100;
           showSpeechBubble(`⚡ EMP TO CENTER! [${newState.empCharges}/2] ⚡`, 'excited');
-          break;
-
-        case 'summon_support' as GiftAction:
-          // Check if ally powerup is available (collected from elite kills)
-          if ((prev.collectedAllyPowerups || 0) <= 0) {
-            showSpeechBubble("🤖 NO ALLY POWERUPS! KILL ELITES! 🤖", 'normal');
-            break;
-          }
-          
-          // Limit to max 2 active allies at once
-          const activeAllies = prev.supportUnits.filter(u => !u.isSelfDestructing).length;
-          if (activeAllies >= 2) {
-            showSpeechBubble("🤖 MAX ALLIES DEPLOYED! 🤖", 'normal');
-            break;
-          }
-          
-          // Deduct powerup
-          newState.collectedAllyPowerups = (prev.collectedAllyPowerups || 0) - 1;
-          
-          // Summon BOTH mech and walker - one of each type
-          const allySupportUnits = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield, activeAllies);
-          // Only add up to 2 total active allies
-          const unitsToAdd = allySupportUnits.slice(0, 2 - activeAllies);
-          newState.supportUnits = [...prev.supportUnits, ...unitsToAdd];
-          newState.particles = [
-            ...prev.particles, 
-            ...createParticles(prev.player.x - 50, 400, 8, 'magic', '#00ff88'),
-          ];
-          newState.screenShake = 0.3;
-          newState.score += 200;
-          showSpeechBubble(`🤖 ALLIES DEPLOYED! [${newState.collectedAllyPowerups} left] 🤖`, 'excited');
-          break;
-          
-        // Hidden action for tank - triggered from UI
-        case 'summon_tank' as unknown as GiftAction:
-          // Check if tank powerup is available (rare drop from elite kills)
-          if ((prev.collectedTankPowerups || 0) <= 0) {
-            showSpeechBubble("🔫 NO TANK POWERUPS! RARE DROP! 🔫", 'normal');
-            break;
-          }
-          
-          // Only 1 tank can be active at once
-          const activeTanks = prev.supportUnits.filter(u => u.type === 'tank' && !u.isSelfDestructing).length;
-          if (activeTanks >= 1) {
-            showSpeechBubble("🔫 TANK ALREADY DEPLOYED! 🔫", 'normal');
-            break;
-          }
-          
-          // Deduct powerup and spawn tank
-          newState.collectedTankPowerups = (prev.collectedTankPowerups || 0) - 1;
-          const tankUnit = createTankSupport(prev.player.x, prev.player.y);
-          newState.supportUnits = [...prev.supportUnits, tankUnit];
-          newState.particles = [
-            ...prev.particles, 
-            ...createParticles(prev.player.x + 100, 400, 12, 'explosion', '#ff8800'),
-          ];
-          newState.screenShake = 0.5;
-          newState.score += 300;
-          showSpeechBubble(`🔫 TANK DEPLOYED! [${newState.collectedTankPowerups} left] 🔫`, 'excited');
           break;
       }
       
@@ -1868,44 +1750,23 @@ export const useGameState = () => {
           newState.projectiles = newState.projectiles.slice(-8);
         }
         
-        // POWERUP COLLECTION - Hero collects powerups when near them
-        const heroWorldX = prev.cameraX + HERO_FIXED_SCREEN_X + PLAYER_WIDTH / 2;
-        newState.powerups = (prev.powerups || []).filter(powerup => {
-          const dist = Math.abs(powerup.x - heroWorldX);
-          if (dist < 80) {
-            // Collected!
-            if (powerup.type === 'ally') {
-              newState.collectedAllyPowerups = (prev.collectedAllyPowerups || 0) + 1;
-              showSpeechBubble("🤖 ALLY POWERUP! 🤖", 'excited');
-            } else if (powerup.type === 'ult') {
-              newState.collectedUltPowerups = (prev.collectedUltPowerups || 0) + 1;
-              showSpeechBubble("🚀 ULT POWERUP! 🚀", 'excited');
-            } else if (powerup.type === 'tank') {
-              newState.collectedTankPowerups = (prev.collectedTankPowerups || 0) + 1;
-              showSpeechBubble("🔫 TANK POWERUP! RARE! 🔫", 'excited');
-            }
-            // No particles for powerup collection - performance
-            // Just show speech bubble
-            return false;
-          }
-          // Despawn timer
-          if (powerup.timer <= 0) return false;
-          return true;
-        }).map(p => ({ ...p, timer: p.timer - delta }));
+        // Summon cooldowns tick down
+        if (prev.allyCooldown > 0) {
+          newState.allyCooldown = Math.max(0, prev.allyCooldown - delta);
+        }
+        if (prev.ultCooldown > 0) {
+          newState.ultCooldown = Math.max(0, prev.ultCooldown - delta);
+        }
+        if (prev.tankCooldown > 0) {
+          newState.tankCooldown = Math.max(0, prev.tankCooldown - delta);
+        }
         
-        // EMP and Ally cooldown recharge
+        // EMP cooldown recharge
         if (prev.empCooldown > 0) {
           newState.empCooldown = prev.empCooldown - delta;
           if (newState.empCooldown <= 0 && prev.empCharges < 2) {
             newState.empCharges = Math.min(2, prev.empCharges + 1);
             newState.empCooldown = prev.empCharges < 1 ? 5 : 0;
-          }
-        }
-        if (prev.allyCooldown > 0) {
-          newState.allyCooldown = prev.allyCooldown - delta;
-          if (newState.allyCooldown <= 0 && prev.allyCharges < 2) {
-            newState.allyCharges = Math.min(2, prev.allyCharges + 1);
-            newState.allyCooldown = prev.allyCharges < 1 ? 10 : 0; // If still needs charge, reset timer
           }
         }
         
@@ -2691,17 +2552,10 @@ export const useGameState = () => {
                   
                   newState.screenShake = enemy.type === 'boss' ? 1.5 : enemy.isElite ? 0.4 : 0.25;
                   
-                  // ELITE KILLED - Drop powerup!
-                  if (enemy.isElite && enemy.eliteDropType) {
-                    const powerup: Powerup = {
-                      id: `powerup-${Date.now()}-${Math.random()}`,
-                      x: enemy.x + enemy.width / 2,
-                      y: enemy.y + enemy.height / 2,
-                      type: enemy.eliteDropType,
-                      timer: 15, // 15 seconds to collect
-                    };
-                    newState.powerups = [...(newState.powerups || []), powerup];
-                    showSpeechBubble(`💎 ${enemy.eliteDropType.toUpperCase()} POWERUP DROPPED! 💎`, 'excited');
+                  // Elite bonus score
+                  if (enemy.isElite) {
+                    newState.score += 100;
+                    showSpeechBubble("💎 ELITE DESTROYED! +100 💎", 'excited');
                   }
                   
                   // BOSS KILLED - Open the portal!
@@ -3745,6 +3599,46 @@ export const useGameState = () => {
     };
   }, [gameState.phase, createParticles, showSpeechBubble]);
 
+  // Trigger summon with 15s cooldown
+  const triggerSummon = useCallback((type: 'ally' | 'ult' | 'tank') => {
+    setGameState(prev => {
+      if (prev.phase !== 'playing') return prev;
+      
+      let newState = { ...prev };
+      
+      if (type === 'ally' && prev.allyCooldown <= 0) {
+        const activeAllies = prev.supportUnits.filter(u => !u.isSelfDestructing).length;
+        if (activeAllies < 2) {
+          const units = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield, activeAllies);
+          newState.supportUnits = [...prev.supportUnits, ...units.slice(0, 2 - activeAllies)];
+          newState.allyCooldown = 15;
+          newState.screenShake = 0.3;
+          newState.score += 200;
+          showSpeechBubble("🤖 ALLIES DEPLOYED! 🤖", 'excited');
+        }
+      } else if (type === 'ult' && prev.ultCooldown <= 0) {
+        newState.player = { ...prev.player, isMagicDashing: true, magicDashTimer: 6 };
+        newState.ultCooldown = 15;
+        newState.screenShake = 1.0;
+        newState.magicFlash = 1.5;
+        newState.score += 300;
+        showSpeechBubble("🚀 SPACESHIP MODE! 🚀", 'excited');
+      } else if (type === 'tank' && prev.tankCooldown <= 0) {
+        const activeTanks = prev.supportUnits.filter(u => u.type === 'tank' && !u.isSelfDestructing).length;
+        if (activeTanks < 1) {
+          const tank = createTankSupport(prev.player.x, prev.player.y);
+          newState.supportUnits = [...prev.supportUnits, tank];
+          newState.tankCooldown = 15;
+          newState.screenShake = 0.5;
+          newState.score += 300;
+          showSpeechBubble("🔫 TANK DEPLOYED! 🔫", 'excited');
+        }
+      }
+      
+      return newState;
+    });
+  }, [showSpeechBubble]);
+
   return {
     gameState,
     giftEvents,
@@ -3753,5 +3647,6 @@ export const useGameState = () => {
     startGame,
     startNextWave,
     handleGift,
+    triggerSummon,
   };
 };
