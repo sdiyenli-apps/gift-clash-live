@@ -4,6 +4,7 @@ import { ParallaxBackground } from './ParallaxBackground';
 import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
 import { ProjectileSprite, EnemyLaserSprite, FireballSprite } from './Projectile';
+import { MetalSlugProjectile } from './MetalSlugProjectile';
 import { Particles } from './Particles';
 import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
@@ -556,142 +557,19 @@ export const Arena = ({ gameState }: ArenaProps) => {
         
         {/* Projectiles Layer (z-30) - Above entities for visibility */}
         <div className="absolute inset-0 z-30 pointer-events-none">
-          {/* Support Unit Projectiles - Different rendering for tank laser vs mech/walker bullets */}
+          {/* Support Unit Projectiles - Metal Slug style with shell casings */}
           {supportProjectiles.map(proj => {
-            const screenX = proj.x - cameraX;
             const isTank = proj.id.includes('tank');
             const isMech = proj.type === 'ultra' && !isTank;
-            
-            if (screenX < -20 || screenX > 800) return null;
-
-            // Tank fires BIG bullets, mech/walker fire regular bullets
-            const width = isTank ? 45 : isMech ? 14 : 12;
-            const height = isTank ? 45 : isMech ? 7 : 6;
-            
-            // Calculate tracer line for tank (from origin to current position)
-            const originScreenX = (proj as any).originX ? (proj as any).originX - cameraX : screenX - 100;
-            const originScreenY = (proj as any).originY || proj.y;
+            const unitType = isTank ? 'tank' : isMech ? 'mech' : 'walker';
             
             return (
-              <motion.div
+              <MetalSlugProjectile
                 key={proj.id}
-                className="absolute"
-                style={{
-                  left: screenX,
-                  bottom: 280 - proj.y - height / 2,
-                  width,
-                  height,
-                }}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: [0.8, 1, 0.8], scale: [1, 1.1, 1] }}
-                transition={{ duration: 0.1, repeat: Infinity }}
-              >
-                {/* TANK TRACER LINE - Shows bullet path */}
-                {isTank && (
-                  <svg
-                    className="absolute pointer-events-none"
-                    style={{
-                      left: originScreenX - screenX,
-                      bottom: (280 - originScreenY - height / 2) - (280 - proj.y - height / 2),
-                      width: Math.abs(screenX - originScreenX) + 50,
-                      height: 60,
-                      overflow: 'visible',
-                      transform: 'translateY(50%)',
-                    }}
-                  >
-                    {/* Tracer glow */}
-                    <motion.line
-                      x1={0}
-                      y1={30}
-                      x2={Math.abs(screenX - originScreenX)}
-                      y2={30 + (proj.y - originScreenY) * 0.5}
-                      stroke="url(#tankTracerGradient)"
-                      strokeWidth={8}
-                      strokeLinecap="round"
-                      opacity={0.6}
-                      filter="blur(3px)"
-                    />
-                    {/* Tracer core */}
-                    <motion.line
-                      x1={0}
-                      y1={30}
-                      x2={Math.abs(screenX - originScreenX)}
-                      y2={30 + (proj.y - originScreenY) * 0.5}
-                      stroke="#ff6600"
-                      strokeWidth={3}
-                      strokeLinecap="round"
-                      animate={{ opacity: [0.8, 1, 0.8] }}
-                    />
-                    <defs>
-                      <linearGradient id="tankTracerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="transparent" />
-                        <stop offset="30%" stopColor="#ff4400" />
-                        <stop offset="100%" stopColor="#ffaa00" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                )}
-                
-                {/* Trail effect - tank has BIG fiery trail */}
-                <div
-                  className="absolute right-full top-1/2 -translate-y-1/2"
-                  style={{
-                    width: isTank ? 120 : isMech ? 40 : 32,
-                    height: isTank ? 30 : Math.max(4, height - 1),
-                    background: isTank
-                      ? 'linear-gradient(90deg, transparent, rgba(255,100,0,0.8), rgba(255,200,0,0.95), rgba(255,255,255,0.9))'
-                      : isMech
-                        ? 'linear-gradient(90deg, transparent, rgba(255,170,0,0.95))'
-                        : 'linear-gradient(90deg, transparent, rgba(0,255,136,0.95))',
-                    filter: isTank ? 'blur(2px)' : 'blur(1px)',
-                  }}
-                />
-
-                {/* Core projectile - Tank has BIG glowing orb */}
-                <div
-                  className="w-full h-full rounded-full"
-                  style={{
-                    background: isTank 
-                      ? 'radial-gradient(circle, #fff 20%, #ff6600 50%, #ff0000 80%, #aa0000)'
-                      : isMech ? '#ffaa00' : '#00ff88',
-                    boxShadow: isTank
-                      ? '0 0 25px #ff6600, 0 0 50px #ff4400, 0 0 80px rgba(255,100,0,0.6), inset 0 0 15px rgba(255,255,255,0.5)'
-                      : isMech
-                        ? '0 0 10px #ff8800, 0 0 20px #ff6600'
-                        : '0 0 10px #00ff88, 0 0 20px #00ffaa',
-                  }}
-                />
-
-                {/* Muzzle flash spark - Tank has bigger flame effect */}
-                <motion.div
-                  className="absolute -left-2 top-1/2 -translate-y-1/2"
-                  style={{
-                    width: isTank ? 50 : 16,
-                    height: isTank ? 50 : 16,
-                    background: isTank
-                      ? 'radial-gradient(circle, #fff 30%, #ffcc00, #ff6600, transparent)'
-                      : isMech
-                        ? 'radial-gradient(circle, #fff, #ffaa00, transparent)'
-                        : 'radial-gradient(circle, #fff, #00ff88, transparent)',
-                    filter: isTank ? 'blur(3px)' : 'blur(1px)',
-                    borderRadius: '50%',
-                  }}
-                  animate={{ scale: isTank ? [1, 1.5, 1] : [0.8, 1.3, 0.8], opacity: [0.7, 1, 0.7] }}
-                  transition={{ duration: isTank ? 0.1 : 0.08, repeat: Infinity }}
-                />
-                
-                {/* Tank targeting crosshair indicator */}
-                {isTank && (
-                  <motion.div
-                    className="absolute -top-3 left-1/2 -translate-x-1/2 text-[8px] font-black"
-                    style={{ color: '#ff6600', textShadow: '0 0 5px #ff6600' }}
-                    animate={{ opacity: [0.6, 1, 0.6] }}
-                    transition={{ duration: 0.15, repeat: Infinity }}
-                  >
-                    ◎
-                  </motion.div>
-                )}
-              </motion.div>
+                projectile={proj}
+                cameraX={cameraX}
+                unitType={unitType}
+              />
             );
           })}
         </div>

@@ -8,6 +8,7 @@ import { Arena } from '@/components/game/Arena';
 import { GiftPanel } from '@/components/game/GiftPanel';
 import { GameOverlay } from '@/components/game/GameOverlay';
 import { WaveTransition } from '@/components/game/WaveTransition';
+import { AdminPanel } from '@/components/game/AdminPanel';
 import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
 
 const Index = () => {
@@ -15,16 +16,25 @@ const Index = () => {
   const [autoSimulate] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
   const [showControls, setShowControls] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   
   // Layout settings with localStorage persistence
   const {
     arenaScale, setArenaScale,
+    arenaOffsetX, setArenaOffsetX,
     arenaOffsetY, setArenaOffsetY,
     hudScale, setHudScale,
     hudOffsetX, setHudOffsetX,
     hudOffsetY, setHudOffsetY,
     resetSettings,
   } = useLayoutSettings();
+  
+  // Drag state refs for smooth dragging
+  const arenaDragRef = useRef({ startX: 0, startY: 0, startOffsetX: 0, startOffsetY: 0 });
+  const hudDragRef = useRef({ startX: 0, startY: 0, startOffsetX: 0, startOffsetY: 0 });
+  const [isDraggingArena, setIsDraggingArena] = useState(false);
+  const [isDraggingHud, setIsDraggingHud] = useState(false);
+  
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   const { gameState, startGame, startNextWave, handleGift, triggerSummon } = useGameState();
@@ -72,6 +82,65 @@ const Index = () => {
     triggerSummon('tank');
   }, [gameState.phase, playSound, triggerSummon]);
 
+  // Drag handlers for Arena
+  const handleArenaDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!editMode) return;
+    e.preventDefault();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    arenaDragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      startOffsetX: arenaOffsetX,
+      startOffsetY: arenaOffsetY,
+    };
+    setIsDraggingArena(true);
+  }, [editMode, arenaOffsetX, arenaOffsetY]);
+
+  const handleArenaDrag = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!isDraggingArena) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const deltaX = clientX - arenaDragRef.current.startX;
+    const deltaY = clientY - arenaDragRef.current.startY;
+    setArenaOffsetX(arenaDragRef.current.startOffsetX + deltaX);
+    setArenaOffsetY(arenaDragRef.current.startOffsetY + deltaY);
+  }, [isDraggingArena, setArenaOffsetX, setArenaOffsetY]);
+
+  const handleArenaDragEnd = useCallback(() => {
+    setIsDraggingArena(false);
+  }, []);
+
+  // Drag handlers for HUD
+  const handleHudDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    if (!editMode) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    hudDragRef.current = {
+      startX: clientX,
+      startY: clientY,
+      startOffsetX: hudOffsetX,
+      startOffsetY: hudOffsetY,
+    };
+    setIsDraggingHud(true);
+  }, [editMode, hudOffsetX, hudOffsetY]);
+
+  const handleHudDrag = useCallback((e: MouseEvent | TouchEvent) => {
+    if (!isDraggingHud) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const deltaX = clientX - hudDragRef.current.startX;
+    const deltaY = -(clientY - hudDragRef.current.startY); // Invert Y since bottom-based
+    setHudOffsetX(hudDragRef.current.startOffsetX + deltaX);
+    setHudOffsetY(hudDragRef.current.startOffsetY + deltaY);
+  }, [isDraggingHud, setHudOffsetX, setHudOffsetY]);
+
+  const handleHudDragEnd = useCallback(() => {
+    setIsDraggingHud(false);
+  }, []);
+
   // ALL useEffects together
   useEffect(() => {
     if (!audioRef.current) {
@@ -92,6 +161,37 @@ const Index = () => {
       }
     };
   }, [audioOn]);
+
+  // Global drag event listeners
+  useEffect(() => {
+    if (isDraggingArena) {
+      window.addEventListener('mousemove', handleArenaDrag);
+      window.addEventListener('mouseup', handleArenaDragEnd);
+      window.addEventListener('touchmove', handleArenaDrag);
+      window.addEventListener('touchend', handleArenaDragEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleArenaDrag);
+        window.removeEventListener('mouseup', handleArenaDragEnd);
+        window.removeEventListener('touchmove', handleArenaDrag);
+        window.removeEventListener('touchend', handleArenaDragEnd);
+      };
+    }
+  }, [isDraggingArena, handleArenaDrag, handleArenaDragEnd]);
+
+  useEffect(() => {
+    if (isDraggingHud) {
+      window.addEventListener('mousemove', handleHudDrag);
+      window.addEventListener('mouseup', handleHudDragEnd);
+      window.addEventListener('touchmove', handleHudDrag);
+      window.addEventListener('touchend', handleHudDragEnd);
+      return () => {
+        window.removeEventListener('mousemove', handleHudDrag);
+        window.removeEventListener('mouseup', handleHudDragEnd);
+        window.removeEventListener('touchmove', handleHudDrag);
+        window.removeEventListener('touchend', handleHudDragEnd);
+      };
+    }
+  }, [isDraggingHud, handleHudDrag, handleHudDragEnd]);
 
   useEffect(() => {
     if (gameState.player.isShooting) {
@@ -158,147 +258,59 @@ const Index = () => {
         maxWidth: '100vw',
       }}
     >
-      {/* TikTok Live-style Header */}
-      <header className="absolute top-14 left-2 right-2 z-30 flex items-center justify-between pointer-events-none">
-        <div className="flex items-center pointer-events-auto" />
-        <div className="flex items-center gap-1 pointer-events-auto">
-          <motion.button
-            onClick={() => setShowControls(!showControls)}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-sm touch-manipulation"
-            style={{
-              background: showControls ? 'rgba(0,255,255,0.2)' : 'rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(10px)',
-              border: showControls ? '1px solid rgba(0,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
-            }}
-            whileTap={{ scale: 0.9 }}
-          >
-            ⚙️
-          </motion.button>
-          <motion.button
-            onClick={() => setAudioOn(!audioOn)}
-            className="w-7 h-7 rounded-full flex items-center justify-center text-sm touch-manipulation"
-            style={{
-              background: audioOn ? 'rgba(0,255,255,0.2)' : 'rgba(255,255,255,0.1)',
-              backdropFilter: 'blur(10px)',
-              border: audioOn ? '1px solid rgba(0,255,255,0.5)' : '1px solid rgba(255,255,255,0.2)',
-            }}
-            whileTap={{ scale: 0.9 }}
-          >
-            {audioOn ? '🔊' : '🔇'}
-          </motion.button>
-        </div>
-      </header>
-
-      {/* Resize/Move Controls Panel */}
-      {showControls && (
-        <div 
-          className="absolute top-24 right-2 z-40 p-3 rounded-xl pointer-events-auto"
-          style={{
-            background: 'rgba(0,0,0,0.95)',
-            backdropFilter: 'blur(12px)',
-            border: '1px solid rgba(255,255,255,0.3)',
-            maxHeight: '70vh',
-            overflowY: 'auto',
-          }}
-        >
-          {/* Arena Controls */}
-          <div className="text-cyan-400 text-xs font-bold mb-2">🎮 Arena</div>
-          <div className="flex flex-col gap-2 mb-4">
-            <div className="flex items-center gap-2">
-              <span className="text-white text-[10px] w-10">Size:</span>
-              <input
-                type="range"
-                min="0.1"
-                max="4.0"
-                step="0.02"
-                value={arenaScale}
-                onChange={(e) => setArenaScale(parseFloat(e.target.value))}
-                className="w-28 accent-cyan-400"
-              />
-              <span className="text-cyan-400 text-[10px] w-10">{Math.round(arenaScale * 100)}%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-white text-[10px] w-10">Y:</span>
-              <input
-                type="range"
-                min="-600"
-                max="1000"
-                step="5"
-                value={arenaOffsetY}
-                onChange={(e) => setArenaOffsetY(parseFloat(e.target.value))}
-                className="w-28 accent-cyan-400"
-              />
-              <span className="text-cyan-400 text-[10px] w-10">{arenaOffsetY}px</span>
-            </div>
-          </div>
-
-          {/* HUD Controls */}
-          <div className="text-yellow-400 text-xs font-bold mb-2">🎁 Gift HUD</div>
-          <div className="flex flex-col gap-2 mb-3">
-            <div className="flex items-center gap-2">
-              <span className="text-white text-[10px] w-10">Size:</span>
-              <input
-                type="range"
-                min="0.2"
-                max="4.0"
-                step="0.05"
-                value={hudScale}
-                onChange={(e) => setHudScale(parseFloat(e.target.value))}
-                className="w-28 accent-yellow-400"
-              />
-              <span className="text-yellow-400 text-[10px] w-10">{Math.round(hudScale * 100)}%</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-white text-[10px] w-10">X:</span>
-              <input
-                type="range"
-                min="-200"
-                max="600"
-                step="2"
-                value={hudOffsetX}
-                onChange={(e) => setHudOffsetX(parseFloat(e.target.value))}
-                className="w-28 accent-yellow-400"
-              />
-              <span className="text-yellow-400 text-[10px] w-10">{hudOffsetX}px</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-white text-[10px] w-10">Y:</span>
-              <input
-                type="range"
-                min="-100"
-                max="800"
-                step="2"
-                value={hudOffsetY}
-                onChange={(e) => setHudOffsetY(parseFloat(e.target.value))}
-                className="w-28 accent-yellow-400"
-              />
-              <span className="text-yellow-400 text-[10px] w-10">{hudOffsetY}px</span>
-            </div>
-          </div>
-
-          <motion.button
-            onClick={resetSettings}
-            className="text-[10px] text-gray-400 hover:text-white w-full text-center py-1 border border-gray-600 rounded"
-            whileTap={{ scale: 0.95 }}
-          >
-            Reset All
-          </motion.button>
-        </div>
-      )}
-
+      {/* Admin Panel - Right side organized buttons */}
+      <AdminPanel
+        showControls={showControls}
+        setShowControls={setShowControls}
+        audioOn={audioOn}
+        setAudioOn={setAudioOn}
+        editMode={editMode}
+        setEditMode={setEditMode}
+        arenaScale={arenaScale}
+        setArenaScale={setArenaScale}
+        arenaOffsetX={arenaOffsetX}
+        setArenaOffsetX={setArenaOffsetX}
+        arenaOffsetY={arenaOffsetY}
+        setArenaOffsetY={setArenaOffsetY}
+        hudScale={hudScale}
+        setHudScale={setHudScale}
+        hudOffsetX={hudOffsetX}
+        setHudOffsetX={setHudOffsetX}
+        hudOffsetY={hudOffsetY}
+        setHudOffsetY={setHudOffsetY}
+        resetSettings={resetSettings}
+      />
 
       <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-10 pb-0">
-        {/* Game Arena */}
+        {/* Game Arena - Draggable in edit mode */}
         <div 
-          className="flex-1 min-h-0 relative overflow-hidden w-full"
+          className={`flex-1 min-h-0 relative overflow-hidden w-full ${editMode ? 'cursor-grab' : ''} ${isDraggingArena ? 'cursor-grabbing' : ''}`}
           style={{ 
             maxHeight: 'calc(100dvh - 100px)',
             width: '100vw',
             marginLeft: 'calc(-50vw + 50%)',
-            transform: `scale(${arenaScale}) translateY(${arenaOffsetY}px)`,
+            transform: `scale(${arenaScale}) translate(${arenaOffsetX}px, ${arenaOffsetY}px)`,
             transformOrigin: 'center top',
+            outline: editMode ? '3px dashed rgba(0,255,255,0.5)' : 'none',
           }}
+          onMouseDown={handleArenaDragStart}
+          onTouchStart={handleArenaDragStart}
         >
+          {/* Edit mode overlay label */}
+          {editMode && (
+            <motion.div
+              className="absolute top-2 left-1/2 -translate-x-1/2 z-50 px-3 py-1 rounded-lg text-xs font-bold pointer-events-none"
+              style={{
+                background: 'rgba(0,255,255,0.9)',
+                color: '#000',
+              }}
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              🎮 ARENA - Drag to move
+            </motion.div>
+          )}
+          
           <Arena gameState={gameState} />
           <GameOverlay 
             phase={gameState.phase}
@@ -320,9 +332,9 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD */}
+        {/* Bottom HUD - Draggable in edit mode */}
         <div 
-          className="absolute z-20"
+          className={`absolute z-20 ${editMode ? 'cursor-grab' : ''} ${isDraggingHud ? 'cursor-grabbing' : ''}`}
           style={{
             bottom: `${hudOffsetY}px`,
             left: `${hudOffsetX}px`,
@@ -332,8 +344,26 @@ const Index = () => {
             transformOrigin: 'bottom left',
             paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
             opacity: gameState.phase === 'playing' ? 1 : 0.7,
+            outline: editMode ? '3px dashed rgba(255,200,0,0.6)' : 'none',
           }}
+          onMouseDown={handleHudDragStart}
+          onTouchStart={handleHudDragStart}
         >
+          {/* Edit mode overlay label */}
+          {editMode && (
+            <motion.div
+              className="absolute -top-6 left-1/2 -translate-x-1/2 z-50 px-3 py-1 rounded-lg text-xs font-bold pointer-events-none"
+              style={{
+                background: 'rgba(255,200,0,0.9)',
+                color: '#000',
+              }}
+              animate={{ opacity: [0.7, 1, 0.7] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              🎁 HUD - Drag to move
+            </motion.div>
+          )}
+          
           <GiftPanel 
             onTriggerGift={handleTriggerGift}
             disabled={gameState.phase !== 'playing'}
