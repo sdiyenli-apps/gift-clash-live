@@ -16,8 +16,6 @@ import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
 import { DronePaths } from './DronePath';
 
-import { FloatingPowerup } from './FloatingPowerup';
-
 interface NeonLaser {
   id: string;
   x: number;
@@ -37,13 +35,6 @@ interface EMPGrenade {
   timer: number;
 }
 
-interface Powerup {
-  id: string;
-  x: number;
-  y: number;
-  type: 'ally' | 'ult' | 'tank';
-  timer: number;
-}
 
 interface ExtendedGameState extends GameState {
   fireballs?: { id: string; x: number; y: number; velocityX: number; velocityY: number; damage: number }[];
@@ -64,7 +55,7 @@ interface ExtendedGameState extends GameState {
   supportUnits?: SupportUnit[];
   supportProjectiles?: Projectile[];
   evasionPopup?: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
-  powerups?: Powerup[];
+  
 }
 
 interface ArenaProps {
@@ -85,7 +76,6 @@ export const Arena = ({ gameState }: ArenaProps) => {
     bossTransformFlash = 0,
     supportUnits = [], supportProjectiles = [],
     evasionPopup = null,
-    powerups = []
   } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -554,10 +544,6 @@ export const Arena = ({ gameState }: ArenaProps) => {
             <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} isTankActive={isTankActive} currentWave={currentWave} />
           ))}
           
-          {/* Floating Powerups - dropped by elite enemies */}
-          {powerups.map(powerup => (
-            <FloatingPowerup key={powerup.id} powerup={powerup} cameraX={cameraX} />
-          ))}
           
           {/* Support Units - friendly mech and walker allies */}
           {supportUnits.map(unit => (

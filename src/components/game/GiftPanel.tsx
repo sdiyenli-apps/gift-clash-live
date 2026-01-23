@@ -4,12 +4,12 @@ import { TIKTOK_GIFTS } from '@/types/game';
 interface GiftPanelProps {
   onTriggerGift: (giftId: string) => void;
   disabled: boolean;
-  collectedAllyPowerups?: number;
-  collectedUltPowerups?: number;
-  collectedTankPowerups?: number;
-  onUseAlly?: () => void;
-  onUseUlt?: () => void;
-  onUseTank?: () => void;
+  onSummonAlly?: () => void;
+  onSummonUlt?: () => void;
+  onSummonTank?: () => void;
+  allyCooldown?: number;
+  ultCooldown?: number;
+  tankCooldown?: number;
   health?: number;
   maxHealth?: number;
   shield?: number;
@@ -18,12 +18,12 @@ interface GiftPanelProps {
 export const GiftPanel = ({ 
   onTriggerGift, 
   disabled, 
-  collectedAllyPowerups = 0, 
-  collectedUltPowerups = 0,
-  collectedTankPowerups = 0,
-  onUseAlly,
-  onUseUlt,
-  onUseTank,
+  onSummonAlly,
+  onSummonUlt,
+  onSummonTank,
+  allyCooldown = 0,
+  ultCooldown = 0,
+  tankCooldown = 0,
   health = 100,
   maxHealth = 100,
   shield = 0,
@@ -49,6 +49,51 @@ export const GiftPanel = ({
     heal: 'HP',
     spawn_enemies: 'MOB',
     emp_grenade: 'EMP',
+  };
+
+  // Summon button styles - always enabled but show cooldown
+  const summonStyles = {
+    ally: { border: '#6496ff', bg: 'rgba(100,150,255,0.4)', color: '#6496ff', emoji: '🤖', label: 'ALLY' },
+    ult: { border: '#00c864', bg: 'rgba(0,200,100,0.4)', color: '#00c864', emoji: '🚀', label: 'ULT' },
+    tank: { border: '#ff9600', bg: 'rgba(255,150,0,0.4)', color: '#ff9600', emoji: '🔫', label: 'TANK' },
+  };
+
+  const renderSummonButton = (
+    type: 'ally' | 'ult' | 'tank',
+    cooldown: number,
+    onSummon?: () => void
+  ) => {
+    const style = summonStyles[type];
+    const isReady = cooldown <= 0;
+    const cooldownPercent = Math.min(cooldown / 15, 1) * 100;
+
+    return (
+      <motion.button
+        key={type}
+        whileTap={{ scale: isReady ? 0.9 : 1 }}
+        onClick={() => isReady && onSummon?.()}
+        disabled={disabled || !isReady}
+        className="relative flex-1 rounded flex flex-col items-center justify-center py-1 touch-manipulation overflow-hidden"
+        style={{
+          background: isReady ? style.bg : 'rgba(50,50,50,0.6)',
+          border: `2px solid ${isReady ? style.border : '#444'}`,
+          opacity: disabled ? 0.5 : 1,
+          minHeight: '36px',
+        }}
+      >
+        {/* Cooldown overlay */}
+        {!isReady && (
+          <div 
+            className="absolute bottom-0 left-0 right-0 bg-black/60"
+            style={{ height: `${cooldownPercent}%` }}
+          />
+        )}
+        <span className="text-sm relative z-10">{style.emoji}</span>
+        <span className="text-[7px] font-bold relative z-10" style={{ color: isReady ? style.color : '#555' }}>
+          {isReady ? style.label : `${Math.ceil(cooldown)}s`}
+        </span>
+      </motion.button>
+    );
   };
 
   return (
@@ -87,8 +132,8 @@ export const GiftPanel = ({
         </div>
       </div>
 
-      {/* Gift Buttons - compact */}
-      <div className="flex items-center gap-1 mb-1.5">
+      {/* Gift Buttons + Summons in one row */}
+      <div className="flex items-center gap-1">
         {gifts.map(gift => {
           const style = giftStyles[gift.action] || { border: '#888', bg: 'rgba(128,128,128,0.3)', color: '#888' };
           return (
@@ -102,7 +147,7 @@ export const GiftPanel = ({
                 background: style.bg,
                 border: `2px solid ${style.border}`,
                 opacity: disabled ? 0.5 : 1,
-                minHeight: '40px',
+                minHeight: '36px',
               }}
             >
               <span className="text-base">{gift.emoji}</span>
@@ -110,69 +155,11 @@ export const GiftPanel = ({
             </motion.button>
           );
         })}
-      </div>
-
-      {/* Powerups Row - ALLY, ULT, TANK only */}
-      <div className="flex items-center gap-1">
-        <motion.button
-          whileTap={{ scale: collectedAllyPowerups > 0 ? 0.9 : 1 }}
-          onClick={() => collectedAllyPowerups > 0 && onUseAlly?.()}
-          disabled={disabled || collectedAllyPowerups <= 0}
-          className="relative flex-1 rounded flex flex-col items-center justify-center py-1 touch-manipulation"
-          style={{
-            background: collectedAllyPowerups > 0 ? 'rgba(100,150,255,0.4)' : 'rgba(50,50,50,0.6)',
-            border: `2px solid ${collectedAllyPowerups > 0 ? '#6496ff' : '#444'}`,
-            opacity: disabled ? 0.5 : 1,
-            minHeight: '36px',
-          }}
-        >
-          <span className="text-sm">🤖</span>
-          <span className="text-[7px] font-bold" style={{ color: collectedAllyPowerups > 0 ? '#6496ff' : '#555' }}>ALLY</span>
-          <div 
-            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center"
-            style={{ background: collectedAllyPowerups > 0 ? '#6496ff' : '#333', color: '#000' }}
-          >{collectedAllyPowerups}</div>
-        </motion.button>
-
-        <motion.button
-          whileTap={{ scale: collectedUltPowerups > 0 ? 0.9 : 1 }}
-          onClick={() => collectedUltPowerups > 0 && onUseUlt?.()}
-          disabled={disabled || collectedUltPowerups <= 0}
-          className="relative flex-1 rounded flex flex-col items-center justify-center py-1 touch-manipulation"
-          style={{
-            background: collectedUltPowerups > 0 ? 'rgba(0,200,100,0.4)' : 'rgba(50,50,50,0.6)',
-            border: `2px solid ${collectedUltPowerups > 0 ? '#00c864' : '#444'}`,
-            opacity: disabled ? 0.5 : 1,
-            minHeight: '36px',
-          }}
-        >
-          <span className="text-sm">🚀</span>
-          <span className="text-[7px] font-bold" style={{ color: collectedUltPowerups > 0 ? '#00c864' : '#555' }}>ULT</span>
-          <div 
-            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center"
-            style={{ background: collectedUltPowerups > 0 ? '#00c864' : '#333', color: '#000' }}
-          >{collectedUltPowerups}</div>
-        </motion.button>
         
-        <motion.button
-          whileTap={{ scale: collectedTankPowerups > 0 ? 0.9 : 1 }}
-          onClick={() => collectedTankPowerups > 0 && onUseTank?.()}
-          disabled={disabled || collectedTankPowerups <= 0}
-          className="relative flex-1 rounded flex flex-col items-center justify-center py-1 touch-manipulation"
-          style={{
-            background: collectedTankPowerups > 0 ? 'rgba(255,150,0,0.4)' : 'rgba(50,50,50,0.6)',
-            border: `2px solid ${collectedTankPowerups > 0 ? '#ff9600' : '#444'}`,
-            opacity: disabled ? 0.5 : 1,
-            minHeight: '36px',
-          }}
-        >
-          <span className="text-sm">🔫</span>
-          <span className="text-[7px] font-bold" style={{ color: collectedTankPowerups > 0 ? '#ff9600' : '#555' }}>TANK</span>
-          <div 
-            className="absolute -top-1 -right-1 rounded-full text-[8px] font-black w-3.5 h-3.5 flex items-center justify-center"
-            style={{ background: collectedTankPowerups > 0 ? '#ff9600' : '#333', color: '#000' }}
-          >{collectedTankPowerups}</div>
-        </motion.button>
+        {/* Summon buttons with cooldowns */}
+        {renderSummonButton('ally', allyCooldown, onSummonAlly)}
+        {renderSummonButton('ult', ultCooldown, onSummonUlt)}
+        {renderSummonButton('tank', tankCooldown, onSummonTank)}
       </div>
     </div>
   );
