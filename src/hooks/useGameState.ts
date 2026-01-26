@@ -32,10 +32,12 @@ const ARMOR_DURATION = 3;
 const BOSS_ARMOR_THRESHOLD = 0.7; // 70% health
 const BOSS_ARMOR_DURATION = 10; // 10 seconds of invulnerability
 
-// Ground Y positions for entity movement (lower positions)
-const GROUND_Y_TOP = GROUND_Y + 30;     // Top movement lane
-const GROUND_Y_MIDDLE = GROUND_Y;        // Middle movement lane (hero)
-const GROUND_Y_BOTTOM = GROUND_Y - 25;   // Bottom movement lane
+// Ground Y positions for entity movement - SPREAD OUT for depth effect
+const GROUND_Y_BACK = GROUND_Y + 60;      // Back lane (furthest, smaller looking)
+const GROUND_Y_MID_BACK = GROUND_Y + 35;  // Mid-back lane
+const GROUND_Y_MIDDLE = GROUND_Y + 10;    // Middle lane (hero level)
+const GROUND_Y_MID_FRONT = GROUND_Y - 15; // Mid-front lane
+const GROUND_Y_FRONT = GROUND_Y - 40;     // Front lane (closest, larger looking)
 
 // Boss attack types
 type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield' | 'jump_bomb';
@@ -365,8 +367,8 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       damage = Math.floor((30 + wave * 2) * damageMultiplier);
     }
     
-    // Spread ground enemies across different Y positions
-    const groundLevels = [GROUND_Y_TOP, GROUND_Y_MIDDLE, GROUND_Y_BOTTOM];
+    // Spread ground enemies across 5 different Y positions for depth effect
+    const groundLevels = [GROUND_Y_BACK, GROUND_Y_MID_BACK, GROUND_Y_MIDDLE, GROUND_Y_MID_FRONT, GROUND_Y_FRONT];
     const enemyGroundY = groundLevels[Math.floor(Math.random() * groundLevels.length)];
     
     // Check if this should be an ELITE enemy (8 per wave - drops in ORDER: Ally, ULT, Tank, Ally, ULT, Tank, Ally, ULT)
@@ -758,7 +760,7 @@ export const useGameState = () => {
     supportUnits.push({
       id: `support-mech-${Date.now()}-${Math.random()}`,
       x: playerX + 60 + staggerOffset,
-      y: GROUND_Y_TOP, // Above hero's ground level
+      y: GROUND_Y_BACK, // Above hero's ground level (back lane)
       width: 130, // 2.5x width - LARGER
       height: 140, // 2.5x height - LARGER
       health: halfMaxHealth,
@@ -776,7 +778,7 @@ export const useGameState = () => {
     supportUnits.push({
       id: `support-walker-${Date.now()}-${Math.random()}`,
       x: playerX + 200 + staggerOffset,
-      y: GROUND_Y_BOTTOM, // Below hero's ground level
+      y: GROUND_Y_FRONT, // Below hero's ground level (front lane)
       width: 75, // 1.5x width - LARGER
       height: 85, // 1.5x height - LARGER
       health: halfMaxHealth,
