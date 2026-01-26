@@ -5,11 +5,12 @@ interface FloorAssetsProps {
   levelLength: number;
 }
 
-// Generate deterministic assets based on position - including broken tanks and vehicles
+// Generate deterministic assets based on position - WAR-TORN STREET with debris, craters, bodies
 const generateAssets = (levelLength: number) => {
   const assets: Array<{
     id: string;
-    type: 'dustbin' | 'rat' | 'pipe' | 'crate' | 'barrel' | 'debris' | 'tank' | 'jeep' | 'truck';
+    type: 'dustbin' | 'rat' | 'pipe' | 'crate' | 'barrel' | 'debris' | 'tank' | 'jeep' | 'truck' | 
+          'crater' | 'sandbag' | 'barricade' | 'shell_casing' | 'rubble' | 'fire' | 'tire' | 'helmet';
     x: number;
     size: number;
     variant?: number;
@@ -44,6 +45,94 @@ const generateAssets = (levelLength: number) => {
       type: 'truck',
       x,
       size: 0.8 + Math.random() * 0.3,
+      variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // ADD WAR DEBRIS: Craters from explosions
+  for (let x = 200; x < levelLength - 200; x += 300 + Math.random() * 400) {
+    assets.push({
+      id: `crater-${x}`,
+      type: 'crater',
+      x,
+      size: 0.6 + Math.random() * 0.6,
+      variant: Math.floor(Math.random() * 3),
+    });
+  }
+  
+  // Sandbag fortifications
+  for (let x = 350; x < levelLength - 300; x += 500 + Math.random() * 600) {
+    assets.push({
+      id: `sandbag-${x}`,
+      type: 'sandbag',
+      x,
+      size: 0.7 + Math.random() * 0.4,
+      variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // Barricades (concrete blocks, wire)
+  for (let x = 500; x < levelLength - 400; x += 600 + Math.random() * 500) {
+    assets.push({
+      id: `barricade-${x}`,
+      type: 'barricade',
+      x,
+      size: 0.8 + Math.random() * 0.3,
+      variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // Shell casings scattered everywhere
+  for (let x = 50; x < levelLength - 100; x += 80 + Math.random() * 120) {
+    assets.push({
+      id: `shell-${x}`,
+      type: 'shell_casing',
+      x,
+      size: 0.5 + Math.random() * 0.5,
+      variant: Math.floor(Math.random() * 4),
+    });
+  }
+  
+  // Large rubble piles
+  for (let x = 300; x < levelLength - 300; x += 400 + Math.random() * 500) {
+    assets.push({
+      id: `rubble-${x}`,
+      type: 'rubble',
+      x,
+      size: 0.7 + Math.random() * 0.5,
+      variant: Math.floor(Math.random() * 3),
+    });
+  }
+  
+  // Burning fires/embers
+  for (let x = 450; x < levelLength - 400; x += 700 + Math.random() * 600) {
+    assets.push({
+      id: `fire-${x}`,
+      type: 'fire',
+      x,
+      size: 0.6 + Math.random() * 0.4,
+      variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // Scattered tires
+  for (let x = 200; x < levelLength - 200; x += 350 + Math.random() * 400) {
+    assets.push({
+      id: `tire-${x}`,
+      type: 'tire',
+      x,
+      size: 0.6 + Math.random() * 0.4,
+      variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // Fallen helmets
+  for (let x = 150; x < levelLength - 150; x += 400 + Math.random() * 500) {
+    assets.push({
+      id: `helmet-${x}`,
+      type: 'helmet',
+      x,
+      size: 0.6 + Math.random() * 0.3,
       variant: Math.floor(Math.random() * 2),
     });
   }
@@ -570,6 +659,266 @@ export const FloorAssets = ({ cameraX, levelLength }: FloorAssetsProps) => {
                     bottom: '40%',
                     background: 'radial-gradient(circle, #5a3a2a, transparent)',
                     opacity: 0.6,
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* CRATER - Explosion damage on the ground */}
+            {asset.type === 'crater' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 50 * asset.size, 
+                  height: 20 * asset.size,
+                }}
+              >
+                {/* Crater hole */}
+                <div 
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: 'radial-gradient(ellipse, #1a1a1a 0%, #2a2520 60%, #3a352a 100%)',
+                    boxShadow: 'inset 0 3px 10px rgba(0,0,0,0.8), 0 0 5px rgba(60,50,40,0.5)',
+                  }}
+                />
+                {/* Scorch marks around crater */}
+                <div 
+                  className="absolute -inset-2 rounded-full -z-10"
+                  style={{
+                    background: 'radial-gradient(ellipse, rgba(40,30,20,0.8), transparent)',
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* SANDBAG fortification */}
+            {asset.type === 'sandbag' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 45 * asset.size, 
+                  height: 25 * asset.size,
+                }}
+              >
+                {/* Stacked sandbags */}
+                {[0, 1, 2].map(i => (
+                  <div
+                    key={`bag-${i}`}
+                    className="absolute"
+                    style={{
+                      width: 20 * asset.size,
+                      height: 10 * asset.size,
+                      left: i * 10 * asset.size,
+                      bottom: (i === 1 ? 10 : 0) * asset.size,
+                      background: 'linear-gradient(135deg, #6b5a4a 0%, #4a3f35 50%, #5a4a3a 100%)',
+                      borderRadius: 3,
+                      boxShadow: 'inset 1px 1px 3px rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.4)',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* BARRICADE - Concrete and wire */}
+            {asset.type === 'barricade' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 40 * asset.size, 
+                  height: 30 * asset.size,
+                }}
+              >
+                {/* Concrete block */}
+                <div 
+                  className="absolute bottom-0"
+                  style={{
+                    width: '70%',
+                    height: '60%',
+                    background: 'linear-gradient(180deg, #666 0%, #444 50%, #333 100%)',
+                    borderRadius: 2,
+                    boxShadow: 'inset 2px 2px 5px rgba(255,255,255,0.1), 0 2px 5px rgba(0,0,0,0.5)',
+                  }}
+                />
+                {/* Barbed wire on top */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '100%',
+                    height: 8,
+                    left: 0,
+                    bottom: '55%',
+                    background: 'repeating-linear-gradient(90deg, transparent 0px, #555 2px, transparent 4px)',
+                    filter: 'blur(0.5px)',
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* SHELL CASINGS - Scattered brass */}
+            {asset.type === 'shell_casing' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 15 * asset.size, 
+                  height: 6 * asset.size,
+                }}
+              >
+                {[0, 1, 2].map(i => (
+                  <div
+                    key={`casing-${i}`}
+                    className="absolute"
+                    style={{
+                      width: 4 + Math.random() * 3,
+                      height: 2 + Math.random() * 2,
+                      left: i * 5 * asset.size,
+                      background: `linear-gradient(90deg, #b8a060, #d4c080, #b8a060)`,
+                      borderRadius: 1,
+                      transform: `rotate(${Math.random() * 360}deg)`,
+                      boxShadow: '0 0 2px rgba(200,180,100,0.5)',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* RUBBLE pile */}
+            {asset.type === 'rubble' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 50 * asset.size, 
+                  height: 25 * asset.size,
+                }}
+              >
+                {[0, 1, 2, 3, 4].map(i => (
+                  <div
+                    key={`rubble-${i}`}
+                    className="absolute"
+                    style={{
+                      width: 10 + Math.random() * 15,
+                      height: 8 + Math.random() * 10,
+                      left: `${i * 20}%`,
+                      bottom: Math.random() * 10,
+                      background: `linear-gradient(${45 + i * 30}deg, #555 0%, #333 50%, #444 100%)`,
+                      borderRadius: 2,
+                      transform: `rotate(${Math.random() * 45 - 22}deg)`,
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* FIRE - Burning embers */}
+            {asset.type === 'fire' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 30 * asset.size, 
+                  height: 40 * asset.size,
+                }}
+              >
+                {/* Glowing embers base */}
+                <div 
+                  className="absolute bottom-0 rounded-full"
+                  style={{
+                    width: '100%',
+                    height: 8,
+                    background: 'radial-gradient(ellipse, #ff4400 0%, #aa2200 50%, transparent 100%)',
+                    filter: 'blur(2px)',
+                  }}
+                />
+                {/* Flames */}
+                {[0, 1, 2].map(i => (
+                  <div
+                    key={`flame-${i}`}
+                    className="absolute"
+                    style={{
+                      width: 8 + i * 2,
+                      height: 15 + i * 8,
+                      left: `${25 + i * 20}%`,
+                      bottom: 5,
+                      background: `linear-gradient(0deg, #ff4400, #ff8800, #ffcc00, transparent)`,
+                      borderRadius: '50%',
+                      filter: 'blur(2px)',
+                      opacity: 0.7,
+                    }}
+                  />
+                ))}
+                {/* Smoke */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: 20 * asset.size,
+                    height: 30 * asset.size,
+                    left: '20%',
+                    bottom: '80%',
+                    background: 'linear-gradient(0deg, rgba(60,60,60,0.6), transparent)',
+                    filter: 'blur(5px)',
+                    borderRadius: '50%',
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* TIRE - Scattered car tires */}
+            {asset.type === 'tire' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 22 * asset.size, 
+                  height: 22 * asset.size,
+                  transform: `rotate(${(asset.variant || 0) * 45}deg)`,
+                }}
+              >
+                <div 
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: 'radial-gradient(circle, #222 40%, #1a1a1a 60%, #333 80%, #222 100%)',
+                    border: '3px solid #111',
+                    boxShadow: 'inset 2px 2px 5px rgba(0,0,0,0.5), 0 2px 5px rgba(0,0,0,0.4)',
+                  }}
+                />
+                {/* Tire rim */}
+                <div 
+                  className="absolute rounded-full"
+                  style={{
+                    inset: '30%',
+                    background: 'radial-gradient(circle, #444 0%, #333 50%, #555 100%)',
+                    border: '1px solid #222',
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* HELMET - Fallen soldier helmet */}
+            {asset.type === 'helmet' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 18 * asset.size, 
+                  height: 12 * asset.size,
+                  transform: `rotate(${(asset.variant || 0) * 30 - 15}deg)`,
+                }}
+              >
+                <div 
+                  className="absolute inset-0"
+                  style={{
+                    background: 'linear-gradient(180deg, #4a4a3a 0%, #3a3a2a 50%, #2a2a1a 100%)',
+                    borderRadius: '50% 50% 40% 40%',
+                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.1), 0 2px 4px rgba(0,0,0,0.5)',
+                  }}
+                />
+                {/* Helmet strap */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: 2,
+                    height: 8 * asset.size,
+                    right: -3,
+                    bottom: 0,
+                    background: '#3a3a2a',
+                    borderRadius: 1,
                   }}
                 />
               </div>

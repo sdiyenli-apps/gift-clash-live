@@ -2956,23 +2956,39 @@ export const useGameState = () => {
             const tooClose = distanceToBoss < BOSS_KEEP_DISTANCE - 50;
             const tooFar = distanceToBoss > BOSS_KEEP_DISTANCE + 50 && distanceToBoss <= BOSS_ENGAGE_RANGE;
             
+            // DYNAMIC BOSS MOVEMENT - Boss jumps and hops around menacingly!
+            const bossJumpCycle = Math.sin(enemy.animationPhase * 2);
+            const bossHopHeight = Math.abs(bossJumpCycle) * 30; // 30px hop height
+            const bossSwayX = Math.sin(enemy.animationPhase * 1.5) * 15; // Side-to-side sway
+            
+            // Random intimidation jump (rare)
+            const randomBossJump = Math.random() > 0.995 ? 60 : 0;
+            const totalBossJump = bossHopHeight + randomBossJump;
+            
             if (tooClose) {
-              // Move away slightly to maintain distance
+              // Move away slightly to maintain distance with hopping
               return { 
                 ...enemy, 
-                x: enemy.x + 30 * delta,
+                x: enemy.x + 30 * delta + bossSwayX * delta,
+                y: GROUND_Y - totalBossJump,
                 animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
               };
             } else if (tooFar) {
-              // Move closer to stay in attack range
+              // Move closer to stay in attack range with hopping
               return { 
                 ...enemy, 
-                x: enemy.x - 20 * delta,
+                x: enemy.x - 20 * delta + bossSwayX * delta,
+                y: GROUND_Y - totalBossJump,
                 animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
               };
             }
-            // At ideal distance - stay put and animate
-            return { ...enemy, animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2) };
+            // At ideal distance - hop and sway menacingly
+            return { 
+              ...enemy, 
+              x: enemy.x + bossSwayX * delta,
+              y: GROUND_Y - totalBossJump,
+              animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
+            };
           }
           
           const tooClose = newState.enemies.some((other, otherIdx) => {
@@ -3451,6 +3467,9 @@ export const useGameState = () => {
               };
               newState.enemyLasers = [...newState.enemyLasers, jetProjectile];
               
+              // Screen shake on JetRobot attack
+              newState.screenShake = Math.max(newState.screenShake || 0, 0.2);
+              
               // Enhanced muzzle flash particles
               newState.particles = [
                 ...newState.particles,
@@ -3608,6 +3627,9 @@ export const useGameState = () => {
               type: isHeavy ? 'mega' : 'normal',
             };
             newState.enemyLasers = [...newState.enemyLasers, rocket];
+            
+            // SCREEN SHAKE when enemies fire!
+            newState.screenShake = Math.max(newState.screenShake || 0, isHeavy ? 0.25 : 0.15);
             
             // Rocket launch particles at body center
             newState.particles = [
