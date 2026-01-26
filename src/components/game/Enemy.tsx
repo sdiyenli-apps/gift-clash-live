@@ -149,7 +149,7 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
     bomber: 2.0,      // Flying bomber - BIGGER (~180x190)
     flyer: 1.9,       // Flying insect drone - BIGGER (~171x180)
     jetrobot: 1.2,    // Flying - medium
-    boss: 1.0,        // Boss - scaled separately
+    boss: 3.5,        // Boss - MUCH BIGGER (3.5x scale = ~315x332)
   };
   
   const baseTypeScale = typeSizeMultiplier[enemy.type] || 0.7;

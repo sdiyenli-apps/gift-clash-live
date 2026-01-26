@@ -257,6 +257,20 @@ const Index = () => {
     }
   }, [gameState.lastBossAttack, playSound]);
 
+  // Boss evil laugh when taunting
+  useEffect(() => {
+    if (gameState.bossTaunt && gameState.isBossFight) {
+      // Play evil laugh on certain taunts
+      const evilLaughTriggers = ['DIE', 'DESTROY', 'CRUSH', 'PHASE', 'ULTIMATE', 'IMPENETRABLE', 'STRONGER'];
+      const shouldLaugh = evilLaughTriggers.some(trigger => gameState.bossTaunt?.includes(trigger));
+      if (shouldLaugh) {
+        playSound('bossLaugh');
+      } else {
+        playSound('bossTaunt');
+      }
+    }
+  }, [gameState.bossTaunt, gameState.isBossFight, playSound]);
+
   useEffect(() => {
     if (gameState.enemyLasers?.length > 0) {
       const hasDroneLaser = gameState.enemyLasers.some(l => l.damage === 8);
