@@ -20,6 +20,7 @@ import { EnemiesWaitingIndicator } from './EnemiesWaitingIndicator';
 import { GiftComboIndicator } from './GiftComboIndicator';
 import { EnemyDeathVFX } from './EnemyDeathVFX';
 import { HeroAttackEffect } from './HeroAttackEffect';
+import { KillStreakAnnouncer } from './KillStreakAnnouncer';
 
 interface NeonLaser {
   id: string;
@@ -76,7 +77,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
     player, enemies, projectiles, particles, obstacles,
     cameraX, distance, levelLength, isUltraMode, speechBubble,
     combo, comboTimer, isFrozen, isBossFight, screenShake,
-    flyingRobots, chickens, neonLights, explosions,
+    flyingRobots, chickens, neonLights, explosions, killStreak = 0,
     fireballs = [], redFlash = 0, enemyLasers = [],
     magicFlash = 0, bossTaunt = null, currentWave,
     damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
@@ -791,6 +792,9 @@ export const Arena = ({ gameState }: ArenaProps) => {
         giftComboTimer={giftComboTimer} 
         damageMultiplier={giftDamageMultiplier} 
       />
+      
+      {/* Kill Streak Announcer - Mortal Kombat style */}
+      <KillStreakAnnouncer killStreak={killStreak} />
     </div>
   );
 };
