@@ -162,11 +162,14 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
   const isGroundUnit = !isFlying && enemy.type !== 'boss';
   const flyOffset = isFlying ? (enemy.flyHeight || 50) : 0;
   
-  // Ground units positioned LOWER on screen
-  const enemyGroundY = enemy.groundY || 115;
+  // Ground units positioned at varying depths - LOWER on screen = closer to camera
+  const enemyGroundY = enemy.groundY || 100;
+  // Map groundY range (60-160) to screen bottom positions (45-120) for depth spread
+  // Lower groundY = front (larger, lower on screen), Higher groundY = back (smaller, higher)
+  const depthFactor = (enemyGroundY - 60) / 100; // 0 = front, 1 = back
   const baseBottom = isFlying 
     ? 140 + flyOffset  // Flying units above ground
-    : 65 + (enemyGroundY - 80) * 0.4; // Ground units spread lower (65-93 range)
+    : 45 + depthFactor * 75; // Ground units: 45px (front) to 120px (back)
   
   // Portal spawn animation OR drop-from-top animation for jet robots
   const isSpawning = enemy.isSpawning && (enemy.spawnTimer ?? 0) > 0;
