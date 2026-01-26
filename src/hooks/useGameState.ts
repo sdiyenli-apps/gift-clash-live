@@ -162,6 +162,8 @@ interface ExtendedGameState extends GameState {
   allyCooldown: number;
   ultCooldown: number;
   tankCooldown: number;
+  // Track if hero has moved - enemies only attack after hero makes first move
+  heroHasMoved: boolean;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -231,6 +233,8 @@ const INITIAL_STATE: ExtendedGameState = {
   allyCooldown: 0,
   ultCooldown: 0,
   tankCooldown: 0,
+  // Hero movement tracking - enemies don't attack until hero moves
+  heroHasMoved: false,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -270,134 +274,77 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const enemies: Enemy[] = [];
   const obstacles: Obstacle[] = [];
   
-  const levelLength = Math.min(BASE_LEVEL_LENGTH * Math.pow(1.3, wave - 1), 50000);
-  // Harder difficulty: more enemies spawn as waves progress
-  const baseDensity = 200;
-  const densityReduction = Math.min(wave * 8, 120); // Reduces spacing as wave increases
-  const enemyDensity = Math.max(80, baseDensity - densityReduction);
+  // WAVE 1 = 20 enemies, then increase by 30% each wave
+  const baseEnemyCount = 20;
+  const targetEnemyCount = Math.floor(baseEnemyCount * Math.pow(1.3, wave - 1));
   
-  // ADJUSTED SPAWN RATES - More sentinel than robot, drone same size as hero
-  for (let x = 400; x < levelLength - 800; x += enemyDensity + Math.random() * 80) {
+  // Equal split between drones (flying) and ground enemies
+  const droneCount = Math.floor(targetEnemyCount / 2);
+  const groundCount = targetEnemyCount - droneCount;
+  
+  // Level length scales with enemy count
+  const levelLength = Math.min(3000 + targetEnemyCount * 80, 50000);
+  
+  // DAMAGE SCALING - Wave 1 has very low damage, increases each wave
+  // Wave 1: base * 0.3, Wave 5: base * 0.7, Wave 10: base * 1.2
+  const damageMultiplier = 0.3 + (wave - 1) * 0.1;
+  const waveBonus = Math.min(wave * 0.15, 3); // Health scaling per wave
+  
+  // Spread enemies evenly across the level
+  const groundSpacing = (levelLength - 1200) / Math.max(groundCount, 1);
+  const droneSpacing = (levelLength - 1200) / Math.max(droneCount, 1);
+  
+  // SPAWN GROUND ENEMIES (50%)
+  for (let i = 0; i < groundCount; i++) {
+    const x = 400 + i * groundSpacing + Math.random() * (groundSpacing * 0.3);
     const typeRoll = Math.random();
-    const waveBonus = Math.min(wave * 0.15, 3); // Stronger scaling per wave
     let enemyType: Enemy['type'];
     let width: number, height: number, health: number, speed: number, damage: number;
     
-    // SENTINEL gets 25% spawn rate, robot gets 5% (more sentinel than robot)
-    if (typeRoll < 0.05) {
-      // ROBOT - ground unit (reduced to 5%)
+    // Ground enemy types distribution (50% of enemies)
+    if (typeRoll < 0.15) {
+      // ROBOT - ground unit
       enemyType = 'robot';
       const size = getEnemySize('robot', wave);
       width = size.width; height = size.height;
-      health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; damage = 9 + wave;
-    } else if (typeRoll < 0.15) {
+      health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; 
+      damage = Math.floor((9 + wave) * damageMultiplier);
+    } else if (typeRoll < 0.35) {
       // MECH - ground unit
       enemyType = 'mech';
       const size = getEnemySize('mech', wave);
       width = size.width; height = size.height;
-      health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; damage = 16 + wave;
-    } else if (typeRoll < 0.25) {
+      health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; 
+      damage = Math.floor((16 + wave) * damageMultiplier);
+    } else if (typeRoll < 0.50) {
       // TANK - ground unit
       enemyType = 'tank';
       const size = getEnemySize('tank', wave);
       width = size.width; height = size.height;
-      health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; damage = 22 + wave;
-    } else if (typeRoll < 0.50) {
-      // SENTINEL - Large ground mech (25% spawn rate - MORE than robot)
+      health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; 
+      damage = Math.floor((22 + wave) * damageMultiplier);
+    } else if (typeRoll < 0.70) {
+      // SENTINEL - Large ground mech
       enemyType = 'sentinel';
       const size = getEnemySize('sentinel', wave);
       width = size.width; height = size.height;
       health = 220 * (1 + waveBonus);
       speed = 35 + wave * 1.5; 
-      damage = 25 + wave;
-    } else if (typeRoll < 0.60) {
+      damage = Math.floor((25 + wave) * damageMultiplier);
+    } else if (typeRoll < 0.85) {
       // NINJA - ground unit (fast)
       enemyType = 'ninja';
       const size = getEnemySize('ninja', wave);
       width = size.width; height = size.height;
-      health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; damage = 12 + wave;
-    } else if (typeRoll < 0.70) {
+      health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; 
+      damage = Math.floor((12 + wave) * damageMultiplier);
+    } else {
       // GIANT - large ground unit
       enemyType = 'giant';
       const size = getEnemySize('giant', wave);
       width = size.width; height = size.height;
-      health = 300 * (1 + waveBonus); speed = 25 + wave; damage = 30 + wave * 2;
-    } else if (typeRoll < 0.85) {
-      // DRONE - flying enemy - uses BOMBS ONLY (no projectiles) - SAME SIZE AS HERO (90x95)
-      enemyType = 'drone';
-      const size = getEnemySize('drone', wave);
-      width = size.width; height = size.height;
-      health = 32 * (1 + waveBonus * 0.5); 
-      speed = 90 + wave * 3; 
-      damage = 7 + Math.floor(wave / 2);
-      
-      // 25% chance to be a spiral drone
-      const isSpiralDrone = Math.random() < 0.25;
-      const spiralCenterY = GROUND_Y + 120 + Math.random() * 80;
-      
-      // All drones now same size as hero (90x95)
-      const droneWidth = 90;
-      const droneHeight = 95;
-      
-      const droneEnemy = {
-        id: `enemy-${x}-${Math.random()}`,
-        x,
-        y: isSpiralDrone ? spiralCenterY : (GROUND_Y + 60 + Math.random() * 50),
-        width: droneWidth,
-        height: droneHeight,
-        health,
-        maxHealth: health,
-        speed,
-        damage,
-        type: enemyType as 'drone',
-        isDying: false,
-        deathTimer: 0,
-        attackCooldown: 0,
-        animationPhase: Math.random() * Math.PI * 2,
-        isSpawning: true,
-        spawnTimer: 0.8,
-        isFlying: true,
-        flyHeight: 60 + Math.random() * 50,
-        isSpiralDrone,
-        spiralAngle: 0,
-        spiralCenterX: x,
-        spiralCenterY,
-        bombCooldown: 1.5 + Math.random() * 2, // Drones now use bombs!
-      };
-      enemies.push(droneEnemy);
-      continue;
-    } else {
-      // BOMBER - ONLY enemy type that drops bombs!
-      enemyType = 'bomber';
-      const size = getEnemySize('bomber', wave);
-      width = size.width; height = size.height;
-      health = 50 * (1 + waveBonus * 0.6); 
-      speed = 60 + wave * 2; 
-      damage = 15 + wave;
-      
-      const bomberEnemy = {
-        id: `bomber-${x}-${Math.random()}`,
-        x,
-        y: GROUND_Y + 220 + Math.random() * 60,
-        width,
-        height,
-        health,
-        maxHealth: health,
-        speed,
-        damage,
-        type: enemyType as 'bomber',
-        isDying: false,
-        deathTimer: 0,
-        attackCooldown: 0,
-        animationPhase: Math.random() * Math.PI * 2,
-        isSpawning: true,
-        spawnTimer: 0.8,
-        isFlying: true,
-        flyHeight: 220 + Math.random() * 60,
-        bombCooldown: 2 + Math.random() * 2,
-      };
-      enemies.push(bomberEnemy);
-      continue;
+      health = 300 * (1 + waveBonus); speed = 25 + wave; 
+      damage = Math.floor((30 + wave * 2) * damageMultiplier);
     }
     
     // Spread ground enemies across different Y positions
@@ -438,22 +385,27 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     });
   }
   
-  // Add extra drone swarms at higher waves
-  if (wave >= 3) {
-    const droneSwarmCount = Math.min(Math.floor(wave / 2), 8);
-    for (let i = 0; i < droneSwarmCount; i++) {
-      const swarmX = 600 + Math.random() * (levelLength - 1400);
-      const swarmY = GROUND_Y + 80 + Math.random() * 60;
+  // SPAWN FLYING ENEMIES (50% - drones and bombers)
+  for (let i = 0; i < droneCount; i++) {
+    const x = 400 + i * droneSpacing + Math.random() * (droneSpacing * 0.3);
+    const typeRoll = Math.random();
+    
+    if (typeRoll < 0.7) {
+      // DRONE - flying enemy (70% of flying enemies)
+      const isSpiralDrone = Math.random() < 0.25;
+      const spiralCenterY = GROUND_Y + 120 + Math.random() * 80;
+      const droneHealth = 32 * (1 + waveBonus * 0.5);
+      
       enemies.push({
-        id: `drone-swarm-${i}-${Math.random()}`,
-        x: swarmX,
-        y: swarmY,
-        width: 42,
-        height: 42,
-        health: 35 * (1 + wave * 0.1),
-        maxHealth: 35 * (1 + wave * 0.1),
-        speed: 100 + wave * 4,
-        damage: 8 + wave,
+        id: `drone-${x}-${Math.random()}`,
+        x,
+        y: isSpiralDrone ? spiralCenterY : (GROUND_Y + 60 + Math.random() * 50),
+        width: 90,
+        height: 95,
+        health: droneHealth,
+        maxHealth: droneHealth,
+        speed: 90 + wave * 3,
+        damage: Math.floor((7 + Math.floor(wave / 2)) * damageMultiplier),
         type: 'drone',
         isDying: false,
         deathTimer: 0,
@@ -462,30 +414,29 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         isSpawning: true,
         spawnTimer: 0.8,
         isFlying: true,
-        flyHeight: 80 + Math.random() * 60,
-        originalX: swarmX, // Store original position for retreat
-        originalY: swarmY,
-        droneVariant: Math.floor(Math.random() * 5), // Random drone variant 0-4
+        flyHeight: 60 + Math.random() * 50,
+        isSpiralDrone,
+        spiralAngle: 0,
+        spiralCenterX: x,
+        spiralCenterY,
+        bombCooldown: 1.5 + Math.random() * 2,
+        droneVariant: Math.floor(Math.random() * 5),
       });
-    }
-  }
-  
-  // Add bomber squadrons at higher waves
-  if (wave >= 5) {
-    const bomberCount = Math.min(Math.floor(wave / 4), 6);
-    for (let i = 0; i < bomberCount; i++) {
-      const bomberX = 700 + Math.random() * (levelLength - 1600);
-      const bomberY = GROUND_Y + 230 + Math.random() * 60;
+    } else {
+      // BOMBER - flying enemy (30% of flying enemies)
+      const bomberHealth = 50 * (1 + waveBonus * 0.6);
+      const bomberY = GROUND_Y + 220 + Math.random() * 60;
+      
       enemies.push({
-        id: `bomber-squadron-${i}-${Math.random()}`,
-        x: bomberX,
-        y: bomberY, // MUCH higher
+        id: `bomber-${x}-${Math.random()}`,
+        x,
+        y: bomberY,
         width: 55,
         height: 50,
-        health: 55 * (1 + wave * 0.08),
-        maxHealth: 55 * (1 + wave * 0.08),
-        speed: 65 + wave * 2,
-        damage: 18 + wave,
+        health: bomberHealth,
+        maxHealth: bomberHealth,
+        speed: 60 + wave * 2,
+        damage: Math.floor((15 + wave) * damageMultiplier),
         type: 'bomber',
         isDying: false,
         deathTimer: 0,
@@ -494,47 +445,46 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         isSpawning: true,
         spawnTimer: 0.8,
         isFlying: true,
-        flyHeight: 230 + Math.random() * 60, // MUCH higher than drones
-        bombCooldown: 1.5 + Math.random() * 2,
-        originalX: bomberX, // Store original position for retreat
+        flyHeight: 220 + Math.random() * 60,
+        bombCooldown: 2 + Math.random() * 2,
+        originalX: x,
         originalY: bomberY,
-        droneVariant: Math.floor(Math.random() * 5), // Random drone variant 0-4
+        droneVariant: Math.floor(Math.random() * 5),
       });
     }
   }
   
-  // Add JET ROBOT enemies that DROP FROM TOP - same spawn rate as other enemies
-  // Jet robots spawn throughout the level like regular enemies
-  const jetRobotChance = 0.15; // 15% chance per spawn point
-  for (let x = 450; x < levelLength - 800; x += enemyDensity + Math.random() * 100) {
-    if (Math.random() < jetRobotChance) {
-      const jetHealth = 80 * (1 + wave * 0.1);
-      const jetY = GROUND_Y + 120 + Math.random() * 60;
-      enemies.push({
-        id: `jetrobot-${x}-${Math.random()}`,
-        x,
-        y: jetY, // Target flying height
-        width: 55,
-        height: 50,
-        health: jetHealth,
-        maxHealth: jetHealth,
-        speed: 70 + wave * 2,
-        damage: 12 + wave,
-        type: 'jetrobot',
-        isDying: false,
-        deathTimer: 0,
-        attackCooldown: 0,
-        animationPhase: Math.random() * Math.PI * 2,
-        isSpawning: false,
-        isDropping: true, // Drops from top of screen
-        dropTimer: 1.2, // Drop animation time
-        isFlying: true,
-        flyHeight: 120 + Math.random() * 60,
-        empOnly: true, // Can ONLY be killed by EMP
-        originalX: x, // Store original position for retreat
-        originalY: jetY,
-      });
-    }
+  // Add JET ROBOT enemies that DROP FROM TOP (scales with wave)
+  const jetRobotCount = Math.max(0, Math.floor(wave * 0.5)); // 0 at wave 1, 5 at wave 10
+  const jetSpacing = (levelLength - 1200) / Math.max(jetRobotCount, 1);
+  for (let i = 0; i < jetRobotCount; i++) {
+    const x = 450 + i * jetSpacing + Math.random() * (jetSpacing * 0.3);
+    const jetHealth = 80 * (1 + wave * 0.1);
+    const jetY = GROUND_Y + 120 + Math.random() * 60;
+    enemies.push({
+      id: `jetrobot-${x}-${Math.random()}`,
+      x,
+      y: jetY,
+      width: 55,
+      height: 50,
+      health: jetHealth,
+      maxHealth: jetHealth,
+      speed: 70 + wave * 2,
+      damage: Math.floor((12 + wave) * damageMultiplier),
+      type: 'jetrobot',
+      isDying: false,
+      deathTimer: 0,
+      attackCooldown: 0,
+      animationPhase: Math.random() * Math.PI * 2,
+      isSpawning: false,
+      isDropping: true,
+      dropTimer: 1.2,
+      isFlying: true,
+      flyHeight: 120 + Math.random() * 60,
+      empOnly: true,
+      originalX: x,
+      originalY: jetY,
+    });
   }
 
   // Princess is ONLY at wave 1000 - final destination!
@@ -654,6 +604,7 @@ export const useGameState = () => {
       currentWave: wave,
       gameStartTime,
       particleResetTimer: PARTICLE_LIFETIME,
+      heroHasMoved: false, // Reset - enemies wait for hero to move
     });
     setGiftEvents([]);
     lastUpdateRef.current = Date.now();
@@ -670,7 +621,8 @@ export const useGameState = () => {
         enemies,
         obstacles,
         levelLength,
-        player: { ...INITIAL_PLAYER },
+        // RESET HERO TO FULL HEALTH at start of each wave
+        player: { ...INITIAL_PLAYER, health: INITIAL_PLAYER.maxHealth, shield: 0 },
         distance: 0,
         cameraX: 0,
         projectiles: [],
@@ -702,8 +654,8 @@ export const useGameState = () => {
         bombs: [],
         empGrenades: [],
         powerups: [],
-        // Keep collected powerups between waves (they persist)
-        // Powerups are not reset, allowing players to save them
+        // Reset hero movement tracking - enemies wait for hero to move
+        heroHasMoved: false,
       }));
       showSpeechBubble(`WAVE ${nextWave} BEGINS! 🔥💪`, 'excited');
     }
@@ -861,6 +813,8 @@ export const useGameState = () => {
             x: prev.player.x + moveDistance,
             animationState: 'run',
           };
+          // Mark that hero has moved - enemies can now attack
+          newState.heroHasMoved = true;
           // Camera will smoothly follow via the game loop
           newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT/2, 8, 'dash', '#00ffff')];
           newState.score += 15;
@@ -890,6 +844,8 @@ export const useGameState = () => {
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
+          // Mark that hero has moved - enemies can now attack
+          newState.heroHasMoved = true;
           // Particles from correct position
           newState.particles = [...prev.particles, 
             ...createParticles(heroWorldX + (isSpaceshipMode ? 50 : 0), bulletY, 15, 'muzzle', isSpaceshipMode ? '#ff00ff' : '#00ffff'),
@@ -2646,7 +2602,8 @@ export const useGameState = () => {
         const ENEMY_ATTACK_RANGE = 70;
         const attackCooldownDecrement = delta;
         const timeSinceGameStart = (Date.now() - prev.gameStartTime) / 1000;
-        const canEnemiesAttack = timeSinceGameStart >= ENEMY_ATTACK_DELAY;
+        // Enemies only attack after hero makes first move AND 2 second delay has passed
+        const canEnemiesAttack = prev.heroHasMoved && timeSinceGameStart >= ENEMY_ATTACK_DELAY;
         
         newState.enemies = newState.enemies.map(enemy => {
           if (enemy.isDying || enemy.type === 'boss' || enemy.isSpawning) return enemy;

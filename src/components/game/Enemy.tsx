@@ -156,8 +156,8 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
   const dropStartY = 400;
   const dropEndY = 140 + flyOffset;
   const currentDropY = isDropping ? dropStartY - (dropStartY - dropEndY) * dropProgress : baseBottom;
-  // Fear effect when tank is active (non-boss enemies only)
-  const showFear = isTankActive && !isBoss && !enemy.isDying && !isSpawning;
+  // Fear effect REMOVED - tank no longer causes fear
+  const showFear = false;
   
   return (
     <motion.div
