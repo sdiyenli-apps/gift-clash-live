@@ -2768,6 +2768,14 @@ export const useGameState = () => {
         newState.enemies = newState.enemies.map((enemy, idx) => {
           if (enemy.isDying || enemy.isSpawning) return enemy;
           
+          // ENEMIES WAIT UNTIL FIRST GIFT IS SENT - no movement or attacks before that!
+          if (!prev.firstGiftSent && enemy.type !== 'boss') {
+            return { 
+              ...enemy, 
+              animationPhase: (enemy.animationPhase + delta * 2) % (Math.PI * 2), // Idle animation only
+            };
+          }
+          
           const dx = prev.player.x - enemy.x;
           const direction = dx > 0 ? 1 : -1;
           
@@ -2839,16 +2847,23 @@ export const useGameState = () => {
           );
           const shouldDodgeJump = !isFlying && !!nearbyProjectile && Math.random() > 0.4;
           const randomJump = !isFlying && Math.random() > 0.985;
+          
+          // SENTINEL HOPPING MOVEMENT - Sentinels make small hops to advance!
+          const isSentinel = enemy.type === 'sentinel';
+          const sentinelHopPhase = isSentinel ? Math.abs(Math.sin(newAnimPhase * 4)) : 0;
+          const sentinelHopHeight = isSentinel ? sentinelHopPhase * 25 : 0; // Small 25px hops
 
           // IMPORTANT: Keep ground enemies anchored to baseY.
           // Jump is represented as a temporary offset (does not accumulate into enemy.y).
-          const jumpOffset = (shouldDodgeJump || randomJump) ? (35 + Math.random() * 50) : 0;
+          const jumpOffset = (shouldDodgeJump || randomJump) ? (35 + Math.random() * 50) : sentinelHopHeight;
           const nextY = isFlying ? currentY : (baseY - jumpOffset);
 
           // BACK AND FORTH MOVEMENT - enemies move erratically
           const movementPattern = Math.sin(newAnimPhase * 3) * 0.5 + 0.5; // 0-1 oscillation
           const moveBackward = Math.random() > 0.92; // Sometimes retreat
-          const moveMultiplier = moveBackward ? -0.6 : (1 + movementPattern * 0.5); // Fast forward, sometimes back
+          // Sentinels move in bursts (hop-pause pattern)
+          const sentinelMoveMultiplier = isSentinel ? (sentinelHopPhase > 0.3 ? 1.5 : 0.3) : 1;
+          const moveMultiplier = moveBackward ? -0.6 : (1 + movementPattern * 0.5) * sentinelMoveMultiplier;
 
           // COLLISION PREVENTION - enemies stop before overlapping hero
           const distToHero = enemy.x - prev.player.x;

@@ -101,11 +101,11 @@ const WAR_SILHOUETTES = [
   { x: 1000, y: 230, type: 'wreckage' as const },
 ];
 
-// Searchlight configuration for boss fights
+// Searchlight configuration for boss fights - RED lights from OFF SCREEN edges
 const SEARCHLIGHTS = [
-  { baseAngle: 30, speed: 0.8, width: 60, length: 400, x: 100 },
-  { baseAngle: 150, speed: -0.6, width: 80, length: 450, x: 400 },
-  { baseAngle: 60, speed: 1.0, width: 50, length: 380, x: 550 },
+  { baseAngle: 45, speed: 0.7, width: 80, length: 500, x: -40 },   // Far left (off-screen)
+  { baseAngle: 135, speed: -0.5, width: 100, length: 550, x: 700 }, // Far right (off-screen)
+  { baseAngle: 60, speed: 0.9, width: 70, length: 480, x: -20 },   // Left edge
 ];
 
 export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: ParallaxBackgroundProps) => {
@@ -583,7 +583,6 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
         <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 5 }}>
           {SEARCHLIGHTS.map((light, i) => {
             const angle = light.baseAngle + Math.sin(searchlightTime * light.speed) * 45;
-            const radians = (angle * Math.PI) / 180;
             return (
               <div
                 key={`searchlight-${i}`}
@@ -594,13 +593,13 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
                   width: light.width,
                   height: light.length,
                   background: `linear-gradient(180deg, 
-                    rgba(255,255,200,0.4) 0%, 
-                    rgba(255,255,150,0.2) 30%, 
-                    rgba(255,200,100,0.1) 60%, 
+                    rgba(255,0,0,0.5) 0%, 
+                    rgba(255,50,50,0.3) 30%, 
+                    rgba(200,0,0,0.15) 60%, 
                     transparent 100%)`,
                   transformOrigin: 'bottom center',
                   transform: `rotate(${angle - 90}deg)`,
-                  filter: 'blur(3px)',
+                  filter: 'blur(4px)',
                   clipPath: 'polygon(40% 0%, 60% 0%, 100% 100%, 0% 100%)',
                 }}
               />
