@@ -136,15 +136,39 @@ export const Arena = ({ gameState }: ArenaProps) => {
       className="w-full h-full overflow-hidden relative"
       style={{
         boxShadow: isBossFight 
-          ? '0 0 20px rgba(255,0,0,0.5), inset 0 0 30px rgba(255,0,0,0.15)' 
+          ? '0 0 20px rgba(255,0,0,0.5), inset 0 0 50px rgba(0,0,0,0.8)' 
           : player.isMagicDashing 
             ? '0 0 15px rgba(255,0,255,0.4), inset 0 0 25px rgba(255,0,255,0.15)' 
-            : 'none',
+            : 'inset 0 0 60px rgba(0,0,0,0.6)',
         transform: `translate(${shakeX}px, ${shakeY}px)`,
-        background: '#0a0a15',
+        background: '#050508', // Much darker arena
         borderRadius: 0,
       }}
     >
+      {/* FOG EFFECT - Atmospheric overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background: `
+            radial-gradient(ellipse 120% 80% at 50% 100%, rgba(20,25,40,0.7) 0%, transparent 60%),
+            linear-gradient(180deg, rgba(10,15,25,0.4) 0%, transparent 30%, rgba(10,15,25,0.5) 100%)
+          `,
+          mixBlendMode: 'multiply',
+        }}
+      />
+      {/* Ground-level fog wisps */}
+      <motion.div
+        className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none z-10"
+        style={{
+          background: 'linear-gradient(180deg, transparent 0%, rgba(40,50,70,0.3) 50%, rgba(30,40,60,0.5) 100%)',
+          filter: 'blur(8px)',
+        }}
+        animate={{ 
+          opacity: [0.4, 0.6, 0.4],
+          x: [-10, 10, -10],
+        }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+      />
       {/* Mini-map - positioned at top for visibility */}
       <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50">
         <MiniMap 
