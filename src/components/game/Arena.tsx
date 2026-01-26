@@ -1,4 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRef, useEffect, useState } from 'react';
 import { GameState, Projectile, getBossName, Bomb, SupportUnit } from '@/types/game';
 import { ParallaxBackground } from './ParallaxBackground';
 import { Hero } from './Hero';
@@ -22,6 +23,7 @@ import { EnemyDeathVFX } from './EnemyDeathVFX';
 import { HeroAttackEffect } from './HeroAttackEffect';
 import { KillStreakAnnouncer } from './KillStreakAnnouncer';
 import { BossAttackVFX, BombExplosionVFX } from './BossAttackVFX';
+import { MultiplierVFX } from './MultiplierVFX';
 
 interface NeonLaser {
   id: string;
@@ -97,6 +99,17 @@ export const Arena = ({ gameState }: ArenaProps) => {
     lastBossAttack = null,
     lastBossAttackTime = 0,
   } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
+  
+  // Track previous multiplier for VFX trigger
+  const prevMultiplierRef = useRef(giftDamageMultiplier);
+  const [previousMultiplier, setPreviousMultiplier] = useState(1);
+  
+  useEffect(() => {
+    if (giftDamageMultiplier !== prevMultiplierRef.current) {
+      setPreviousMultiplier(prevMultiplierRef.current);
+      prevMultiplierRef.current = giftDamageMultiplier;
+    }
+  }, [giftDamageMultiplier]);
   
   // Calculate active enemy count for the waiting indicator
   const activeEnemyCount = enemies.filter(e => !e.isDying && !e.isSpawning).length;
@@ -832,6 +845,12 @@ export const Arena = ({ gameState }: ArenaProps) => {
       
       {/* Kill Streak Announcer - Mortal Kombat style */}
       <KillStreakAnnouncer killStreak={killStreak} />
+      
+      {/* AAA Multiplier VFX - DMC/Hades/Bayonetta inspired */}
+      <MultiplierVFX 
+        damageMultiplier={giftDamageMultiplier} 
+        previousMultiplier={previousMultiplier} 
+      />
     </div>
   );
 };
