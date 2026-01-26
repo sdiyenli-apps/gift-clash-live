@@ -21,6 +21,7 @@ import { GiftComboIndicator } from './GiftComboIndicator';
 import { EnemyDeathVFX } from './EnemyDeathVFX';
 import { HeroAttackEffect } from './HeroAttackEffect';
 import { KillStreakAnnouncer } from './KillStreakAnnouncer';
+import { BossAttackVFX, BombExplosionVFX } from './BossAttackVFX';
 
 interface NeonLaser {
   id: string;
@@ -66,6 +67,9 @@ interface ExtendedGameState extends GameState {
   giftCombo?: number;
   giftComboTimer?: number;
   giftDamageMultiplier?: number;
+  // Boss attack tracking for VFX
+  lastBossAttack?: 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield' | null;
+  lastBossAttackTime?: number;
 }
 
 interface ArenaProps {
@@ -90,6 +94,8 @@ export const Arena = ({ gameState }: ArenaProps) => {
     giftCombo = 0,
     giftComboTimer = 0,
     giftDamageMultiplier = 1,
+    lastBossAttack = null,
+    lastBossAttackTime = 0,
   } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
   
   // Calculate active enemy count for the waiting indicator
@@ -103,6 +109,11 @@ export const Arena = ({ gameState }: ArenaProps) => {
   
   // Get boss info for HUD
   const bossEnemy = enemies.find(e => e.type === 'boss' && !e.isDying);
+  
+  // Map boss attack type for VFX component
+  const bossAttackVFXType = lastBossAttack === 'laser_sweep' ? 'laser' 
+    : lastBossAttack === 'missile_barrage' ? 'missile'
+    : lastBossAttack as 'fireball' | 'ground_pound' | 'screen_attack' | null;
   
   return (
     <div 
@@ -145,6 +156,32 @@ export const Arena = ({ gameState }: ArenaProps) => {
       {bossEnemy && isBossFight && (
         <BossHealthBar boss={bossEnemy} cameraX={cameraX} />
       )}
+      
+      {/* Boss Attack VFX - flashes and effects for boss attacks */}
+      {bossEnemy && isBossFight && bossAttackVFXType && (
+        <BossAttackVFX
+          attackType={bossAttackVFXType}
+          bossX={bossEnemy.x + bossEnemy.width / 2}
+          bossY={bossEnemy.y + bossEnemy.height / 2}
+          cameraX={cameraX}
+        />
+      )}
+      
+      {/* Bomb explosion VFX - renders for each active bomb as visual flair */}
+      {bombs.map(bomb => {
+        const screenX = bomb.x - cameraX;
+        if (screenX < -50 || screenX > 700) return null;
+        if (bomb.timer > 0.3) return null; // Only show near explosion
+        return (
+          <BombExplosionVFX
+            key={`bomb-vfx-${bomb.id}`}
+            x={bomb.x}
+            y={bomb.y}
+            cameraX={cameraX}
+            size="medium"
+          />
+        );
+      })}
       
       {/* Red flash for boss mega attack */}
       {redFlash > 0 && (

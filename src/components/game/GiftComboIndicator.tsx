@@ -7,44 +7,51 @@ interface GiftComboIndicatorProps {
   damageMultiplier: number;
 }
 
-// Neon color palette based on combo tier
-const getComboStyle = (combo: number) => {
-  if (combo >= 10) return { 
+// Neon color palette based on combo tier - EVERY 3 GIFTS increases tier
+const getComboStyle = (combo: number, multiplier: number) => {
+  // Tier is based on multiplier level (every 3 gifts = +0.5x multiplier)
+  if (multiplier >= 3.0) return { 
     color: '#ff00ff', 
     glow: '#ff00ff',
     label: 'LEGENDARY',
-    icon: '👑'
+    icon: '👑',
+    nextTier: null
   };
-  if (combo >= 7) return { 
+  if (multiplier >= 2.5) return { 
+    color: '#ff0000', 
+    glow: '#ff4400',
+    label: 'MYTHIC',
+    icon: '🔥',
+    nextTier: 3 - (combo % 3) // Gifts until next tier
+  };
+  if (multiplier >= 2.0) return { 
     color: '#ff4400', 
     glow: '#ff6600',
     label: 'ULTRA',
-    icon: '🔥'
+    icon: '⚡',
+    nextTier: 3 - (combo % 3)
   };
-  if (combo >= 5) return { 
+  if (multiplier >= 1.5) return { 
     color: '#ffaa00', 
     glow: '#ffcc00',
     label: 'SUPER',
-    icon: '⚡'
+    icon: '💥',
+    nextTier: 3 - (combo % 3)
   };
-  if (combo >= 3) return { 
-    color: '#00ffff', 
-    glow: '#00aaff',
-    label: 'COMBO',
-    icon: '💥'
-  };
+  // Starting tier - first 3 gifts build to 1.5x
   return { 
     color: '#00ff88', 
     glow: '#00ff44',
     label: 'COMBO',
-    icon: '✨'
+    icon: '✨',
+    nextTier: 3 - (combo % 3)
   };
 };
 
 export const GiftComboIndicator = memo(({ giftCombo, giftComboTimer, damageMultiplier }: GiftComboIndicatorProps) => {
-  if (giftCombo < 2 || giftComboTimer <= 0) return null;
+  if (giftCombo < 1 || giftComboTimer <= 0) return null;
   
-  const style = getComboStyle(giftCombo);
+  const style = getComboStyle(giftCombo, damageMultiplier);
   const timePercent = (giftComboTimer / 3) * 100; // 3 second max timer
   
   return (
@@ -106,6 +113,11 @@ export const GiftComboIndicator = memo(({ giftCombo, giftComboTimer, damageMulti
                 }}
               >
                 DMG: {damageMultiplier.toFixed(1)}x
+                {style.nextTier && damageMultiplier < 3.0 && (
+                  <span className="ml-2 opacity-80">
+                    (+{style.nextTier} for ⬆️)
+                  </span>
+                )}
               </span>
             </div>
             

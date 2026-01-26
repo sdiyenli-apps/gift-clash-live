@@ -818,8 +818,10 @@ export const useGameState = () => {
       
       // GIFT COMBO SYSTEM - increment combo and reset timer!
       const newGiftCombo = prev.giftComboTimer > 0 ? prev.giftCombo + 1 : 1;
-      // Damage multiplier: 1.0 + 0.15 per combo, max 3.0x at 14+ combo
-      const newDamageMultiplier = Math.min(1.0 + (newGiftCombo - 1) * 0.15, 3.0);
+      // Damage multiplier: ONLY increases every 3 gifts! (1.0 at 1-2, 1.5 at 3-5, 2.0 at 6-8, etc.)
+      // Math.floor(combo / 3) gives us tier 0 at 1-2, tier 1 at 3-5, etc.
+      const comboTier = Math.floor(newGiftCombo / 3);
+      const newDamageMultiplier = Math.min(1.0 + comboTier * 0.5, 3.0); // +0.5x per tier, max 3.0x
       
       let newState = { 
         ...prev, 
