@@ -138,18 +138,20 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
   // Ground 4 (sentinel/tank): LARGE (~220px) + 5s ARMOR
   // Ground 5 (giant): LARGEST (~260px) + 5s ARMOR
   // DRONES: LARGER for better visibility (~160-180px)
+  // LOGICAL ENEMY SIZES - Ground 1 & 2 are SAME SIZE (human soldiers)
+  // Ground 3: Slightly larger beast, Ground 4: Tank vehicle, Ground 5/6: Heavy mechs
   const typeSizeMultiplier: Record<string, number> = {
-    robot: 2.4,       // Ground 1 - Cyan soldier (DOUBLED - now ~216x228)
-    drone: 2.2,       // Flying - BIGGER DRONES (~198x207)
-    mech: 2.6,        // Ground 2 - Purple soldier (DOUBLED - now ~234x247)
-    ninja: 1.9,       // Ground 3 - Alien beast (MEDIUM ~171x180)
+    robot: 1.8,       // Ground 1 - Cyan soldier (SAME as mech ~162x171)
+    drone: 1.8,       // Flying - Drones (~162x171)
+    mech: 1.8,        // Ground 2 - Purple soldier (SAME as robot ~162x171)
+    ninja: 2.0,       // Ground 3 - Alien beast (SLIGHTLY LARGER ~180x190)
     tank: 2.4,        // Ground 4 alt - Beast tank (LARGE ~216x228)
     sentinel: 2.4,    // Ground 4 - Spider tank (LARGE + ARMOR ~216x228)
     giant: 2.8,       // Ground 5 - LARGEST heavy mech + ARMOR (~252x266)
-    bomber: 2.0,      // Flying bomber - BIGGER (~180x190)
-    flyer: 1.9,       // Flying insect drone - BIGGER (~171x180)
+    bomber: 1.6,      // Flying bomber (~144x152)
+    flyer: 1.5,       // Flying insect drone (~135x143)
     jetrobot: 1.2,    // Flying - medium
-    boss: 3.5,        // Boss - MUCH BIGGER (3.5x scale = ~315x332)
+    boss: 4.0,        // Boss - MASSIVE (4x scale = ~360x380)
   };
   
   const baseTypeScale = typeSizeMultiplier[enemy.type] || 0.7;
@@ -157,19 +159,23 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
   const displayWidth = enemy.width * scaleFactor;
   const displayHeight = enemy.height * scaleFactor;
   
-  // Flying enemies (drones) hover higher - GROUND UNITS positioned lower
+  // Flying enemies (drones) hover higher - GROUND UNITS walk ON the ground
   const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer';
   const isGroundUnit = !isFlying && enemy.type !== 'boss';
   const flyOffset = isFlying ? (enemy.flyHeight || 50) : 0;
   
-  // Ground units positioned at varying depths - LOWER on screen = closer to camera
+  // Ground units walk AT ground level with varying LANE positions (depth illusion)
+  // Lane system: enemies spawn at different horizontal "paths" creating depth
   const enemyGroundY = enemy.groundY || 100;
-  // Map groundY range (60-160) to screen bottom positions (45-120) for depth spread
-  // Lower groundY = front (larger, lower on screen), Higher groundY = back (smaller, higher)
-  const depthFactor = (enemyGroundY - 60) / 100; // 0 = front, 1 = back
+  // Map groundY to ACTUAL ground position - all units walk ON the ground
+  // Higher groundY = back lane (higher on screen = farther away)
+  // Lower groundY = front lane (lower on screen = closer)
+  const depthFactor = (enemyGroundY - 60) / 160; // 0 = front, 1 = back
+  // Ground units: 20px (front/closer) to 60px (back/farther) - ALL on ground level
+  const groundBottom = 20 + depthFactor * 40;
   const baseBottom = isFlying 
     ? 140 + flyOffset  // Flying units above ground
-    : 45 + depthFactor * 75; // Ground units: 45px (front) to 120px (back)
+    : groundBottom; // Ground units walk ON ground at different depths
   
   // Portal spawn animation OR drop-from-top animation for jet robots
   const isSpawning = enemy.isSpawning && (enemy.spawnTimer ?? 0) > 0;
