@@ -25,6 +25,7 @@ import { KillStreakAnnouncer } from './KillStreakAnnouncer';
 import { BossAttackVFX, BombExplosionVFX } from './BossAttackVFX';
 import { BossLaserSweepVFX } from './BossLaserSweepVFX';
 import { MultiplierVFX } from './MultiplierVFX';
+import { EnemyMuzzleFlash, AttackWarning } from './EnemyAttackVFX';
 
 interface NeonLaser {
   id: string;
@@ -623,6 +624,51 @@ export const Arena = ({ gameState }: ArenaProps) => {
           {/* Enemy Death VFX - unique per enemy type */}
           {enemies.filter(e => e.isDying).map(enemy => (
             <EnemyDeathVFX key={`death-${enemy.id}`} enemy={enemy} cameraX={cameraX} />
+          ))}
+          
+          {/* Enemy Attack VFX - muzzle flashes when enemies fire */}
+          {enemies.filter(e => !e.isDying && e.attackCooldown > 0 && e.attackCooldown <= 0.3).map(enemy => {
+            const muzzleX = enemy.x - 20; // Front of enemy (facing left toward hero)
+            const muzzleY = enemy.groundY || 115;
+            return (
+              <EnemyMuzzleFlash
+                key={`muzzle-${enemy.id}`}
+                enemyType={enemy.type}
+                x={muzzleX}
+                y={muzzleY}
+                cameraX={cameraX}
+                isActive={true}
+              />
+            );
+          })}
+          
+          {/* Attack Warnings for heavy enemies */}
+          {enemies.filter(e => !e.isDying && e.type === 'sentinel' && e.attackCooldown > 0.8 && e.attackCooldown <= 1.2).map(enemy => (
+            <AttackWarning
+              key={`warn-${enemy.id}`}
+              x={enemy.x}
+              y={enemy.groundY || 115}
+              cameraX={cameraX}
+              attackType="laser"
+            />
+          ))}
+          {enemies.filter(e => !e.isDying && e.type === 'giant' && e.attackCooldown > 0.8 && e.attackCooldown <= 1.2).map(enemy => (
+            <AttackWarning
+              key={`warn-${enemy.id}`}
+              x={enemy.x}
+              y={enemy.groundY || 115}
+              cameraX={cameraX}
+              attackType="charge"
+            />
+          ))}
+          {enemies.filter(e => !e.isDying && e.type === 'bomber' && e.attackCooldown > 0.5 && e.attackCooldown <= 0.8).map(enemy => (
+            <AttackWarning
+              key={`warn-${enemy.id}`}
+              x={enemy.x}
+              y={(enemy.flyHeight || 50) + 140}
+              cameraX={cameraX}
+              attackType="bomb"
+            />
           ))}
           
           {/* Support Units - friendly mech and walker allies */}
