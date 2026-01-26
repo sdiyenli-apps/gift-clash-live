@@ -181,7 +181,7 @@ export interface Player {
   isIdle: boolean;
   facingRight: boolean;
   speedMultiplier: number;
-  animationState: 'idle' | 'run' | 'attack' | 'hurt' | 'dash' | 'sword_slash';
+  animationState: 'idle' | 'run' | 'attack' | 'hurt' | 'dash' | 'sword_slash' | 'flip_attack';
   animationFrame: number;
   comboCount: number;
   lastDodgeTime: number;
@@ -189,6 +189,8 @@ export interface Player {
   magicDashTimer: number;
   isAutoSlashing?: boolean; // True when hero is auto-slashing nearby enemy
   autoSlashCooldown?: number; // Cooldown between auto-slashes
+  isFlipAttacking?: boolean; // True during 15-gift flip attack
+  flipAttackTimer?: number; // Timer for flip attack animation
 }
 
 export interface Particle {
