@@ -11,8 +11,9 @@ interface SoundConfig {
 }
 
 const SOUND_CONFIGS: Record<string, SoundConfig> = {
-  shoot: { frequency: 800, duration: 0.08, type: 'sawtooth', volume: 0.15, attack: 0.01 },
-  shootUltra: { frequency: 1200, duration: 0.12, type: 'square', volume: 0.2, attack: 0.01 },
+  // GUNSHOT SOUND - Punchy impact with quick decay
+  shoot: { frequency: 150, duration: 0.12, type: 'sawtooth', volume: 0.25, attack: 0.005, decay: 0.08 },
+  shootUltra: { frequency: 100, duration: 0.15, type: 'square', volume: 0.3, attack: 0.005, decay: 0.1 },
   explosion: { frequency: 80, duration: 0.3, type: 'sawtooth', volume: 0.25, attack: 0.01, decay: 0.2 },
   hit: { frequency: 200, duration: 0.1, type: 'square', volume: 0.15 },
   hurt: { frequency: 150, duration: 0.15, type: 'sawtooth', volume: 0.2, decay: 0.1 },
@@ -83,8 +84,16 @@ export const useSoundEffects = () => {
     gainNode.gain.linearRampToValueAtTime(0, now + config.duration);
     
     // Add frequency sweep for some sounds
-    if (soundName === 'shoot' || soundName === 'shootUltra') {
-      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.5, now + config.duration);
+    if (soundName === 'shoot') {
+      // Gunshot - sharp attack with rumble decay
+      oscillator.frequency.setValueAtTime(config.frequency * 3, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.3, now + 0.02);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.1, now + config.duration);
+    } else if (soundName === 'shootUltra') {
+      // Heavy gunshot - deeper rumble
+      oscillator.frequency.setValueAtTime(config.frequency * 4, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.5, now + 0.03);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.1, now + config.duration);
     } else if (soundName === 'explosion' || soundName === 'bossMegaAttack' || soundName === 'groundPound') {
       oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.2, now + config.duration);
     } else if (soundName === 'heal') {

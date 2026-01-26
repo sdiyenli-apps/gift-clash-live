@@ -139,15 +139,15 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
   // Ground 5 (giant): LARGEST (~260px) + 5s ARMOR
   // DRONES: LARGER for better visibility (~160-180px)
   const typeSizeMultiplier: Record<string, number> = {
-    robot: 1.2,       // Ground 1 - Cyan soldier (slightly bigger than hero ~108x114)
-    drone: 1.8,       // Flying - NEW LARGER DRONES (~162x170)
-    mech: 1.3,        // Ground 2 - Purple soldier (slightly bigger than hero ~117x124)
+    robot: 2.4,       // Ground 1 - Cyan soldier (DOUBLED - now ~216x228)
+    drone: 2.2,       // Flying - BIGGER DRONES (~198x207)
+    mech: 2.6,        // Ground 2 - Purple soldier (DOUBLED - now ~234x247)
     ninja: 1.9,       // Ground 3 - Alien beast (MEDIUM ~171x180)
     tank: 2.4,        // Ground 4 alt - Beast tank (LARGE ~216x228)
     sentinel: 2.4,    // Ground 4 - Spider tank (LARGE + ARMOR ~216x228)
     giant: 2.8,       // Ground 5 - LARGEST heavy mech + ARMOR (~252x266)
-    bomber: 1.6,      // Flying bomber - LARGER (~144x152)
-    flyer: 1.5,       // Flying insect drone - LARGER (~135x143)
+    bomber: 2.0,      // Flying bomber - BIGGER (~180x190)
+    flyer: 1.9,       // Flying insect drone - BIGGER (~171x180)
     jetrobot: 1.2,    // Flying - medium
     boss: 1.0,        // Boss - scaled separately
   };
