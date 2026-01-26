@@ -609,7 +609,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
           ))}
           
           {/* Hero - rendered in same layer */}
-          <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
+          <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} damageMultiplier={giftDamageMultiplier} />
           
           {/* Hero Attack Effect - video animation */}
           <HeroAttackEffect 
