@@ -2647,20 +2647,31 @@ export const useGameState = () => {
               return { ...e, dropTimer: newDropTimer };
             }
             
-            // ENEMY ARMOR SYSTEM - Ground enemies can activate 3-second armor at 20% HP
+            // ENEMY ARMOR SYSTEM - Different enemies have different armor thresholds!
+            // GIANT (ground-5): Armor at 60% HP for 5 seconds
+            // TANK (ground-6): Armor at 70% HP for 5 seconds  
+            // Other ground enemies: Armor at 20% HP for 3 seconds
             const isGroundEnemy = !e.isFlying && e.type !== 'drone' && e.type !== 'bomber' && e.type !== 'flyer' && e.type !== 'jetrobot' && e.type !== 'boss';
             const healthPercent = e.health / e.maxHealth;
             
-            // Check if should activate armor (20% HP, not already used, is ground enemy)
-            if (isGroundEnemy && healthPercent <= ARMOR_ACTIVATION_THRESHOLD && !e.armorUsed && !e.hasArmor) {
-              // Activate armor!
+            // Type-specific armor thresholds and durations
+            const isGiant = e.type === 'giant';
+            const isTank = e.type === 'tank';
+            const armorThreshold = isGiant ? 0.6 : isTank ? 0.7 : ARMOR_ACTIVATION_THRESHOLD;
+            const armorDuration = isGiant ? 5 : isTank ? 5 : ARMOR_DURATION;
+            
+            // Check if should activate armor
+            if (isGroundEnemy && healthPercent <= armorThreshold && !e.armorUsed && !e.hasArmor) {
+              // Activate armor with type-specific VFX!
+              const armorColor = isGiant ? '#ff6600' : isTank ? '#00ffff' : '#ff00ff';
               newState.particles = [...newState.particles, ...createParticles(
-                e.x + e.width / 2, e.y + e.height / 2, 20, 'spark', '#ff00ff'
+                e.x + e.width / 2, e.y + e.height / 2, 30, 'spark', armorColor
               )];
+              newState.screenShake = isGiant || isTank ? 0.5 : 0.2;
               return { 
                 ...e, 
                 hasArmor: true, 
-                armorTimer: ARMOR_DURATION, 
+                armorTimer: armorDuration, 
                 armorUsed: true 
               };
             }

@@ -1,15 +1,20 @@
 import { motion } from 'framer-motion';
 import { Enemy as EnemyType, ENEMY_DEATH_SOUNDS } from '@/types/game';
 import { useState, useEffect } from 'react';
-import enemyRobot from '@/assets/enemy-robot.png';
+// NEW GROUND ENEMY SPRITES (ground-1 through ground-6)
+import ground1Sprite from '@/assets/ground-1.png';
+import ground2Sprite from '@/assets/ground-2.png';
+import ground3Sprite from '@/assets/ground-3.png';
+import ground4Sprite from '@/assets/ground-4.png';
+import ground5Sprite from '@/assets/ground-5.png';
+import ground6Sprite from '@/assets/ground-6.png';
+// Flying enemy sprites
 import enemyDrone from '@/assets/enemy-drone.png';
 import enemyDroneV1 from '@/assets/enemy-drone-v1.png';
 import enemyDroneV2 from '@/assets/enemy-drone-v2.png';
 import enemyDroneV3 from '@/assets/enemy-drone-v3.png';
 import enemyDroneV4 from '@/assets/enemy-drone-v4.png';
-import enemyMech from '@/assets/enemy-mech.png';
 import enemyJetRobot from '@/assets/enemy-jet-robot.png';
-import enemySentinel from '@/assets/enemy-sentinel.png';
 // Boss sprites for each level (1-10)
 import bossLevel1 from '@/assets/boss-level-1.png';
 import bossLevel2 from '@/assets/boss-level-2.png';
@@ -47,33 +52,43 @@ const getBossSprite = (wave: number = 1) => {
   return BOSS_SPRITES_BY_LEVEL[levelIndex];
 };
 
+// NEW GROUND ENEMY SPRITE MAPPING
+const GROUND_SPRITES: Record<string, string> = {
+  robot: ground1Sprite,    // Ground 1 - Cyber soldier with cannon
+  mech: ground2Sprite,     // Ground 2 - Demon mech with wings
+  ninja: ground3Sprite,    // Ground 3 - Alien beast with tentacles
+  sentinel: ground4Sprite, // Ground 4 - Sleek soldier with rifle  
+  giant: ground5Sprite,    // Ground 5 - LARGEST - Heavy mech with smoke stacks
+  tank: ground6Sprite,     // Ground 6 - Beast tank with rider
+};
+
 const ENEMY_SPRITES: Record<string, string> = {
-  robot: enemyRobot,
+  robot: ground1Sprite,
   drone: enemyDrone, // Will be overridden by getDroneSprite
-  mech: enemyMech,
+  mech: ground2Sprite,
   boss: bossLevel1, // Default, will be overridden by getBossSprite with level-specific
-  ninja: enemyRobot,
-  tank: enemyMech,
+  ninja: ground3Sprite,
+  tank: ground6Sprite,
   flyer: enemyDrone, // Will be overridden by getDroneSprite
-  giant: enemyMech, // Giant uses mech sprite but scaled
+  giant: ground5Sprite, // Giant is the LARGEST ground unit
   bomber: enemyDrone, // Bomber uses drone sprite with different color
   jetrobot: enemyJetRobot, // Jet robot enemy
-  sentinel: enemySentinel, // New large ground mech with laser attacks
+  sentinel: ground4Sprite,
 };
 
 const ENEMY_COLORS: Record<string, string> = {
-  robot: '#ff4444',
+  robot: '#00ffff',     // Cyan glow (matches ground-1)
   drone: '#00ffff',
-  mech: '#ff8800',
+  mech: '#ff0066',      // Red/pink glow (matches ground-2 demon)
   boss: '#ff0000',
-  ninja: '#8800ff',
-  tank: '#44aa44',
+  ninja: '#ff3333',     // Red glow (matches ground-3 alien)
+  tank: '#00ffff',      // Cyan glow (matches ground-6)
   flyer: '#ff66ff',
   chicken: '#ffaa00',
-  giant: '#ff00ff', // Giant has magenta glow
-  bomber: '#ff6600', // Bomber has orange glow
-  jetrobot: '#00ff88', // Jet robot has green glow
-  sentinel: '#ff0066', // Sentinel has hot pink/red laser glow
+  giant: '#00ffff',     // Cyan glow (matches ground-5)
+  bomber: '#ff6600',
+  jetrobot: '#00ff88',
+  sentinel: '#00ffff',  // Cyan glow (matches ground-4)
 };
 
 export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave = 1 }: EnemyProps) => {
@@ -116,14 +131,15 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
   const giantScale = isGiant ? 1.4 : 1;
   
   // Type-based base sizes (before strength scaling)
+  // GIANT (ground-5) is now the LARGEST ground unit
   const typeSizeMultiplier: Record<string, number> = {
-    robot: 0.7,
+    robot: 0.75,      // Ground 1 - medium
     drone: 0.6,
-    mech: 0.85,
-    ninja: 0.6,
-    tank: 1.0,
-    sentinel: 1.1,
-    giant: 1.3,
+    mech: 0.9,        // Ground 2 - large demon mech
+    ninja: 0.7,       // Ground 3 - medium alien
+    tank: 0.95,       // Ground 6 - large beast tank
+    sentinel: 0.85,   // Ground 4 - medium-large soldier
+    giant: 1.4,       // Ground 5 - LARGEST (heavy mech)
     bomber: 0.65,
     flyer: 0.6,
     jetrobot: 0.75,
@@ -359,33 +375,67 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
       )}
       
       {/* ENEMY ARMOR INDICATOR - Shows when ground enemy has activated armor */}
+      {/* Type-specific colors: Giant (orange), Tank (cyan), Others (magenta) */}
       {enemy.hasArmor && enemy.armorTimer && enemy.armorTimer > 0 && !enemy.isDying && (
         <>
-          {/* Armor shield effect */}
+          {/* Armor shield effect - color based on enemy type */}
           <motion.div
             className="absolute -inset-4 rounded-full pointer-events-none"
             style={{
-              background: 'radial-gradient(circle, rgba(255,0,255,0.4), rgba(255,0,255,0.2), transparent)',
-              border: '3px solid #ff00ff',
-              boxShadow: '0 0 20px #ff00ff, inset 0 0 15px rgba(255,0,255,0.5)',
+              background: enemy.type === 'giant' 
+                ? 'radial-gradient(circle, rgba(255,100,0,0.4), rgba(255,100,0,0.2), transparent)'
+                : enemy.type === 'tank'
+                ? 'radial-gradient(circle, rgba(0,255,255,0.4), rgba(0,255,255,0.2), transparent)'
+                : 'radial-gradient(circle, rgba(255,0,255,0.4), rgba(255,0,255,0.2), transparent)',
+              border: `3px solid ${enemy.type === 'giant' ? '#ff6600' : enemy.type === 'tank' ? '#00ffff' : '#ff00ff'}`,
+              boxShadow: enemy.type === 'giant'
+                ? '0 0 25px #ff6600, inset 0 0 20px rgba(255,100,0,0.5)'
+                : enemy.type === 'tank'
+                ? '0 0 25px #00ffff, inset 0 0 20px rgba(0,255,255,0.5)'
+                : '0 0 20px #ff00ff, inset 0 0 15px rgba(255,0,255,0.5)',
             }}
             animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
             transition={{ duration: 0.3, repeat: Infinity }}
           />
-          {/* ARMOR text */}
+          {/* ARMOR text with type-specific styling */}
           <motion.div
             className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap font-black text-xs px-2 py-0.5 rounded"
             style={{ 
-              background: 'linear-gradient(135deg, #ff00ff, #8800ff)',
+              background: enemy.type === 'giant'
+                ? 'linear-gradient(135deg, #ff6600, #ff8800)'
+                : enemy.type === 'tank'
+                ? 'linear-gradient(135deg, #00cccc, #00ffff)'
+                : 'linear-gradient(135deg, #ff00ff, #8800ff)',
               color: '#fff',
               textShadow: '0 0 4px #000',
-              boxShadow: '0 0 10px #ff00ff',
+              boxShadow: `0 0 12px ${enemy.type === 'giant' ? '#ff6600' : enemy.type === 'tank' ? '#00ffff' : '#ff00ff'}`,
             }}
-            animate={{ y: [0, -2, 0] }}
+            animate={{ y: [0, -2, 0], scale: [1, 1.05, 1] }}
             transition={{ duration: 0.4, repeat: Infinity }}
           >
-            🛡️ ARMOR {enemy.armorTimer.toFixed(1)}s
+            🛡️ {enemy.type === 'giant' ? 'HEAVY ARMOR' : enemy.type === 'tank' ? 'TANK ARMOR' : 'ARMOR'} {enemy.armorTimer.toFixed(1)}s
           </motion.div>
+          {/* Additional armor glow rings for giant and tank */}
+          {(enemy.type === 'giant' || enemy.type === 'tank') && (
+            <>
+              <motion.div
+                className="absolute -inset-8 rounded-full pointer-events-none"
+                style={{
+                  border: `2px solid ${enemy.type === 'giant' ? 'rgba(255,100,0,0.5)' : 'rgba(0,255,255,0.5)'}`,
+                }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+              />
+              <motion.div
+                className="absolute -inset-12 rounded-full pointer-events-none"
+                style={{
+                  border: `1px solid ${enemy.type === 'giant' ? 'rgba(255,100,0,0.3)' : 'rgba(0,255,255,0.3)'}`,
+                }}
+                animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.6, 0.3] }}
+                transition={{ duration: 0.6, repeat: Infinity, delay: 0.1 }}
+              />
+            </>
+          )}
         </>
       )}
       
@@ -647,20 +697,63 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
               )}
               
               {/* Regular muzzle flash for other enemies */}
+              {/* ENHANCED MUZZLE FLASH FX - Type-specific effects */}
               {enemy.type !== 'sentinel' && (
-                <div 
-                  className="w-6 h-6 rounded-full"
-                  style={{
-                    background: enemy.type === 'drone' 
-                      ? 'radial-gradient(circle, #fff, #00ffff, #0088ff, transparent)'
-                      : 'radial-gradient(circle, #fff, #ff8800, #ff4400, transparent)',
-                    boxShadow: enemy.type === 'drone'
-                      ? '0 0 20px #00ffff, 0 0 40px #0088ff'
-                      : '0 0 15px #ff8800, 0 0 30px #ff4400',
-                  }}
-                />
+                <>
+                  {/* Main muzzle flash */}
+                  <motion.div 
+                    className="w-8 h-8 rounded-full"
+                    style={{
+                      background: enemy.type === 'drone' 
+                        ? 'radial-gradient(circle, #fff, #00ffff, #0088ff, transparent)'
+                        : enemy.type === 'giant'
+                        ? 'radial-gradient(circle, #fff, #ff6600, #ff4400, transparent)'
+                        : enemy.type === 'tank'
+                        ? 'radial-gradient(circle, #fff, #00ffff, #00aaff, transparent)'
+                        : enemy.type === 'mech'
+                        ? 'radial-gradient(circle, #fff, #ff0066, #ff0044, transparent)'
+                        : 'radial-gradient(circle, #fff, #ff8800, #ff4400, transparent)',
+                      boxShadow: enemy.type === 'drone'
+                        ? '0 0 25px #00ffff, 0 0 50px #0088ff'
+                        : enemy.type === 'giant'
+                        ? '0 0 35px #ff6600, 0 0 70px #ff4400'
+                        : enemy.type === 'tank'
+                        ? '0 0 30px #00ffff, 0 0 60px #00aaff'
+                        : enemy.type === 'mech'
+                        ? '0 0 30px #ff0066, 0 0 60px #ff0044'
+                        : '0 0 20px #ff8800, 0 0 40px #ff4400',
+                    }}
+                    animate={{ scale: [1, 1.5, 1], opacity: [1, 0.8, 1] }}
+                    transition={{ duration: 0.08, repeat: Infinity }}
+                  />
+                  {/* Energy discharge sparks */}
+                  {(enemy.type === 'giant' || enemy.type === 'tank' || enemy.type === 'mech') && (
+                    <>
+                      {[0, 1, 2, 3].map(i => (
+                        <motion.div
+                          key={`spark-${i}`}
+                          className="absolute rounded-full"
+                          style={{
+                            width: 4 + (enemy.type === 'giant' ? 2 : 0),
+                            height: 4 + (enemy.type === 'giant' ? 2 : 0),
+                            background: enemy.type === 'giant' ? '#ffff00' : enemy.type === 'tank' ? '#00ffff' : '#ff0066',
+                            boxShadow: `0 0 8px ${enemy.type === 'giant' ? '#ffff00' : enemy.type === 'tank' ? '#00ffff' : '#ff0066'}`,
+                          }}
+                          initial={{ x: 0, y: 0 }}
+                          animate={{
+                            x: [0, -30 - i * 10, -50 - i * 15],
+                            y: [0, (i - 1.5) * 12, (i - 1.5) * 20],
+                            opacity: [1, 0.7, 0],
+                            scale: [1, 0.7, 0.2],
+                          }}
+                          transition={{ duration: 0.25, repeat: Infinity, delay: i * 0.04 }}
+                        />
+                      ))}
+                    </>
+                  )}
+                </>
               )}
-              {/* Flash rings */}
+              {/* Flash rings - enhanced for all types */}
               {[0, 1].map(i => (
                 <motion.div
                   key={`flash-${i}`}
@@ -668,30 +761,41 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
                   style={{
                     left: enemy.type === 'sentinel' ? 100 - i * 5 : -5 - i * 5,
                     top: -5 - i * 5,
-                    width: 16 + i * 10,
-                    height: 16 + i * 10,
-                    borderColor: enemy.type === 'sentinel' ? '#ff0066' : enemy.type === 'drone' ? '#00ffff' : '#ff8800',
+                    width: 16 + i * 10 + (enemy.type === 'giant' ? 8 : 0),
+                    height: 16 + i * 10 + (enemy.type === 'giant' ? 8 : 0),
+                    borderColor: enemy.type === 'sentinel' ? '#ff0066' 
+                      : enemy.type === 'drone' ? '#00ffff' 
+                      : enemy.type === 'giant' ? '#ff6600'
+                      : enemy.type === 'tank' ? '#00ffff'
+                      : enemy.type === 'mech' ? '#ff0066'
+                      : '#ff8800',
                   }}
-                  animate={{ scale: [1, 2], opacity: [1, 0] }}
-                  transition={{ duration: 0.2, repeat: Infinity, delay: i * 0.05 }}
+                  animate={{ scale: [1, 2.5], opacity: [1, 0] }}
+                  transition={{ duration: 0.2, repeat: Infinity, delay: i * 0.04 }}
                 />
               ))}
-              {/* Rocket smoke trail */}
+              {/* Smoke/energy trail */}
               {enemy.type !== 'drone' && enemy.type !== 'sentinel' && (
                 <motion.div
                   className="absolute"
                   style={{
-                    left: -20,
+                    left: -25,
                     top: '50%',
                     transform: 'translateY(-50%)',
-                    width: 30,
-                    height: 12,
-                    background: 'linear-gradient(90deg, transparent, rgba(100,100,100,0.6), rgba(200,200,200,0.4))',
-                    filter: 'blur(3px)',
+                    width: enemy.type === 'giant' ? 50 : 35,
+                    height: enemy.type === 'giant' ? 20 : 14,
+                    background: enemy.type === 'giant' 
+                      ? 'linear-gradient(90deg, transparent, rgba(255,100,0,0.7), rgba(255,200,0,0.5))'
+                      : enemy.type === 'tank'
+                      ? 'linear-gradient(90deg, transparent, rgba(0,200,255,0.6), rgba(0,255,255,0.4))'
+                      : enemy.type === 'mech'
+                      ? 'linear-gradient(90deg, transparent, rgba(255,0,100,0.6), rgba(255,100,100,0.4))'
+                      : 'linear-gradient(90deg, transparent, rgba(100,100,100,0.6), rgba(200,200,200,0.4))',
+                    filter: 'blur(4px)',
                     borderRadius: '50%',
                   }}
-                  animate={{ opacity: [0.8, 0.3], x: [-5, -25] }}
-                  transition={{ duration: 0.3 }}
+                  animate={{ opacity: [0.9, 0.4], x: [-5, -35] }}
+                  transition={{ duration: 0.25 }}
                 />
               )}
             </motion.div>
