@@ -11,9 +11,9 @@ interface SoundConfig {
 }
 
 const SOUND_CONFIGS: Record<string, SoundConfig> = {
-  // === 4K QUALITY GUNSHOT SOUNDS - Deep bass + crisp crack layered ===
-  shoot: { frequency: 180, duration: 0.18, type: 'sawtooth', volume: 0.35, attack: 0.003, decay: 0.12 },
-  shootUltra: { frequency: 120, duration: 0.22, type: 'square', volume: 0.4, attack: 0.003, decay: 0.15 },
+  // === HERO LASER GUN SOUNDS - High-pitched energy weapon ===
+  shoot: { frequency: 1200, duration: 0.15, type: 'sine', volume: 0.3, attack: 0.005, decay: 0.1 },
+  shootUltra: { frequency: 800, duration: 0.2, type: 'sawtooth', volume: 0.35, attack: 0.005, decay: 0.15 },
   // === 4K EXPLOSION - Multi-layered rumble with punch ===
   explosion: { frequency: 60, duration: 0.45, type: 'sawtooth', volume: 0.35, attack: 0.005, decay: 0.35 },
   // === 4K IMPACT SOUNDS - Crisp and punchy ===
@@ -30,6 +30,7 @@ const SOUND_CONFIGS: Record<string, SoundConfig> = {
   droneFireShoot: { frequency: 250, duration: 0.25, type: 'sawtooth', volume: 0.3, attack: 0.005, decay: 0.18 },
   // === 4K BOSS SOUNDS - Massive and cinematic ===
   bossTaunt: { frequency: 50, duration: 0.7, type: 'square', volume: 0.35, attack: 0.08, decay: 0.5 },
+  bossLaugh: { frequency: 120, duration: 1.5, type: 'sawtooth', volume: 0.4, attack: 0.05, decay: 1.2 },
   bossFireball: { frequency: 100, duration: 0.4, type: 'sawtooth', volume: 0.38, attack: 0.01, decay: 0.3 },
   bossMegaAttack: { frequency: 35, duration: 1.2, type: 'sawtooth', volume: 0.5, attack: 0.08, decay: 1.0 },
   // === MISC SOUNDS ===
@@ -92,15 +93,24 @@ export const useSoundEffects = () => {
     
     // Add frequency sweep for some sounds
     if (soundName === 'shoot') {
-      // Gunshot - sharp attack with rumble decay
-      oscillator.frequency.setValueAtTime(config.frequency * 3, now);
-      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.3, now + 0.02);
-      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.1, now + config.duration);
+      // LASER GUN - High-pitched zap with descending sweep
+      oscillator.frequency.setValueAtTime(config.frequency * 1.5, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.6, now + config.duration * 0.3);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.3, now + config.duration);
     } else if (soundName === 'shootUltra') {
-      // Heavy gunshot - deeper rumble
-      oscillator.frequency.setValueAtTime(config.frequency * 4, now);
-      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.5, now + 0.03);
-      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.1, now + config.duration);
+      // HEAVY LASER - Deeper energy pulse with wobble
+      oscillator.frequency.setValueAtTime(config.frequency * 2, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 1.2, now + 0.05);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.4, now + config.duration);
+    } else if (soundName === 'bossLaugh') {
+      // EVIL LAUGH - Oscillating low frequency with menacing wobble
+      oscillator.frequency.setValueAtTime(config.frequency, now);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 1.8, now + config.duration * 0.15);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 0.7, now + config.duration * 0.3);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 1.5, now + config.duration * 0.45);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 0.6, now + config.duration * 0.6);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 1.3, now + config.duration * 0.75);
+      oscillator.frequency.linearRampToValueAtTime(config.frequency * 0.4, now + config.duration);
     } else if (soundName === 'explosion' || soundName === 'bossMegaAttack' || soundName === 'groundPound') {
       oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.2, now + config.duration);
     } else if (soundName === 'heal') {
