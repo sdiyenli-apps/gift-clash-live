@@ -57,7 +57,7 @@ interface ExtendedGameState extends GameState {
   supportUnits?: SupportUnit[];
   supportProjectiles?: Projectile[];
   evasionPopup?: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
-  heroHasMoved?: boolean;
+  firstGiftSent?: boolean;
 }
 
 interface ArenaProps {
@@ -78,7 +78,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
     bossTransformFlash = 0,
     supportUnits = [], supportProjectiles = [],
     evasionPopup = null,
-    heroHasMoved = true,
+    firstGiftSent = false,
   } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
   
   // Calculate active enemy count for the waiting indicator
@@ -695,9 +695,9 @@ export const Arena = ({ gameState }: ArenaProps) => {
           isVisible={currentWave === 1000 && !isBossFight && distance > levelLength - 600}
         />
         
-        {/* ENEMIES WAITING INDICATOR - Shows until hero makes first move */}
+        {/* ENEMIES WAITING INDICATOR - Shows until first gift is sent */}
         <EnemiesWaitingIndicator 
-          isVisible={!heroHasMoved && activeEnemyCount > 0} 
+          isVisible={!firstGiftSent && activeEnemyCount > 0} 
           enemyCount={activeEnemyCount} 
         />
         
