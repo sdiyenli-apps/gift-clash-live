@@ -26,6 +26,7 @@ import { BossAttackVFX, BombExplosionVFX } from './BossAttackVFX';
 import { BossLaserSweepVFX } from './BossLaserSweepVFX';
 import { MultiplierVFX } from './MultiplierVFX';
 import { EnemyMuzzleFlash, AttackWarning } from './EnemyAttackVFX';
+import { DroneFireFlash, DroneFireProjectile, DroneAttackWarning } from './DroneAttackVFX';
 
 interface NeonLaser {
   id: string;
@@ -319,6 +320,25 @@ export const Arena = ({ gameState }: ArenaProps) => {
           })
           .map(laser => (
             <EnemyLaserSprite key={laser.id} projectile={laser} cameraX={cameraX} />
+          ))}
+        
+        {/* Drone Fire Projectile trails - enhanced visuals for drone attacks */}
+        {enemyLasers
+          .filter(laser => {
+            const screenX = laser.x - cameraX;
+            // Check if this is a drone projectile (damage 8 typically from drones)
+            return screenX > -50 && screenX < 750 && laser.damage === 8;
+          })
+          .map(laser => (
+            <DroneFireProjectile
+              key={`drone-proj-${laser.id}`}
+              x={laser.x}
+              y={laser.y}
+              cameraX={cameraX}
+              velocityX={laser.velocityX}
+              velocityY={laser.velocityY}
+              variant={Math.floor(Math.random() * 2)}
+            />
           ))}
         
         {/* Boss fireballs - filter off-screen */}
@@ -668,6 +688,25 @@ export const Arena = ({ gameState }: ArenaProps) => {
               y={(enemy.flyHeight || 50) + 140}
               cameraX={cameraX}
               attackType="bomb"
+            />
+          ))}
+          
+          {/* DRONE ATTACK VFX - Fire/plasma muzzle flashes when drones attack */}
+          {enemies.filter(e => !e.isDying && (e.type === 'drone' || e.type === 'flyer') && e.attackCooldown > 0 && e.attackCooldown <= 0.25).map(enemy => (
+            <DroneFireFlash
+              key={`drone-flash-${enemy.id}`}
+              drone={enemy}
+              cameraX={cameraX}
+              isAttacking={true}
+            />
+          ))}
+          
+          {/* Drone Attack Warnings before firing */}
+          {enemies.filter(e => !e.isDying && (e.type === 'drone' || e.type === 'flyer') && e.attackCooldown > 0.6 && e.attackCooldown <= 0.9).map(enemy => (
+            <DroneAttackWarning
+              key={`drone-warn-${enemy.id}`}
+              drone={enemy}
+              cameraX={cameraX}
             />
           ))}
           

@@ -11,37 +11,44 @@ interface SoundConfig {
 }
 
 const SOUND_CONFIGS: Record<string, SoundConfig> = {
-  // GUNSHOT SOUND - Punchy impact with quick decay
-  shoot: { frequency: 150, duration: 0.12, type: 'sawtooth', volume: 0.25, attack: 0.005, decay: 0.08 },
-  shootUltra: { frequency: 100, duration: 0.15, type: 'square', volume: 0.3, attack: 0.005, decay: 0.1 },
-  explosion: { frequency: 80, duration: 0.3, type: 'sawtooth', volume: 0.25, attack: 0.01, decay: 0.2 },
-  hit: { frequency: 200, duration: 0.1, type: 'square', volume: 0.15 },
-  hurt: { frequency: 150, duration: 0.15, type: 'sawtooth', volume: 0.2, decay: 0.1 },
-  heal: { frequency: 600, duration: 0.2, type: 'sine', volume: 0.15, attack: 0.05 },
-  armor: { frequency: 400, duration: 0.15, type: 'triangle', volume: 0.2 },
-  dash: { frequency: 300, duration: 0.25, type: 'sine', volume: 0.15, attack: 0.02 },
-  enemyDeath: { frequency: 100, duration: 0.4, type: 'sawtooth', volume: 0.2, decay: 0.3 },
-  enemyShoot: { frequency: 350, duration: 0.1, type: 'square', volume: 0.12, attack: 0.01 },
-  droneShoot: { frequency: 600, duration: 0.08, type: 'sine', volume: 0.15, attack: 0.01 },
-  bossTaunt: { frequency: 60, duration: 0.5, type: 'square', volume: 0.25, attack: 0.1 },
-  bossFireball: { frequency: 120, duration: 0.3, type: 'sawtooth', volume: 0.3, attack: 0.02 },
-  bossMegaAttack: { frequency: 40, duration: 1.0, type: 'sawtooth', volume: 0.4, attack: 0.1, decay: 0.8 },
-  chicken: { frequency: 1500, duration: 0.1, type: 'sine', volume: 0.1 },
-  gift: { frequency: 900, duration: 0.15, type: 'triangle', volume: 0.15, attack: 0.02 },
-  victory: { frequency: 523.25, duration: 0.5, type: 'sine', volume: 0.2, attack: 0.05 },
-  gameOver: { frequency: 200, duration: 0.8, type: 'sawtooth', volume: 0.25, decay: 0.7 },
-  magicFlash: { frequency: 1000, duration: 0.2, type: 'sine', volume: 0.2, attack: 0.01 },
-  spawn: { frequency: 250, duration: 0.2, type: 'triangle', volume: 0.15 },
-  shieldBlock: { frequency: 500, duration: 0.1, type: 'triangle', volume: 0.2, attack: 0.01 },
-  // NEW BOSS ATTACK SOUNDS
-  laserSweep: { frequency: 2000, duration: 0.4, type: 'sawtooth', volume: 0.25, attack: 0.02, decay: 0.35 },
-  missileWarning: { frequency: 800, duration: 0.6, type: 'square', volume: 0.3, attack: 0.05, decay: 0.5 },
-  groundPound: { frequency: 50, duration: 0.5, type: 'sawtooth', volume: 0.4, attack: 0.01, decay: 0.45 },
-  screenAttack: { frequency: 30, duration: 0.8, type: 'sawtooth', volume: 0.45, attack: 0.1, decay: 0.7 },
-  // JET ROBOT SOUNDS
-  jetDrop: { frequency: 400, duration: 0.8, type: 'sawtooth', volume: 0.3, attack: 0.05, decay: 0.7 },
-  jetEngine: { frequency: 150, duration: 0.6, type: 'sawtooth', volume: 0.25, attack: 0.1, decay: 0.5 },
-  jetSwoosh: { frequency: 1500, duration: 0.4, type: 'sine', volume: 0.2, attack: 0.01, decay: 0.35 },
+  // === 4K QUALITY GUNSHOT SOUNDS - Deep bass + crisp crack layered ===
+  shoot: { frequency: 180, duration: 0.18, type: 'sawtooth', volume: 0.35, attack: 0.003, decay: 0.12 },
+  shootUltra: { frequency: 120, duration: 0.22, type: 'square', volume: 0.4, attack: 0.003, decay: 0.15 },
+  // === 4K EXPLOSION - Multi-layered rumble with punch ===
+  explosion: { frequency: 60, duration: 0.45, type: 'sawtooth', volume: 0.35, attack: 0.005, decay: 0.35 },
+  // === 4K IMPACT SOUNDS - Crisp and punchy ===
+  hit: { frequency: 250, duration: 0.12, type: 'square', volume: 0.2, attack: 0.003, decay: 0.08 },
+  hurt: { frequency: 180, duration: 0.2, type: 'sawtooth', volume: 0.25, attack: 0.005, decay: 0.15 },
+  // === SUPPORT SOUNDS ===
+  heal: { frequency: 700, duration: 0.25, type: 'sine', volume: 0.18, attack: 0.03, decay: 0.15 },
+  armor: { frequency: 500, duration: 0.2, type: 'triangle', volume: 0.22, attack: 0.01, decay: 0.12 },
+  dash: { frequency: 350, duration: 0.3, type: 'sine', volume: 0.18, attack: 0.01, decay: 0.2 },
+  // === 4K ENEMY ATTACK SOUNDS - Distinct and impactful ===
+  enemyDeath: { frequency: 80, duration: 0.5, type: 'sawtooth', volume: 0.3, attack: 0.005, decay: 0.4 },
+  enemyShoot: { frequency: 400, duration: 0.15, type: 'square', volume: 0.2, attack: 0.005, decay: 0.1 },
+  droneShoot: { frequency: 700, duration: 0.12, type: 'sine', volume: 0.22, attack: 0.005, decay: 0.08 },
+  droneFireShoot: { frequency: 250, duration: 0.25, type: 'sawtooth', volume: 0.3, attack: 0.005, decay: 0.18 },
+  // === 4K BOSS SOUNDS - Massive and cinematic ===
+  bossTaunt: { frequency: 50, duration: 0.7, type: 'square', volume: 0.35, attack: 0.08, decay: 0.5 },
+  bossFireball: { frequency: 100, duration: 0.4, type: 'sawtooth', volume: 0.38, attack: 0.01, decay: 0.3 },
+  bossMegaAttack: { frequency: 35, duration: 1.2, type: 'sawtooth', volume: 0.5, attack: 0.08, decay: 1.0 },
+  // === MISC SOUNDS ===
+  chicken: { frequency: 1800, duration: 0.12, type: 'sine', volume: 0.12, attack: 0.005 },
+  gift: { frequency: 1000, duration: 0.18, type: 'triangle', volume: 0.18, attack: 0.01 },
+  victory: { frequency: 600, duration: 0.6, type: 'sine', volume: 0.25, attack: 0.03, decay: 0.4 },
+  gameOver: { frequency: 180, duration: 1.0, type: 'sawtooth', volume: 0.3, attack: 0.05, decay: 0.9 },
+  magicFlash: { frequency: 1200, duration: 0.25, type: 'sine', volume: 0.25, attack: 0.005, decay: 0.18 },
+  spawn: { frequency: 300, duration: 0.25, type: 'triangle', volume: 0.18, attack: 0.01 },
+  shieldBlock: { frequency: 600, duration: 0.15, type: 'triangle', volume: 0.25, attack: 0.005, decay: 0.1 },
+  // === 4K BOSS ATTACK SOUNDS - Cinematic and terrifying ===
+  laserSweep: { frequency: 2500, duration: 0.5, type: 'sawtooth', volume: 0.35, attack: 0.01, decay: 0.45 },
+  missileWarning: { frequency: 900, duration: 0.8, type: 'square', volume: 0.38, attack: 0.03, decay: 0.7 },
+  groundPound: { frequency: 40, duration: 0.7, type: 'sawtooth', volume: 0.5, attack: 0.005, decay: 0.6 },
+  screenAttack: { frequency: 25, duration: 1.0, type: 'sawtooth', volume: 0.55, attack: 0.08, decay: 0.9 },
+  // === 4K JET ROBOT SOUNDS ===
+  jetDrop: { frequency: 450, duration: 1.0, type: 'sawtooth', volume: 0.35, attack: 0.03, decay: 0.9 },
+  jetEngine: { frequency: 180, duration: 0.8, type: 'sawtooth', volume: 0.3, attack: 0.08, decay: 0.7 },
+  jetSwoosh: { frequency: 1800, duration: 0.5, type: 'sine', volume: 0.25, attack: 0.005, decay: 0.45 },
 };
 
 export const useSoundEffects = () => {
@@ -126,6 +133,30 @@ export const useSoundEffects = () => {
       // High-pitched swooshing descent
       oscillator.frequency.setValueAtTime(config.frequency * 2, now);
       oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.3, now + config.duration);
+    } else if (soundName === 'droneFireShoot') {
+      // Fire crackling sound - chaotic frequency modulation
+      oscillator.frequency.setValueAtTime(config.frequency * 2, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 4, now + 0.05);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.5, now + config.duration * 0.6);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.2, now + config.duration);
+    } else if (soundName === 'droneShoot') {
+      // Energy zap - high pitch sweep
+      oscillator.frequency.setValueAtTime(config.frequency * 1.5, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.4, now + config.duration);
+    } else if (soundName === 'enemyShoot') {
+      // Enemy gunshot - punchy mid-range
+      oscillator.frequency.setValueAtTime(config.frequency * 2, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.4, now + 0.03);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.2, now + config.duration);
+    } else if (soundName === 'hit') {
+      // Impact sound - sharp crack
+      oscillator.frequency.setValueAtTime(config.frequency * 3, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.3, now + config.duration);
+    } else if (soundName === 'enemyDeath') {
+      // Death explosion - layered rumble
+      oscillator.frequency.setValueAtTime(config.frequency * 2, now);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.5, now + config.duration * 0.3);
+      oscillator.frequency.exponentialRampToValueAtTime(config.frequency * 0.1, now + config.duration);
     }
     
     oscillator.start(now);
