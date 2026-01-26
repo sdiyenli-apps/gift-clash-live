@@ -118,6 +118,11 @@ export interface Enemy {
   // Elite enemy system - drops powerups when killed
   isElite?: boolean;
   eliteDropType?: 'ally' | 'ult' | 'tank'; // What powerup this elite drops
+  // Boss jump attack state
+  isJumpAttacking?: boolean;
+  jumpAttackTimer?: number;
+  jumpAttackPhase?: 'jumping' | 'bombing' | 'landing';
+  originalBossY?: number;
 }
 
 // Bomb dropped by bomber enemies
