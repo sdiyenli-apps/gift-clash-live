@@ -28,6 +28,9 @@ const PARTICLE_LIFETIME = 3;
 const EVASION_CHANCE = 1 / 15;
 const ARMOR_ACTIVATION_THRESHOLD = 0.2;
 const ARMOR_DURATION = 3;
+// BOSS ARMOR - activates at 70% health, lasts 10 seconds
+const BOSS_ARMOR_THRESHOLD = 0.7; // 70% health
+const BOSS_ARMOR_DURATION = 10; // 10 seconds of invulnerability
 
 // Ground Y positions for entity movement (lower positions)
 const GROUND_Y_TOP = GROUND_Y + 30;     // Top movement lane
@@ -1165,16 +1168,28 @@ export const useGameState = () => {
             };
           }
           
+          // BOSS ARMOR AUTO-ACTIVATION - Triggers at 70% health, lasts 10 seconds!
+          if (bossIdx !== -1 && !bossEnemy.bossShieldUsed && bossHealthPercent <= BOSS_ARMOR_THRESHOLD) {
+            newState.enemies[bossIdx] = {
+              ...newState.enemies[bossIdx],
+              bossShieldTimer: BOSS_ARMOR_DURATION, // 10 seconds of invulnerability
+              bossShieldUsed: true, // Mark as used - can only use once
+            };
+            newState.screenShake = 0.8;
+            newState.bossTaunt = "MY ARMOR IS IMPENETRABLE! 10 SECONDS!";
+            newState.lastBossAttack = 'shield';
+            showSpeechBubble("🛡️ BOSS ARMOR ACTIVATED! 10 SECONDS! 🛡️", 'urgent');
+            newState.particles = [...newState.particles, ...createParticles(
+              bossEnemy.x + bossEnemy.width / 2, bossEnemy.y + bossEnemy.height / 2, 
+              40, 'spark', '#00ffff'
+            )];
+          }
+          
           if (newState.bossAttackCooldown <= 0 && bossIdx !== -1) {
             
             // LEVEL-SPECIFIC BOSS ATTACK STYLES!
             // Each wave boss has different attack patterns
             const availableAttacks: BossAttackType[] = [];
-            
-            // Only add shield if not yet used
-            if (!bossEnemy.bossShieldUsed) {
-              availableAttacks.push('shield');
-            }
             
             // Level-specific attack patterns - EACH BOSS HAS UNIQUE SIGNATURE!
             // Attack style defines visual FX color and pattern
@@ -1375,21 +1390,8 @@ export const useGameState = () => {
                   break;
                   
                 case 'shield':
-                  // Boss activates shield ONCE - blocks all damage for 1 second
-                  if (!bossEnemy.bossShieldUsed && (!bossEnemy.bossShieldTimer || bossEnemy.bossShieldTimer <= 0)) {
-                    newState.enemies[bossIdx] = {
-                      ...newState.enemies[bossIdx],
-                      bossShieldTimer: 1, // 1 second of invulnerability
-                      bossShieldUsed: true, // Mark as used - can only use once
-                    };
-                    newState.screenShake = 0.4;
-                    newState.bossTaunt = "MY SHIELD IS IMPENETRABLE!";
-                    showSpeechBubble("🛡️ BOSS SHIELD! 1 SEC! 🛡️", 'urgent');
-                    newState.particles = [...newState.particles, ...createParticles(
-                      bossEnemy.x + bossEnemy.width / 2, bossEnemy.y + bossEnemy.height / 2, 
-                      25, 'spark', '#00ffff'
-                    )];
-                  }
+                  // Shield is now auto-activated at 70% health - this case is legacy/unused
+                  // Do nothing - shield activation moved to health-based trigger above
                   break;
                   
                 case 'jump_bomb':
