@@ -83,10 +83,10 @@ interface ArenaProps {
 
 export const Arena = ({ gameState }: ArenaProps) => {
   const { 
-    player, enemies, projectiles, particles, obstacles,
+    player, enemies, projectiles, particles,
     cameraX, distance, levelLength, isUltraMode, speechBubble,
     combo, comboTimer, isFrozen, isBossFight, screenShake,
-    flyingRobots, chickens, neonLights, explosions, killStreak = 0,
+    neonLights, explosions, killStreak = 0,
     fireballs = [], redFlash = 0, enemyLasers = [],
     magicFlash = 0, bossTaunt = null, currentWave,
     damageFlash = 0, shieldBlockFlash = 0, neonLasers = [],
@@ -1004,8 +1004,6 @@ export const Arena = ({ gameState }: ArenaProps) => {
         <OptimizedParticles particles={particles} cameraX={cameraX} isBossFight={isBossFight} />
         
         <ChaosElements 
-          flyingRobots={flyingRobots} 
-          chickens={chickens} 
           neonLights={neonLights} 
           explosions={explosions} 
           cameraX={cameraX} 

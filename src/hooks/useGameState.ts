@@ -837,6 +837,52 @@ export const useGameState = () => {
         giftDamageMultiplier: newDamageMultiplier,
       };
       
+      // FLIP ATTACK - Every 15 gifts triggers epic flip attack!
+      if (newGiftCombo > 0 && newGiftCombo % 15 === 0 && !prev.player.isFlipAttacking) {
+        const heroScreenX = HERO_FIXED_SCREEN_X;
+        const heroWorldX = prev.cameraX + heroScreenX + PLAYER_WIDTH / 2;
+        
+        // Create 8 projectiles in spread pattern
+        const flipProjectiles: Projectile[] = [];
+        const baseY = GROUND_Y - 80; // Jump height
+        const spreadAngles = [-30, -20, -10, 0, 5, 10, 15, 25]; // 8 spread angles
+        
+        spreadAngles.forEach((angleDeg, idx) => {
+          const angleRad = (angleDeg * Math.PI) / 180;
+          const speed = 900;
+          flipProjectiles.push({
+            id: `flip-proj-${Date.now()}-${idx}`,
+            x: heroWorldX + 30,
+            y: baseY,
+            velocityX: Math.cos(angleRad) * speed,
+            velocityY: Math.sin(angleRad) * speed * 0.3,
+            damage: 80 * newDamageMultiplier,
+            type: 'ultra',
+          });
+        });
+        
+        newState.projectiles = [...prev.projectiles, ...flipProjectiles];
+        newState.player = {
+          ...prev.player,
+          isFlipAttacking: true,
+          flipAttackTimer: 1.2, // 1.2 second animation
+          animationState: 'flip_attack',
+          isShooting: true,
+        };
+        
+        // Massive particle burst
+        newState.particles = [
+          ...prev.particles,
+          ...createParticles(heroWorldX, baseY, 30, 'muzzle', '#ff00ff'),
+          ...createParticles(heroWorldX, baseY, 20, 'spark', '#00ffff'),
+          ...createParticles(heroWorldX, baseY, 15, 'magic', '#ffff00'),
+        ];
+        
+        newState.screenShake = 0.6;
+        newState.score += 500;
+        showSpeechBubble("🌀 FLIP ATTACK! x8 SHOTS! 🌀", 'excited');
+      }
+      
       switch (action) {
         case 'move_forward':
           // Hero moves forward, camera follows to create movement feeling
@@ -1876,6 +1922,21 @@ export const useGameState = () => {
             newState.player.isShooting = false;
             newState.player.animationState = 'idle';
             showSpeechBubble("NUKE COMPLETE! 💥", 'excited');
+          }
+        }
+        
+        // FLIP ATTACK TIMER - count down and reset when done
+        if (prev.player.isFlipAttacking && prev.player.flipAttackTimer) {
+          newState.player = {
+            ...newState.player,
+            flipAttackTimer: prev.player.flipAttackTimer - delta,
+          };
+          
+          if (newState.player.flipAttackTimer <= 0) {
+            newState.player.isFlipAttacking = false;
+            newState.player.flipAttackTimer = 0;
+            newState.player.isShooting = false;
+            newState.player.animationState = 'idle';
           }
         }
         

@@ -47,6 +47,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
   const isSlashing = player.isAutoSlashing || player.animationState === 'sword_slash';
   const isWalking = player.animationState === 'run' || player.animationState === 'dash';
   const isShooting = player.isShooting;
+  const isFlipAttacking = player.isFlipAttacking || player.animationState === 'flip_attack';
   
   // Check if hero is in spaceship mode (during magic dash/ULT)
   const isSpaceshipMode = player.isMagicDashing;
@@ -55,8 +56,13 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
   const heroWidth = isSpaceshipMode ? 110 : 90;
   const heroHeight = isSpaceshipMode ? 70 : 95;
   
-  // Hero positioned lower on ground (reduced to 85), flies high in spaceship mode
-  const flyingHeight = isSpaceshipMode ? 200 : 85;
+  // Hero positioned lower on ground (reduced to 85), flies high in spaceship mode, jumps during flip
+  const flipProgress = player.flipAttackTimer ? (1.2 - player.flipAttackTimer) / 1.2 : 0;
+  const flipJumpHeight = isFlipAttacking ? Math.sin(flipProgress * Math.PI) * 120 : 0;
+  const flyingHeight = isSpaceshipMode ? 200 : (85 + flipJumpHeight);
+  
+  // Flip rotation during flip attack
+  const flipRotation = isFlipAttacking ? flipProgress * 360 : 0;
 
   return (
     <motion.div
@@ -69,13 +75,13 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
       }}
       animate={{
         bottom: flyingHeight, // Animate flying position
-        scale: isEmpowered ? [1, 1.04, 1] : isSlashing ? [1, 1.1, 1] : 1,
-        rotate: isSlashing ? [0, 8, 0] : player.isShooting ? [-1, 1, 0] : 0,
+        scale: isFlipAttacking ? 1.3 : isEmpowered ? [1, 1.04, 1] : isSlashing ? [1, 1.1, 1] : 1,
+        rotate: isFlipAttacking ? flipRotation : isSlashing ? [0, 8, 0] : player.isShooting ? [-1, 1, 0] : 0,
       }}
       transition={{
-        bottom: { duration: 0.5, ease: 'easeOut' }, // Smooth fly up/down
+        bottom: { duration: isFlipAttacking ? 0.05 : 0.5, ease: 'easeOut' }, // Fast during flip
         duration: isSlashing ? 0.15 : isUltraMode ? 0.12 : 0.08,
-        repeat: isEmpowered ? Infinity : 0,
+        repeat: isEmpowered && !isFlipAttacking ? Infinity : 0,
       }}
     >
       {/* SWORD SLASH EFFECT */}
