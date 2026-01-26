@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useGameState } from '@/hooks/useGameState';
 import { useTikTokSimulator } from '@/hooks/useTikTokSimulator';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
+import { useGameMusic } from '@/hooks/useGameMusic';
 import { useLayoutSettings } from '@/hooks/useLayoutSettings';
 import { Arena } from '@/components/game/Arena';
 import { GiftPanel } from '@/components/game/GiftPanel';
@@ -39,6 +40,7 @@ const Index = () => {
   
   const { gameState, startGame, startNextWave, handleGift, triggerSummon } = useGameState();
   const { playSound } = useSoundEffects();
+  const { startMusic, stopMusic } = useGameMusic();
   
   const { triggerGift } = useTikTokSimulator(
     autoSimulate && gameState.phase === 'playing',
@@ -142,6 +144,17 @@ const Index = () => {
   }, []);
 
   // ALL useEffects together
+  
+  // Auto-start game music when game begins
+  useEffect(() => {
+    if (gameState.phase === 'playing') {
+      startMusic();
+    } else if (gameState.phase === 'gameover') {
+      stopMusic();
+    }
+  }, [gameState.phase, startMusic, stopMusic]);
+  
+  // Legacy audio toggle (for admin panel)
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio(gameTheme);
