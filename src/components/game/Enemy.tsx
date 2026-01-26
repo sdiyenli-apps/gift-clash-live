@@ -8,12 +8,9 @@ import ground3Sprite from '@/assets/ground-3.png';
 import ground4Sprite from '@/assets/ground-4.png';
 import ground5Sprite from '@/assets/ground-5.png';
 import ground6Sprite from '@/assets/ground-6.png';
-// Flying enemy sprites
-import enemyDrone from '@/assets/enemy-drone.png';
-import enemyDroneV1 from '@/assets/enemy-drone-v1.png';
-import enemyDroneV2 from '@/assets/enemy-drone-v2.png';
-import enemyDroneV3 from '@/assets/enemy-drone-v3.png';
-import enemyDroneV4 from '@/assets/enemy-drone-v4.png';
+// Flying enemy sprites - NEW LARGER DRONES
+import enemyDroneNew1 from '@/assets/enemy-drone-new1.png';
+import enemyDroneNew2 from '@/assets/enemy-drone-new2.png';
 import enemyJetRobot from '@/assets/enemy-jet-robot.png';
 // Boss sprites for each level (1-10)
 import bossLevel1 from '@/assets/boss-level-1.png';
@@ -33,10 +30,11 @@ const BOSS_SPRITES_BY_LEVEL = [
   bossLevel6, bossLevel7, bossLevel8, bossLevel9, bossLevel10,
 ];
 
-// Get random drone variant sprite
+// Get drone sprite - NEW LARGER DRONE VARIANTS
+// variant 0 = Heavy drone with missiles (drone_1), variant 1+ = Insect drone (drone_2)
 const getDroneSprite = (variant?: number) => {
-  const variants = [enemyDrone, enemyDroneV1, enemyDroneV2, enemyDroneV3, enemyDroneV4];
-  return variants[variant ?? 0] || enemyDrone;
+  // Alternate between the two new drone types
+  return (variant ?? 0) % 2 === 0 ? enemyDroneNew1 : enemyDroneNew2;
 };
 
 interface EnemyProps {
@@ -68,14 +66,14 @@ const GROUND_SPRITES: Record<string, string> = {
 
 const ENEMY_SPRITES: Record<string, string> = {
   robot: ground1Sprite,
-  drone: enemyDrone, // Will be overridden by getDroneSprite
+  drone: enemyDroneNew1, // Will be overridden by getDroneSprite
   mech: ground2Sprite,
   boss: bossLevel1, // Default, will be overridden by getBossSprite with level-specific
   ninja: ground3Sprite,
   tank: ground6Sprite,
-  flyer: enemyDrone, // Will be overridden by getDroneSprite
+  flyer: enemyDroneNew2, // Will be overridden by getDroneSprite  
   giant: ground5Sprite, // Giant is the LARGEST ground unit
-  bomber: enemyDrone, // Bomber uses drone sprite with different color
+  bomber: enemyDroneNew1, // Bomber uses heavy drone sprite
   jetrobot: enemyJetRobot, // Jet robot enemy
   sentinel: ground4Sprite,
 };
@@ -134,22 +132,23 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
   const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.2) : 1;
   const giantScale = isGiant ? 1.4 : 1;
   
-  // Type-based base sizes - SUMMONS are ~200px, scale ground enemies similarly
-  // Ground 1 & 2 (robot, mech): SMALLER (~140px)
+  // Type-based base sizes - HERO is ~90x95px
+  // Ground 1 & 2 (robot, mech): SLIGHTLY BIGGER than hero (~110-120px)
   // Ground 3 (ninja): MEDIUM (~180px)  
   // Ground 4 (sentinel/tank): LARGE (~220px) + 5s ARMOR
   // Ground 5 (giant): LARGEST (~260px) + 5s ARMOR
+  // DRONES: LARGER for better visibility (~160-180px)
   const typeSizeMultiplier: Record<string, number> = {
-    robot: 1.4,       // Ground 1 - Cyan soldier (SMALLER ~126x133)
-    drone: 0.55,      // Flying - smaller
-    mech: 1.5,        // Ground 2 - Purple soldier (SMALLER ~135x143)
+    robot: 1.2,       // Ground 1 - Cyan soldier (slightly bigger than hero ~108x114)
+    drone: 1.8,       // Flying - NEW LARGER DRONES (~162x170)
+    mech: 1.3,        // Ground 2 - Purple soldier (slightly bigger than hero ~117x124)
     ninja: 1.9,       // Ground 3 - Alien beast (MEDIUM ~171x180)
     tank: 2.4,        // Ground 4 alt - Beast tank (LARGE ~216x228)
     sentinel: 2.4,    // Ground 4 - Spider tank (LARGE + ARMOR ~216x228)
     giant: 2.8,       // Ground 5 - LARGEST heavy mech + ARMOR (~252x266)
-    bomber: 0.6,      // Flying - smaller
-    flyer: 0.55,      // Flying - smaller
-    jetrobot: 0.7,    // Flying - medium
+    bomber: 1.6,      // Flying bomber - LARGER (~144x152)
+    flyer: 1.5,       // Flying insect drone - LARGER (~135x143)
+    jetrobot: 1.2,    // Flying - medium
     boss: 1.0,        // Boss - scaled separately
   };
   
@@ -438,6 +437,223 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
                 }}
                 animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.6, 0.3] }}
                 transition={{ duration: 0.6, repeat: Infinity, delay: 0.1 }}
+              />
+            </>
+          )}
+        </>
+      )}
+      
+      {/* ============ FLYING ENEMY (DRONE) SPECIAL VFX ============ */}
+      {/* Each drone type has unique weapon visuals and movement trails */}
+      {!enemy.isDying && !isSpawning && isFlying && (
+        <>
+          {/* DRONE - Heavy combat drone with missiles (drone_1) */}
+          {enemy.type === 'drone' && (enemy.droneVariant ?? 0) % 2 === 0 && (
+            <>
+              {/* Blue engine glow */}
+              <motion.div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  top: '30%',
+                  right: '10%',
+                  width: 16,
+                  height: 16,
+                  background: 'radial-gradient(circle, #00aaff, #0066ff88, transparent)',
+                  boxShadow: '0 0 20px #00aaff, 0 0 40px #0066ff',
+                }}
+                animate={{ scale: [1, 1.4, 1], opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 0.3, repeat: Infinity }}
+              />
+              {/* Second engine */}
+              <motion.div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  top: '40%',
+                  right: '15%',
+                  width: 14,
+                  height: 14,
+                  background: 'radial-gradient(circle, #00aaff, #0066ff88, transparent)',
+                  boxShadow: '0 0 15px #00aaff',
+                }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0.9, 0.6] }}
+                transition={{ duration: 0.25, repeat: Infinity, delay: 0.1 }}
+              />
+              {/* Missile pods glow (red) */}
+              {[...Array(3)].map((_, i) => (
+                <motion.div
+                  key={`missile-${i}`}
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    bottom: '25%',
+                    left: `${30 + i * 12}%`,
+                    width: 6,
+                    height: 6,
+                    background: '#ff3333',
+                    boxShadow: '0 0 8px #ff0000',
+                  }}
+                  animate={{ opacity: [0.5, 1, 0.5] }}
+                  transition={{ duration: 0.4, repeat: Infinity, delay: i * 0.1 }}
+                />
+              ))}
+              {/* Forward gun barrels */}
+              <motion.div
+                className="absolute pointer-events-none"
+                style={{
+                  left: '-10%',
+                  top: '50%',
+                  width: 25,
+                  height: 3,
+                  background: 'linear-gradient(90deg, #ff6666, #333)',
+                }}
+                animate={{ opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 0.2, repeat: Infinity }}
+              />
+            </>
+          )}
+          
+          {/* DRONE - Insect drone with claws (drone_2) */}
+          {enemy.type === 'drone' && (enemy.droneVariant ?? 0) % 2 === 1 && (
+            <>
+              {/* Red eye glow */}
+              <motion.div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  top: '35%',
+                  left: '25%',
+                  width: 12,
+                  height: 12,
+                  background: 'radial-gradient(circle, #ff0000, #ff000088, transparent)',
+                  boxShadow: '0 0 15px #ff0000, 0 0 30px #ff0000',
+                }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+              />
+              {/* Wing glow trails */}
+              {[...Array(4)].map((_, i) => (
+                <motion.div
+                  key={`wing-${i}`}
+                  className="absolute pointer-events-none"
+                  style={{
+                    top: `${20 + i * 5}%`,
+                    right: `${20 + i * 8}%`,
+                    width: 20 - i * 3,
+                    height: 2,
+                    background: 'linear-gradient(90deg, transparent, rgba(150,200,255,0.6))',
+                    transform: `rotate(${-30 + i * 15}deg)`,
+                  }}
+                  animate={{ opacity: [0.3, 0.7, 0.3] }}
+                  transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.05 }}
+                />
+              ))}
+              {/* Claw tips glow */}
+              {[...Array(3)].map((_, i) => (
+                <motion.div
+                  key={`claw-${i}`}
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    bottom: '10%',
+                    left: `${35 + i * 8}%`,
+                    width: 5,
+                    height: 5,
+                    background: '#aa3333',
+                    boxShadow: '0 0 6px #ff0000',
+                  }}
+                  animate={{ scale: [1, 1.5, 1] }}
+                  transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15 }}
+                />
+              ))}
+              {/* Forward gun */}
+              <motion.div
+                className="absolute pointer-events-none"
+                style={{
+                  left: '-5%',
+                  top: '45%',
+                  width: 18,
+                  height: 2,
+                  background: 'linear-gradient(90deg, #666, #333)',
+                  boxShadow: '0 0 4px #666',
+                }}
+              />
+            </>
+          )}
+          
+          {/* BOMBER - Heavy bomber with targeting */}
+          {enemy.type === 'bomber' && (
+            <>
+              {/* Bomb bay glow */}
+              <motion.div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  bottom: '20%',
+                  left: '45%',
+                  width: 20,
+                  height: 10,
+                  background: 'radial-gradient(ellipse, #ff6600, #ff330066, transparent)',
+                  boxShadow: '0 0 15px #ff6600',
+                }}
+                animate={{ opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+              />
+              {/* Target laser */}
+              <motion.div
+                className="absolute pointer-events-none"
+                style={{
+                  bottom: -50,
+                  left: '48%',
+                  width: 3,
+                  height: 60,
+                  background: 'linear-gradient(180deg, #ff0000, #ff000033, transparent)',
+                  boxShadow: '0 0 8px #ff0000',
+                }}
+                animate={{ opacity: [0.3, 0.7, 0.3], height: [50, 70, 50] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+              {/* Engine trails */}
+              {[...Array(2)].map((_, i) => (
+                <motion.div
+                  key={`trail-${i}`}
+                  className="absolute pointer-events-none"
+                  style={{
+                    top: '40%',
+                    right: -30,
+                    width: 40,
+                    height: 8,
+                    background: 'linear-gradient(90deg, #ff660066, transparent)',
+                    filter: 'blur(3px)',
+                    transform: `translateY(${(i - 0.5) * 15}px)`,
+                  }}
+                  animate={{ width: [30, 50, 30], opacity: [0.4, 0.7, 0.4] }}
+                  transition={{ duration: 0.3, repeat: Infinity, delay: i * 0.1 }}
+                />
+              ))}
+            </>
+          )}
+          
+          {/* FLYER - Fast scout drone */}
+          {enemy.type === 'flyer' && (
+            <>
+              {/* Speed trail */}
+              <motion.div
+                className="absolute pointer-events-none"
+                style={{
+                  right: -40,
+                  top: '40%',
+                  width: 50,
+                  height: 4,
+                  background: 'linear-gradient(90deg, #ff66ff44, transparent)',
+                  filter: 'blur(2px)',
+                }}
+                animate={{ width: [40, 60, 40] }}
+                transition={{ duration: 0.2, repeat: Infinity }}
+              />
+              {/* Pulse effect */}
+              <motion.div
+                className="absolute -inset-2 rounded-full pointer-events-none"
+                style={{
+                  border: '1px solid #ff66ff44',
+                }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.2, 0.5] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
               />
             </>
           )}

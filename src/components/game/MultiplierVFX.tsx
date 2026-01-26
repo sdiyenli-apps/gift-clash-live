@@ -251,6 +251,181 @@ const VignettePulse = memo(({ color, intensity }: { color: string; intensity: nu
 
 VignettePulse.displayName = 'VignettePulse';
 
+// SCREEN CRACK EFFECT - Glass shattering when multiplier rises
+const ScreenCrackEffect = memo(({ intensity, color }: { intensity: number; color: string }) => {
+  // Generate crack line paths - more cracks at higher intensity
+  const crackCount = 3 + intensity * 2;
+  const cracks = [...Array(crackCount)].map((_, i) => {
+    // Start from random edge position
+    const side = i % 4; // 0=top, 1=right, 2=bottom, 3=left
+    let startX = 50, startY = 50;
+    if (side === 0) { startX = 20 + Math.random() * 60; startY = 0; }
+    if (side === 1) { startX = 100; startY = 20 + Math.random() * 60; }
+    if (side === 2) { startX = 20 + Math.random() * 60; startY = 100; }
+    if (side === 3) { startX = 0; startY = 20 + Math.random() * 60; }
+    
+    // Generate jagged path toward center
+    const segments = 4 + Math.floor(Math.random() * 3);
+    let path = `M ${startX} ${startY}`;
+    let currentX = startX;
+    let currentY = startY;
+    const targetX = 40 + Math.random() * 20;
+    const targetY = 40 + Math.random() * 20;
+    
+    for (let j = 1; j <= segments; j++) {
+      const progress = j / segments;
+      currentX = startX + (targetX - startX) * progress + (Math.random() - 0.5) * 15;
+      currentY = startY + (targetY - startY) * progress + (Math.random() - 0.5) * 15;
+      path += ` L ${currentX} ${currentY}`;
+      
+      // Add branching cracks
+      if (j > 1 && Math.random() > 0.5) {
+        const branchLength = 5 + Math.random() * 10;
+        const branchAngle = Math.random() * Math.PI * 2;
+        path += ` M ${currentX} ${currentY} L ${currentX + Math.cos(branchAngle) * branchLength} ${currentY + Math.sin(branchAngle) * branchLength}`;
+        path += ` M ${currentX} ${currentY}`;
+      }
+    }
+    
+    return { path, delay: i * 0.02 };
+  });
+
+  return (
+    <svg className="fixed inset-0 w-full h-full z-[101] pointer-events-none" viewBox="0 0 100 100" preserveAspectRatio="none">
+      {/* Glass shatter background flash */}
+      <motion.rect
+        x="0" y="0" width="100" height="100"
+        fill="white"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.4, 0] }}
+        transition={{ duration: 0.15 }}
+      />
+      
+      {/* Crack lines */}
+      {cracks.map((crack, i) => (
+        <motion.path
+          key={i}
+          d={crack.path}
+          fill="none"
+          stroke="#ffffff"
+          strokeWidth={0.5 + intensity * 0.2}
+          initial={{ pathLength: 0, opacity: 1 }}
+          animate={{ 
+            pathLength: [0, 1],
+            opacity: [1, 1, 0.5, 0],
+          }}
+          transition={{ 
+            duration: 0.8, 
+            delay: crack.delay,
+            opacity: { duration: 2, times: [0, 0.2, 0.7, 1] }
+          }}
+          style={{
+            filter: `drop-shadow(0 0 2px ${color})`,
+            strokeLinecap: 'round',
+          }}
+        />
+      ))}
+      
+      {/* Glass shard effect at center */}
+      <motion.circle
+        cx="50" cy="50" r={intensity * 5}
+        fill="none"
+        stroke={color}
+        strokeWidth={0.8}
+        initial={{ scale: 0, opacity: 1 }}
+        animate={{ scale: [0, 3], opacity: [1, 0] }}
+        transition={{ duration: 0.5 }}
+        style={{ filter: `drop-shadow(0 0 3px ${color})` }}
+      />
+    </svg>
+  );
+});
+
+ScreenCrackEffect.displayName = 'ScreenCrackEffect';
+
+// CHAOS EFFECT - Screen distortion and intensity when multiplier rises
+const ChaosEffect = memo(({ intensity, color }: { intensity: number; color: string }) => (
+  <>
+    {/* Screen shake simulation via transform */}
+    <motion.div
+      className="fixed inset-0 z-[93] pointer-events-none"
+      animate={{
+        x: [0, -3, 3, -2, 2, 0],
+        y: [0, 2, -2, 3, -3, 0],
+      }}
+      transition={{ duration: 0.15, repeat: 2 + intensity }}
+    />
+    
+    {/* Chaos energy lines radiating from edges */}
+    <div className="fixed inset-0 z-[92] pointer-events-none overflow-hidden">
+      {[...Array(6 + intensity * 3)].map((_, i) => {
+        const angle = (i / (6 + intensity * 3)) * 360;
+        return (
+          <motion.div
+            key={i}
+            className="absolute left-1/2 top-1/2"
+            style={{
+              width: 2,
+              height: '150%',
+              background: `linear-gradient(180deg, transparent, ${color}88, ${color}, ${color}88, transparent)`,
+              transformOrigin: 'center center',
+              transform: `rotate(${angle}deg)`,
+            }}
+            initial={{ scaleY: 0, opacity: 0 }}
+            animate={{ 
+              scaleY: [0, 1, 0.5],
+              opacity: [0, 0.8, 0],
+            }}
+            transition={{ 
+              duration: 0.5, 
+              delay: i * 0.02,
+            }}
+          />
+        );
+      })}
+    </div>
+    
+    {/* Pulsing danger border */}
+    <motion.div
+      className="fixed inset-0 z-[91] pointer-events-none"
+      style={{
+        boxShadow: `inset 0 0 ${30 + intensity * 20}px ${color}`,
+      }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: [0, 0.8, 0.4, 0.6, 0] }}
+      transition={{ duration: 0.8 }}
+    />
+    
+    {/* Energy sparks */}
+    {[...Array(intensity * 5)].map((_, i) => (
+      <motion.div
+        key={`spark-${i}`}
+        className="fixed z-[90] pointer-events-none"
+        style={{
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          width: 4,
+          height: 4,
+          borderRadius: '50%',
+          background: i % 2 === 0 ? '#ffffff' : color,
+          boxShadow: `0 0 10px ${color}`,
+        }}
+        initial={{ scale: 0, opacity: 1 }}
+        animate={{ 
+          scale: [0, 2, 0],
+          opacity: [1, 1, 0],
+        }}
+        transition={{ 
+          duration: 0.3 + Math.random() * 0.2, 
+          delay: Math.random() * 0.2,
+        }}
+      />
+    ))}
+  </>
+));
+
+ChaosEffect.displayName = 'ChaosEffect';
+
 export const MultiplierVFX = memo(({ damageMultiplier, previousMultiplier }: MultiplierVFXProps) => {
   const [showVFX, setShowVFX] = useState(false);
   const [vfxTier, setVfxTier] = useState<{ name: string; color: string; intensity: number } | null>(null);
@@ -262,7 +437,7 @@ export const MultiplierVFX = memo(({ damageMultiplier, previousMultiplier }: Mul
       setVfxTier(tier);
       setShowVFX(true);
       
-      const timer = setTimeout(() => setShowVFX(false), 1000);
+      const timer = setTimeout(() => setShowVFX(false), 1200);
       return () => clearTimeout(timer);
     }
   }, [damageMultiplier, previousMultiplier]);
@@ -271,6 +446,12 @@ export const MultiplierVFX = memo(({ damageMultiplier, previousMultiplier }: Mul
 
   return (
     <AnimatePresence>
+      {/* SCREEN CRACK - Glass shattering effect */}
+      <ScreenCrackEffect intensity={vfxTier.intensity} color={vfxTier.color} />
+      
+      {/* CHAOS EFFECT - Energy and distortion */}
+      <ChaosEffect intensity={vfxTier.intensity} color={vfxTier.color} />
+      
       {/* Base flash */}
       <PowerSurgeFlash color={vfxTier.color} intensity={vfxTier.intensity * 0.6} />
       
