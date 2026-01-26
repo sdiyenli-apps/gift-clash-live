@@ -1271,7 +1271,7 @@ export const useGameState = () => {
                       y: bossEnemy.y + bossEnemy.height / 2 + (i - fireballCount/2) * 20,
                       velocityX: -500 - wave * 2,
                       velocityY: (prev.player.y - bossEnemy.y) * 0.5 + (i - fireballCount/2) * 40,
-                      damage: 10 + Math.floor(wave / 20),
+                      damage: 25 + Math.floor(wave / 10), // INCREASED boss fireball damage
                     };
                     newState.fireballs = [...newState.fireballs, fireball];
                   }
@@ -1291,7 +1291,7 @@ export const useGameState = () => {
                       y: bossEnemy.y + bossEnemy.height / 2,
                       velocityX: Math.cos(angle) * (400 + wave * 3),
                       velocityY: Math.sin(angle) * (400 + wave * 3),
-                      damage: 12 + Math.floor(wave / 25),
+                      damage: 35 + Math.floor(wave / 8), // MASSIVE laser sweep damage
                       type: 'ultra',
                     };
                     newState.enemyLasers = [...newState.enemyLasers, laser];
@@ -1315,7 +1315,7 @@ export const useGameState = () => {
                           y: 300, // From above
                           velocityX: (Math.random() - 0.5) * 100,
                           velocityY: -400 - wave * 2,
-                          damage: 8 + Math.floor(wave / 30),
+                          damage: 20 + Math.floor(wave / 15), // INCREASED missile damage
                         }],
                         particles: [...s.particles, ...createParticles(
                           prev.cameraX + 50 + Math.random() * 500, 280, 5, 'spark', '#ff8800'
@@ -1332,7 +1332,7 @@ export const useGameState = () => {
                   // Ground pound - shockwave
                   newState.screenShake = 1.5;
                   newState.redFlash = 1;
-                  const shockwaveDamage = 15 + Math.floor(wave / 20);
+                  const shockwaveDamage = 30 + Math.floor(wave / 10); // INCREASED ground pound damage
                   // Create shockwave projectiles traveling along ground
                   for (let i = 0; i < 3; i++) {
                     const shockwave: Projectile = {
@@ -1364,10 +1364,10 @@ export const useGameState = () => {
                     // Warning flash first
                     setTimeout(() => {
                       setGameState(s => {
-                        // Deal damage if no shield
+                        // Deal MASSIVE damage if no shield - screen attack is devastating
                         const damage = s.player.shield > 0 
                           ? 0 
-                          : Math.min(40 + Math.floor(wave / 10), 80);
+                          : Math.min(60 + Math.floor(wave / 5), 100); // INCREASED screen attack damage
                         return {
                           ...s,
                           player: { 
@@ -3203,6 +3203,38 @@ export const useGameState = () => {
               };
             }
             
+            // DRONE DISTANCE FIRE ATTACK - Shoot fire projectiles from range!
+            const attackCooldown = (enemy.attackCooldown || 0) - delta;
+            if (distToHero < 400 && distToHero > 150 && attackCooldown <= 0) {
+              // Fire a projectile at the hero from distance
+              const fireProjectile: Projectile = {
+                id: `drone-fire-${Date.now()}-${Math.random()}`,
+                x: enemy.x,
+                y: enemy.y + enemy.height / 2,
+                velocityX: -350 - Math.random() * 100, // Fast toward hero
+                velocityY: (prev.player.y - enemy.y) * 0.3 + (Math.random() - 0.5) * 50, // Slight tracking
+                damage: Math.floor(enemy.damage * 0.8), // 80% of melee damage
+                type: 'normal',
+              };
+              newState.enemyLasers = [...(newState.enemyLasers || []), fireProjectile];
+              
+              // Fire attack particles
+              newState.particles = [
+                ...newState.particles,
+                ...createParticles(enemy.x, enemy.y + enemy.height / 2, 6, 'muzzle', '#ff6600'),
+              ];
+              
+              // Set attack cooldown and continue moving
+              return {
+                ...enemy,
+                x: enemy.x + direction * enemy.speed * delta * 0.15,
+                y: targetY,
+                animationPhase: newAnimPhase,
+                attackCooldown: 1.2 + Math.random() * 0.5, // Fire attack cooldown
+                bombCooldown: Math.max(0, (enemy.bombCooldown || 0) - delta),
+              };
+            }
+            
             // Check if close enough to DROP BOMB - then retreat!
             const bombCooldown = (enemy.bombCooldown || 0) - delta;
             if (distToHero < BOMB_AOE_RANGE && distToHero >= RETREAT_TRIGGER_DISTANCE && bombCooldown <= 0) {
@@ -3235,6 +3267,7 @@ export const useGameState = () => {
                 bombCooldown: 1.5 + Math.random() * 0.5, // Cooldown for next bomb
                 originalX: enemy.originalX ?? enemy.x + 150,
                 originalY: enemy.originalY ?? targetY,
+                attackCooldown: 1.0, // Reset fire attack cooldown too
               };
             }
 
