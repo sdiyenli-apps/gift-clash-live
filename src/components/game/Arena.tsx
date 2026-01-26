@@ -18,6 +18,8 @@ import { Portal } from './Portal';
 import { DronePaths } from './DronePath';
 import { EnemiesWaitingIndicator } from './EnemiesWaitingIndicator';
 import { GiftComboIndicator } from './GiftComboIndicator';
+import { EnemyDeathVFX } from './EnemyDeathVFX';
+import { HeroAttackEffect } from './HeroAttackEffect';
 
 interface NeonLaser {
   id: string;
@@ -558,6 +560,10 @@ export const Arena = ({ gameState }: ArenaProps) => {
             <EnemySprite key={enemy.id} enemy={enemy} cameraX={cameraX} isTankActive={isTankActive} currentWave={currentWave} />
           ))}
           
+          {/* Enemy Death VFX - unique per enemy type */}
+          {enemies.filter(e => e.isDying).map(enemy => (
+            <EnemyDeathVFX key={`death-${enemy.id}`} enemy={enemy} cameraX={cameraX} />
+          ))}
           
           {/* Support Units - friendly mech and walker allies */}
           {supportUnits.map(unit => (
@@ -566,6 +572,15 @@ export const Arena = ({ gameState }: ArenaProps) => {
           
           {/* Hero - rendered in same layer */}
           <Hero player={player} cameraX={cameraX} isUltraMode={isUltraMode} speechBubble={speechBubble} />
+          
+          {/* Hero Attack Effect - video animation */}
+          <HeroAttackEffect 
+            isAttacking={player.isShooting} 
+            x={player.x} 
+            y={player.y} 
+            cameraX={cameraX} 
+            facingRight={player.facingRight} 
+          />
         </div>
         
         {/* Projectiles Layer (z-30) - Above entities for visibility */}

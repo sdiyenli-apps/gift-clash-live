@@ -51,10 +51,10 @@ export const GiftComboIndicator = memo(({ giftCombo, giftComboTimer, damageMulti
     <AnimatePresence>
       <motion.div
         key={`combo-${giftCombo}`}
-        className="absolute top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none"
-        initial={{ scale: 0.5, opacity: 0, y: -20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.8, opacity: 0, y: -10 }}
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] pointer-events-none"
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.8, opacity: 0 }}
       >
         {/* Main combo container */}
         <div 
