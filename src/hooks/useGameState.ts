@@ -3288,13 +3288,28 @@ export const useGameState = () => {
             // DRONE DISTANCE FIRE ATTACK - Shoot fire projectiles from range!
             const attackCooldown = (enemy.attackCooldown || 0) - delta;
             if (distToHero < 400 && distToHero > 150 && attackCooldown <= 0) {
-              // Fire a projectile at the hero from distance
+              // Fire a projectile at the hero - TARGET HERO'S GROUND POSITION properly!
+              // Hero is at GROUND_Y, drones fly above - calculate proper trajectory
+              const droneFireY = enemy.y + enemy.height / 2;
+              const heroTargetY = GROUND_Y + PLAYER_HEIGHT / 2; // Hero center on ground
+              const heroTargetX = prev.player.x + PLAYER_WIDTH / 2;
+              
+              // Calculate proper velocity to hit the hero
+              const distX = enemy.x - heroTargetX;
+              const distY = droneFireY - heroTargetY;
+              const totalDist = Math.sqrt(distX * distX + distY * distY);
+              
+              // Normalize and scale for projectile speed
+              const projSpeed = 400 + Math.random() * 100;
+              const velX = -(distX / totalDist) * projSpeed; // Move toward hero X
+              const velY = -(distY / totalDist) * projSpeed; // Move toward hero Y (downward usually)
+              
               const fireProjectile: Projectile = {
                 id: `drone-fire-${Date.now()}-${Math.random()}`,
                 x: enemy.x,
-                y: enemy.y + enemy.height / 2,
-                velocityX: -350 - Math.random() * 100, // Fast toward hero
-                velocityY: (prev.player.y - enemy.y) * 0.3 + (Math.random() - 0.5) * 50, // Slight tracking
+                y: droneFireY,
+                velocityX: velX,
+                velocityY: velY + (Math.random() - 0.5) * 30, // Slight randomness
                 damage: Math.floor(enemy.damage * 0.8), // 80% of melee damage
                 type: 'normal',
               };

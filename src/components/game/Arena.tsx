@@ -299,10 +299,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
         />
       )}
       
-      {/* Boss health bar above boss head */}
-      {bossEnemy && isBossFight && (
-        <BossHealthBar boss={bossEnemy} cameraX={cameraX} />
-      )}
+      {/* Single boss HP bar is shown in BossHUD above - removed duplicate here */}
       
       {/* Boss Attack VFX - flashes and effects for boss attacks */}
       {bossEnemy && isBossFight && bossAttackVFXType && (

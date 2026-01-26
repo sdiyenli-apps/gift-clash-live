@@ -10,7 +10,8 @@ const generateAssets = (levelLength: number) => {
   const assets: Array<{
     id: string;
     type: 'dustbin' | 'rat' | 'pipe' | 'crate' | 'barrel' | 'debris' | 'tank' | 'jeep' | 'truck' | 
-          'crater' | 'sandbag' | 'barricade' | 'shell_casing' | 'rubble' | 'fire' | 'tire' | 'helmet';
+          'crater' | 'sandbag' | 'barricade' | 'shell_casing' | 'rubble' | 'fire' | 'tire' | 'helmet' |
+          'body' | 'blood_pool' | 'weapon' | 'ammo_box' | 'wire' | 'explosion_mark' | 'shrapnel';
     x: number;
     size: number;
     variant?: number;
@@ -134,6 +135,83 @@ const generateAssets = (levelLength: number) => {
       x,
       size: 0.6 + Math.random() * 0.3,
       variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // WARZONE ADDITIONS: Fallen soldier bodies
+  for (let x = 250; x < levelLength - 300; x += 600 + Math.random() * 500) {
+    assets.push({
+      id: `body-${x}`,
+      type: 'body',
+      x,
+      size: 0.7 + Math.random() * 0.3,
+      variant: Math.floor(Math.random() * 3),
+    });
+  }
+  
+  // Blood pools near bodies
+  for (let x = 180; x < levelLength - 200; x += 450 + Math.random() * 400) {
+    assets.push({
+      id: `blood-${x}`,
+      type: 'blood_pool',
+      x,
+      size: 0.5 + Math.random() * 0.5,
+      variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // Dropped weapons
+  for (let x = 200; x < levelLength - 200; x += 350 + Math.random() * 350) {
+    assets.push({
+      id: `weapon-${x}`,
+      type: 'weapon',
+      x,
+      size: 0.6 + Math.random() * 0.4,
+      variant: Math.floor(Math.random() * 4),
+    });
+  }
+  
+  // Ammo boxes (some open, some closed)
+  for (let x = 300; x < levelLength - 300; x += 500 + Math.random() * 400) {
+    assets.push({
+      id: `ammo-${x}`,
+      type: 'ammo_box',
+      x,
+      size: 0.7 + Math.random() * 0.3,
+      variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // Barbed wire sections
+  for (let x = 400; x < levelLength - 400; x += 700 + Math.random() * 500) {
+    assets.push({
+      id: `wire-${x}`,
+      type: 'wire',
+      x,
+      size: 0.8 + Math.random() * 0.4,
+      variant: Math.floor(Math.random() * 2),
+    });
+  }
+  
+  // Explosion/scorch marks on ground
+  for (let x = 100; x < levelLength - 100; x += 250 + Math.random() * 300) {
+    assets.push({
+      id: `explosion-mark-${x}`,
+      type: 'explosion_mark',
+      x,
+      size: 0.6 + Math.random() * 0.6,
+      variant: Math.floor(Math.random() * 3),
+    });
+  }
+  
+  // Scattered shrapnel pieces
+  for (let x = 80; x < levelLength - 80; x += 120 + Math.random() * 150) {
+    assets.push({
+      id: `shrapnel-${x}`,
+      type: 'shrapnel',
+      x,
+      size: 0.4 + Math.random() * 0.4,
+      variant: Math.floor(Math.random() * 4),
     });
   }
   
@@ -919,6 +997,267 @@ export const FloorAssets = ({ cameraX, levelLength }: FloorAssetsProps) => {
                     bottom: 0,
                     background: '#3a3a2a',
                     borderRadius: 1,
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* BODY - Fallen soldier silhouette */}
+            {asset.type === 'body' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 45 * asset.size, 
+                  height: 15 * asset.size,
+                  transform: `rotate(${(asset.variant || 0) * 20 - 10}deg)`,
+                }}
+              >
+                {/* Torso */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '50%',
+                    height: '100%',
+                    left: '25%',
+                    background: 'linear-gradient(90deg, #2a2a20, #3a3a30, #2a2a20)',
+                    borderRadius: 4,
+                  }}
+                />
+                {/* Head */}
+                <div 
+                  className="absolute rounded-full"
+                  style={{
+                    width: 10 * asset.size,
+                    height: 10 * asset.size,
+                    left: 0,
+                    top: '20%',
+                    background: 'radial-gradient(circle, #4a4a3a, #3a3a2a)',
+                  }}
+                />
+                {/* Legs */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '40%',
+                    height: 6 * asset.size,
+                    right: 0,
+                    top: '30%',
+                    background: '#2a2a20',
+                    borderRadius: 2,
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* BLOOD_POOL - Dark stains on ground */}
+            {asset.type === 'blood_pool' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 30 * asset.size, 
+                  height: 12 * asset.size,
+                }}
+              >
+                <div 
+                  className="absolute inset-0"
+                  style={{
+                    background: 'radial-gradient(ellipse, #3a1515 0%, #2a1010 40%, transparent 70%)',
+                    borderRadius: '50%',
+                    opacity: 0.7,
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* WEAPON - Dropped guns/rifles */}
+            {asset.type === 'weapon' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 30 * asset.size, 
+                  height: 8 * asset.size,
+                  transform: `rotate(${(asset.variant || 0) * 30 - 45}deg)`,
+                }}
+              >
+                {/* Gun body */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '70%',
+                    height: '60%',
+                    left: 0,
+                    top: '20%',
+                    background: 'linear-gradient(90deg, #333, #444, #333)',
+                    borderRadius: 2,
+                  }}
+                />
+                {/* Barrel */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '35%',
+                    height: '30%',
+                    right: 0,
+                    top: '35%',
+                    background: '#222',
+                    borderRadius: 1,
+                  }}
+                />
+                {/* Handle */}
+                <div 
+                  className="absolute"
+                  style={{
+                    width: '20%',
+                    height: '100%',
+                    left: '20%',
+                    bottom: -4,
+                    background: '#2a2a20',
+                    borderRadius: 1,
+                    transform: 'rotate(-20deg)',
+                  }}
+                />
+              </div>
+            )}
+            
+            {/* AMMO_BOX - Military supply boxes */}
+            {asset.type === 'ammo_box' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 20 * asset.size, 
+                  height: 14 * asset.size,
+                }}
+              >
+                <div 
+                  className="absolute inset-0"
+                  style={{
+                    background: 'linear-gradient(180deg, #4a4a3a, #3a3a2a, #2a2a1a)',
+                    borderRadius: 2,
+                    border: '1px solid #222',
+                    boxShadow: 'inset 2px 2px 4px rgba(255,255,255,0.1)',
+                  }}
+                />
+                {/* Ammo symbol */}
+                <div 
+                  className="absolute text-[6px] font-bold"
+                  style={{
+                    color: '#ff6600',
+                    left: '50%',
+                    top: '50%',
+                    transform: 'translate(-50%, -50%)',
+                  }}
+                >
+                  ⚡
+                </div>
+                {/* Lid if open */}
+                {asset.variant === 0 && (
+                  <div 
+                    className="absolute"
+                    style={{
+                      width: '100%',
+                      height: '20%',
+                      top: -4,
+                      background: '#3a3a2a',
+                      borderRadius: '2px 2px 0 0',
+                      transform: 'rotate(-15deg)',
+                      transformOrigin: 'left bottom',
+                    }}
+                  />
+                )}
+              </div>
+            )}
+            
+            {/* WIRE - Barbed wire coils */}
+            {asset.type === 'wire' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 50 * asset.size, 
+                  height: 12 * asset.size,
+                }}
+              >
+                {/* Wire coils */}
+                {[0, 1, 2, 3, 4].map(i => (
+                  <div
+                    key={`coil-${i}`}
+                    className="absolute rounded-full"
+                    style={{
+                      width: 10 * asset.size,
+                      height: 10 * asset.size,
+                      left: `${i * 20}%`,
+                      top: i % 2 === 0 ? 0 : '20%',
+                      border: '2px solid #555',
+                      background: 'transparent',
+                    }}
+                  />
+                ))}
+                {/* Barbs */}
+                {[0, 1, 2, 3].map(i => (
+                  <div
+                    key={`barb-${i}`}
+                    className="absolute"
+                    style={{
+                      width: 3,
+                      height: 5,
+                      left: `${15 + i * 25}%`,
+                      top: 0,
+                      background: '#666',
+                      transform: 'rotate(45deg)',
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* EXPLOSION_MARK - Scorch marks on ground */}
+            {asset.type === 'explosion_mark' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 35 * asset.size, 
+                  height: 20 * asset.size,
+                }}
+              >
+                <div 
+                  className="absolute inset-0"
+                  style={{
+                    background: 'radial-gradient(ellipse, #1a1a10 0%, #222210 30%, transparent 70%)',
+                    borderRadius: '50%',
+                  }}
+                />
+                {/* Cracks */}
+                {[0, 1, 2].map(i => (
+                  <div
+                    key={`crack-${i}`}
+                    className="absolute"
+                    style={{
+                      width: 2,
+                      height: 10 + i * 3,
+                      left: `${30 + i * 15}%`,
+                      top: '20%',
+                      background: '#111',
+                      transform: `rotate(${i * 30 - 30}deg)`,
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            
+            {/* SHRAPNEL - Small metal fragments */}
+            {asset.type === 'shrapnel' && (
+              <div 
+                className="relative"
+                style={{ 
+                  width: 12 * asset.size, 
+                  height: 6 * asset.size,
+                  transform: `rotate(${(asset.variant || 0) * 45}deg)`,
+                }}
+              >
+                <div 
+                  className="absolute inset-0"
+                  style={{
+                    background: `linear-gradient(${45 + (asset.variant || 0) * 30}deg, #444, #666, #444)`,
+                    clipPath: 'polygon(0% 50%, 30% 0%, 70% 0%, 100% 50%, 70% 100%, 30% 100%)',
                   }}
                 />
               </div>
