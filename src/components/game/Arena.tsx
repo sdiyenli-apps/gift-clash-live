@@ -68,7 +68,7 @@ interface ExtendedGameState extends GameState {
   giftComboTimer?: number;
   giftDamageMultiplier?: number;
   // Boss attack tracking for VFX
-  lastBossAttack?: 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield' | null;
+  lastBossAttack?: 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield' | 'jump_bomb' | null;
   lastBossAttackTime?: number;
 }
 

@@ -20,8 +20,9 @@ const SLASH_ATTACK_RANGE = 80;
 const ROCKET_ATTACK_RANGE = 350;
 const BOSS_FIREBALL_INTERVAL = 4;
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
-const BOSS_KEEP_DISTANCE = 400;
+const BOSS_KEEP_DISTANCE = 200; // Boss attacks when hero is about 3 inches away (~200px)
 const HERO_FIXED_SCREEN_X = 30; // Hero on FAR LEFT side of screen
+const BOSS_JUMP_ATTACK_DURATION = 6; // Boss jump attack takes 6 seconds total
 const ENEMY_ATTACK_DELAY = 2;
 const PARTICLE_LIFETIME = 3;
 const EVASION_CHANCE = 1 / 15;
@@ -34,7 +35,7 @@ const GROUND_Y_MIDDLE = GROUND_Y;        // Middle movement lane (hero)
 const GROUND_Y_BOTTOM = GROUND_Y - 25;   // Bottom movement lane
 
 // Boss attack types
-type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield';
+type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield' | 'jump_bomb';
 
 interface BossAttack {
   id: string;
@@ -1177,59 +1178,60 @@ export const useGameState = () => {
             
             // Level-specific attack patterns - EACH BOSS HAS UNIQUE SIGNATURE!
             // Attack style defines visual FX color and pattern
+            // ALL BOSSES CAN DO JUMP BOMB ATTACK!
             switch (wave) {
               case 1: // NEON GUARDIAN - Single slow fireballs, cyan theme
                 // Easy intro boss - telegraphed attacks, slow fireball
-                availableAttacks.push('fireball', 'fireball');
+                availableAttacks.push('fireball', 'fireball', 'jump_bomb');
                 newState.bossAttackCooldown = 2.5; // Slow attacks
                 break;
               case 2: // FACTORY FOREMAN - Fireballs + horizontal laser, orange theme
                 // Introduces laser sweep mechanic
-                availableAttacks.push('fireball', 'laser_sweep', 'fireball');
+                availableAttacks.push('fireball', 'laser_sweep', 'fireball', 'jump_bomb');
                 newState.bossAttackCooldown = 2.0;
                 break;
               case 3: // DATA DAEMON - Rapid laser sweeps, purple theme
                 // Laser specialist - faster, more dangerous
-                availableAttacks.push('laser_sweep', 'laser_sweep', 'laser_sweep', 'fireball');
+                availableAttacks.push('laser_sweep', 'laser_sweep', 'laser_sweep', 'fireball', 'jump_bomb');
                 newState.bossAttackCooldown = 1.5;
                 break;
               case 4: // ROOFTOP RAVAGER - Missile barrages from above, red theme
                 // Introduces vertical threat with missiles
-                availableAttacks.push('missile_barrage', 'missile_barrage', 'fireball');
+                availableAttacks.push('missile_barrage', 'missile_barrage', 'fireball', 'jump_bomb');
                 newState.bossAttackCooldown = 1.8;
                 break;
               case 5: // BUNKER BREAKER - Ground pound specialist, green theme
                 // Heavy ground attacks, shockwaves
-                availableAttacks.push('ground_pound', 'ground_pound', 'ground_pound', 'fireball');
+                availableAttacks.push('ground_pound', 'ground_pound', 'ground_pound', 'fireball', 'jump_bomb');
                 newState.bossAttackCooldown = 1.6;
                 break;
               case 6: // HIGHWAY HUNTER - Fast missiles + sweeping lasers, yellow theme
                 // Speed-focused, fast attack combinations
-                availableAttacks.push('missile_barrage', 'laser_sweep', 'missile_barrage', 'fireball');
+                availableAttacks.push('missile_barrage', 'laser_sweep', 'missile_barrage', 'fireball', 'jump_bomb');
                 newState.bossAttackCooldown = 1.3;
                 break;
               case 7: // MALL MONARCH - Varied attacks, pink theme
                 // Master of all basic attacks
-                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound');
+                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'jump_bomb');
                 newState.bossAttackCooldown = 1.4;
                 break;
               case 8: // POWER TYRANT - Heavy ground + laser combos, electric blue theme
                 // Power-focused, devastating combos
-                availableAttacks.push('ground_pound', 'laser_sweep', 'ground_pound', 'laser_sweep', 'fireball');
+                availableAttacks.push('ground_pound', 'laser_sweep', 'ground_pound', 'laser_sweep', 'fireball', 'jump_bomb');
                 newState.bossAttackCooldown = 1.2;
                 break;
               case 9: // SPACE OVERLORD - Missile hell, cosmic purple theme
                 // Overwhelming ranged assault
-                availableAttacks.push('missile_barrage', 'missile_barrage', 'missile_barrage', 'laser_sweep', 'fireball');
+                availableAttacks.push('missile_barrage', 'missile_barrage', 'missile_barrage', 'laser_sweep', 'fireball', 'jump_bomb');
                 newState.bossAttackCooldown = 1.0;
                 break;
               case 10: // OMEGA DESTROYER - ALL attacks + screen attack, blood red theme
                 // Final boss - uses everything, including screen-wide attack
-                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'screen_attack');
+                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'screen_attack', 'jump_bomb');
                 newState.bossAttackCooldown = 0.8;
                 break;
               default: // Higher waves - all attacks with phase scaling
-                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound');
+                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'jump_bomb');
                 if (bossPhase >= 3) availableAttacks.push('screen_attack');
                 newState.bossAttackCooldown = Math.max(0.5, 1.5 - wave * 0.1);
             }
@@ -1386,6 +1388,27 @@ export const useGameState = () => {
                     newState.particles = [...newState.particles, ...createParticles(
                       bossEnemy.x + bossEnemy.width / 2, bossEnemy.y + bossEnemy.height / 2, 
                       25, 'spark', '#00ffff'
+                    )];
+                  }
+                  break;
+                  
+                case 'jump_bomb':
+                  // BOSS JUMP ATTACK - Jumps off screen, drops bombs, lands back (6 seconds total)
+                  // Only if not already doing jump attack
+                  if (!bossEnemy.isJumpAttacking) {
+                    newState.enemies[bossIdx] = {
+                      ...newState.enemies[bossIdx],
+                      isJumpAttacking: true,
+                      jumpAttackTimer: BOSS_JUMP_ATTACK_DURATION,
+                      jumpAttackPhase: 'jumping',
+                      originalBossY: bossEnemy.y,
+                    };
+                    newState.screenShake = 1.0;
+                    newState.bossTaunt = "I'LL CRUSH YOU FROM ABOVE!";
+                    showSpeechBubble("⚠️ BOSS JUMPING! WATCH THE SKY! ⚠️", 'urgent');
+                    newState.particles = [...newState.particles, ...createParticles(
+                      bossEnemy.x + bossEnemy.width / 2, bossEnemy.y, 
+                      30, 'explosion', '#ff4400'
                     )];
                   }
                   break;
@@ -2795,6 +2818,116 @@ export const useGameState = () => {
             const distanceToBoss = enemy.x - prev.player.x;
             const BOSS_ENGAGE_RANGE = 600; // Boss only engages when hero is within 600px
             
+            // BOSS JUMP ATTACK ANIMATION - 6 second sequence!
+            if (enemy.isJumpAttacking && enemy.jumpAttackTimer !== undefined) {
+              const jumpTimer = enemy.jumpAttackTimer - delta;
+              const originalY = enemy.originalBossY ?? enemy.y;
+              
+              // Phase 1 (0-1.5s): Jump UP off screen
+              if (enemy.jumpAttackPhase === 'jumping') {
+                const jumpProgress = (BOSS_JUMP_ATTACK_DURATION - jumpTimer) / 1.5;
+                const newY = originalY + jumpProgress * 600; // Move 600px up (off screen)
+                
+                if (jumpTimer <= BOSS_JUMP_ATTACK_DURATION - 1.5) {
+                  // Transition to bombing phase
+                  return {
+                    ...enemy,
+                    y: originalY + 600, // Off screen
+                    jumpAttackTimer: jumpTimer,
+                    jumpAttackPhase: 'bombing',
+                    animationPhase: (enemy.animationPhase + delta * 8) % (Math.PI * 2),
+                  };
+                }
+                return {
+                  ...enemy,
+                  y: newY,
+                  jumpAttackTimer: jumpTimer,
+                  animationPhase: (enemy.animationPhase + delta * 8) % (Math.PI * 2),
+                };
+              }
+              
+              // Phase 2 (1.5-4.5s): Drop bombs from above - 3 seconds of bombing!
+              if (enemy.jumpAttackPhase === 'bombing') {
+                // Drop bombs every 0.3 seconds while in bombing phase
+                const bombInterval = 0.3;
+                const bombPhaseProgress = (BOSS_JUMP_ATTACK_DURATION - 1.5 - jumpTimer);
+                if (bombPhaseProgress >= 0 && Math.floor(bombPhaseProgress / bombInterval) !== Math.floor((bombPhaseProgress - delta) / bombInterval)) {
+                  // Drop a bomb at random X position on screen
+                  const bombX = prev.cameraX + 50 + Math.random() * 500;
+                  const newBomb: Bomb = {
+                    id: `boss-jump-bomb-${Date.now()}-${Math.random()}`,
+                    x: bombX,
+                    y: 400, // From top of screen
+                    velocityY: -280 - Math.random() * 100, // Fall down with varied speed
+                    damage: 20 + Math.floor(prev.currentWave / 2),
+                    timer: 5,
+                  };
+                  newState.bombs = [...(newState.bombs || []), newBomb];
+                  newState.particles = [...newState.particles, ...createParticles(bombX, 350, 8, 'muzzle', '#ff4400')];
+                  newState.screenShake = 0.2;
+                }
+                
+                if (jumpTimer <= BOSS_JUMP_ATTACK_DURATION - 4.5) {
+                  // Transition to landing phase
+                  return {
+                    ...enemy,
+                    y: originalY + 600,
+                    jumpAttackTimer: jumpTimer,
+                    jumpAttackPhase: 'landing',
+                    animationPhase: (enemy.animationPhase + delta * 6) % (Math.PI * 2),
+                  };
+                }
+                return {
+                  ...enemy,
+                  jumpAttackTimer: jumpTimer,
+                  animationPhase: (enemy.animationPhase + delta * 6) % (Math.PI * 2),
+                };
+              }
+              
+              // Phase 3 (4.5-6s): Land back down with ground pound
+              if (enemy.jumpAttackPhase === 'landing') {
+                const landProgress = (BOSS_JUMP_ATTACK_DURATION - 4.5 - jumpTimer) / 1.5; // 1.5s to land
+                const newY = originalY + 600 - (landProgress * 600); // Move 600px down (back to ground)
+                
+                if (jumpTimer <= 0) {
+                  // Landing complete! Ground pound effect
+                  newState.screenShake = 2.0;
+                  newState.redFlash = 1.0;
+                  // Create shockwave
+                  const shockwave: Projectile = {
+                    id: `jump-shockwave-${Date.now()}`,
+                    x: enemy.x,
+                    y: GROUND_Y + 30,
+                    velocityX: -700,
+                    velocityY: 0,
+                    damage: 25 + Math.floor(prev.currentWave / 3),
+                    type: 'mega',
+                  };
+                  newState.enemyLasers = [...newState.enemyLasers, shockwave];
+                  newState.particles = [...newState.particles, 
+                    ...createParticles(enemy.x + enemy.width/2, originalY + enemy.height, 40, 'explosion', '#ff4400'),
+                    ...createParticles(enemy.x + enemy.width/2, originalY + enemy.height, 30, 'spark', '#ffff00'),
+                  ];
+                  showSpeechBubble("💥 GROUND POUND LANDING! 💥", 'urgent');
+                  
+                  return {
+                    ...enemy,
+                    y: originalY,
+                    isJumpAttacking: false,
+                    jumpAttackTimer: undefined,
+                    jumpAttackPhase: undefined,
+                    animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
+                  };
+                }
+                return {
+                  ...enemy,
+                  y: Math.max(originalY, newY),
+                  jumpAttackTimer: jumpTimer,
+                  animationPhase: (enemy.animationPhase + delta * 8) % (Math.PI * 2),
+                };
+              }
+            }
+            
             // If hero is NOT in range, boss stays completely still
             if (distanceToBoss > BOSS_ENGAGE_RANGE) {
               // Boss stays in original position, not moving at all
@@ -2860,12 +2993,32 @@ export const useGameState = () => {
           const jumpOffset = (shouldDodgeJump || randomJump) ? (35 + Math.random() * 50) : sentinelHopHeight;
           const nextY = isFlying ? currentY : (baseY - jumpOffset);
 
-          // BACK AND FORTH MOVEMENT - enemies move erratically
+          // PROGRESSIVE AGGRESSION - enemies get more aggressive as hero progresses!
+          // Based on hero's X position (distance traveled through level)
+          const progressPercent = Math.min(prev.distance / (prev.levelLength || 12000), 1);
+          const aggressionBonus = 1 + progressPercent * 1.5; // Up to 2.5x more aggressive at end of level
+          
+          // ENHANCED DODGE BEHAVIOR - Ground enemies strafe forward/backward constantly!
+          // They try to evade hero's attacks by moving erratically
+          const dodgeCycleSpeed = 4 + progressPercent * 3; // Faster dodging as game progresses
+          const dodgePhase = Math.sin(newAnimPhase * dodgeCycleSpeed);
+          const dodgeIntensity = 0.4 + progressPercent * 0.4; // More intense dodging later
+          
+          // Forward/backward strafe pattern - makes ground combat feel like a real battle!
+          const strafeDirection = dodgePhase > 0 ? 1 : -1;
+          const strafeSpeed = enemy.speed * 0.3 * dodgeIntensity * strafeDirection;
+          
+          // Only strafe when within attack range of hero (not when too far)
+          const distToHeroForStrafe = enemy.x - prev.player.x;
+          const inStrafingRange = distToHeroForStrafe > 80 && distToHeroForStrafe < 400;
+          const shouldStrafe = !isFlying && inStrafingRange && !isSentinel;
+          
+          // BACK AND FORTH MOVEMENT - enemies move erratically with enhanced dodging
           const movementPattern = Math.sin(newAnimPhase * 3) * 0.5 + 0.5; // 0-1 oscillation
-          const moveBackward = Math.random() > 0.92; // Sometimes retreat
+          const moveBackward = Math.random() > (0.95 - progressPercent * 0.1); // More retreats as game progresses
           // Sentinels move in bursts (hop-pause pattern)
           const sentinelMoveMultiplier = isSentinel ? (sentinelHopPhase > 0.3 ? 1.5 : 0.3) : 1;
-          const moveMultiplier = moveBackward ? -0.6 : (1 + movementPattern * 0.5) * sentinelMoveMultiplier;
+          const moveMultiplier = moveBackward ? -0.6 : (1 + movementPattern * 0.5) * sentinelMoveMultiplier * aggressionBonus;
 
           // COLLISION PREVENTION - enemies stop before overlapping hero
           const distToHero = enemy.x - prev.player.x;
@@ -3460,13 +3613,15 @@ export const useGameState = () => {
           const canMoveForward = !wouldOverlap && !tooClose && !reachedMinDistance;
           
           if (Math.abs(dx) < 500 && canMoveForward) {
-            const speedBoost = 1.3; // Faster movement
+            const speedBoost = 1.3 * aggressionBonus; // Faster movement, more aggressive later
+            // Add strafing movement for ground enemies to dodge hero attacks
+            const strafeX = shouldStrafe ? strafeSpeed * delta : 0;
             return {
               ...enemy,
-              x: enemy.x + direction * enemy.speed * delta * moveMultiplier * speedBoost,
+              x: enemy.x + direction * enemy.speed * delta * moveMultiplier * speedBoost + strafeX,
               y: nextY,
               animationPhase: newAnimPhase,
-              attackCooldown: Math.max(0, enemy.attackCooldown - delta),
+              attackCooldown: Math.max(0, enemy.attackCooldown - delta * aggressionBonus), // Faster attack cooldown
               isSlashing: false,
             };
           }

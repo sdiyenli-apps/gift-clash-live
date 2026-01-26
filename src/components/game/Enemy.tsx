@@ -701,43 +701,82 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
         {/* Boss special effects - SCARY with phases */}
         {enemy.type === 'boss' && !enemy.isDying && (
           <>
-            {/* BOSS SHIELD - glowing protective barrier */}
+            {/* BOSS SHIELD - glowing protective barrier - SCALED TO HITBOX */}
             {enemy.bossShieldTimer && enemy.bossShieldTimer > 0 && (
               <motion.div
-                className="absolute rounded-full pointer-events-none"
+                className="absolute pointer-events-none"
                 style={{
-                  // SMALLER SHIELD - proportional to boss hitbox, not oversized
-                  inset: 0, // Exactly matches boss sprite bounds
-                  background: 'radial-gradient(circle, rgba(0,255,255,0.15), rgba(0,200,255,0.25), transparent 70%)',
-                  border: '2px solid #00ffff',
-                  boxShadow: '0 0 15px #00ffff, 0 0 30px #00ffff80, inset 0 0 20px rgba(0,255,255,0.2)',
+                  // FIXED: Shield scaled to 90% of boss dimensions - not oversized!
+                  top: '5%',
+                  left: '5%',
+                  right: '5%',
+                  bottom: '5%',
+                  borderRadius: '50%',
+                  background: 'radial-gradient(circle, rgba(0,255,255,0.1), rgba(0,200,255,0.2), transparent 60%)',
+                  border: '2px solid rgba(0,255,255,0.8)',
+                  boxShadow: '0 0 10px #00ffff, 0 0 20px #00ffff60, inset 0 0 15px rgba(0,255,255,0.15)',
                 }}
                 animate={{ 
-                  scale: [1, 1.02, 1],
-                  opacity: [0.8, 1, 0.8],
+                  scale: [1, 1.03, 1],
+                  opacity: [0.7, 0.9, 0.7],
                 }}
-                transition={{ duration: 0.25, repeat: Infinity }}
+                transition={{ duration: 0.3, repeat: Infinity }}
               >
-                {/* Shield hexagon pattern - smaller and tighter */}
-                <div
-                  className="absolute inset-1 opacity-30 rounded-full overflow-hidden"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='35' viewBox='0 0 28 49'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%2300ffff' fill-opacity='0.5'%3E%3Cpath d='M13.99 9.25l13 7.5v15l-13 7.5L1 31.75v-15l12.99-7.5zM3 17.9v12.7l10.99 6.34 11-6.35V17.9l-11-6.34L3 17.9z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                  }}
-                />
                 {/* Shield timer indicator - positioned at top of shield */}
                 <motion.div
-                  className="absolute -top-2 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                  className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap"
                   style={{ 
                     color: '#00ffff', 
-                    textShadow: '0 0 6px #00ffff',
-                    background: 'rgba(0,0,0,0.6)',
+                    textShadow: '0 0 5px #00ffff',
+                    background: 'rgba(0,0,0,0.7)',
                     border: '1px solid #00ffff',
                   }}
                 >
                   🛡️ {enemy.bossShieldTimer.toFixed(1)}s
                 </motion.div>
               </motion.div>
+            )}
+            
+            {/* BOSS JUMP ATTACK INDICATOR - Shows when boss is off screen */}
+            {enemy.isJumpAttacking && (
+              <>
+                <motion.div
+                  className="absolute -top-20 left-1/2 -translate-x-1/2 text-lg font-black whitespace-nowrap"
+                  style={{ 
+                    color: '#ff4400', 
+                    textShadow: '0 0 12px #ff0000, 0 0 24px #ff4400',
+                  }}
+                  animate={{ 
+                    y: [0, -10, 0],
+                    scale: [1, 1.2, 1],
+                    opacity: [0.8, 1, 0.8],
+                  }}
+                  transition={{ duration: 0.4, repeat: Infinity }}
+                >
+                  {enemy.jumpAttackPhase === 'jumping' ? '⬆️ JUMPING!' : 
+                   enemy.jumpAttackPhase === 'bombing' ? '💣 BOMBS INCOMING! 💣' : 
+                   '⬇️ LANDING!'}
+                </motion.div>
+                
+                {/* Warning shadow on ground during jump */}
+                {enemy.jumpAttackPhase === 'bombing' && (
+                  <motion.div
+                    className="absolute left-1/2 -translate-x-1/2 rounded-full"
+                    style={{
+                      bottom: -50,
+                      width: displayWidth * 1.5,
+                      height: 30,
+                      background: 'radial-gradient(ellipse, rgba(255,0,0,0.5), rgba(255,100,0,0.3), transparent)',
+                      filter: 'blur(5px)',
+                    }}
+                    animate={{ 
+                      scale: [0.8, 1.2, 0.8],
+                      opacity: [0.4, 0.7, 0.4],
+                    }}
+                    transition={{ duration: 0.5, repeat: Infinity }}
+                  />
+                )}
+              </>
             )}
             
             {/* Menacing aura - subtle for all phases */}
