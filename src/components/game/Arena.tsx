@@ -23,6 +23,7 @@ import { EnemyDeathVFX } from './EnemyDeathVFX';
 import { HeroAttackEffect } from './HeroAttackEffect';
 import { KillStreakAnnouncer } from './KillStreakAnnouncer';
 import { BossAttackVFX, BombExplosionVFX } from './BossAttackVFX';
+import { BossLaserSweepVFX } from './BossLaserSweepVFX';
 import { MultiplierVFX } from './MultiplierVFX';
 
 interface NeonLaser {
@@ -177,6 +178,14 @@ export const Arena = ({ gameState }: ArenaProps) => {
           bossX={bossEnemy.x + bossEnemy.width / 2}
           bossY={bossEnemy.y + bossEnemy.height / 2}
           cameraX={cameraX}
+        />
+      )}
+      
+      {/* Boss Laser Sweep VFX - special laser attack with custom sprite */}
+      {bossEnemy && isBossFight && lastBossAttack === 'laser_sweep' && (
+        <BossLaserSweepVFX
+          isActive={lastBossAttack === 'laser_sweep'}
+          side="both"
         />
       )}
       
