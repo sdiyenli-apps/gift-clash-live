@@ -2655,19 +2655,21 @@ export const useGameState = () => {
             const healthPercent = e.health / e.maxHealth;
             
             // Type-specific armor thresholds and durations
+            // Giant (ground-5) and Sentinel (ground-4) get 5 second armor (the last 2 enemy types)
             const isGiant = e.type === 'giant';
-            const isTank = e.type === 'tank';
-            const armorThreshold = isGiant ? 0.6 : isTank ? 0.7 : ARMOR_ACTIVATION_THRESHOLD;
-            const armorDuration = isGiant ? 5 : isTank ? 5 : ARMOR_DURATION;
+            const isSentinel = e.type === 'sentinel';
+            const armorThreshold = isGiant ? 0.6 : isSentinel ? 0.7 : ARMOR_ACTIVATION_THRESHOLD;
+            const armorDuration = isGiant ? 5 : isSentinel ? 5 : ARMOR_DURATION;
             
             // Check if should activate armor
             if (isGroundEnemy && healthPercent <= armorThreshold && !e.armorUsed && !e.hasArmor) {
               // Activate armor with type-specific VFX!
-              const armorColor = isGiant ? '#ff6600' : isTank ? '#00ffff' : '#ff00ff';
+              // Giant (ground-5) = orange, Sentinel (ground-4) = red/magenta
+              const armorColor = isGiant ? '#ff6600' : isSentinel ? '#ff00ff' : '#ff00ff';
               newState.particles = [...newState.particles, ...createParticles(
                 e.x + e.width / 2, e.y + e.height / 2, 30, 'spark', armorColor
               )];
-              newState.screenShake = isGiant || isTank ? 0.5 : 0.2;
+              newState.screenShake = isGiant || isSentinel ? 0.5 : 0.2;
               return { 
                 ...e, 
                 hasArmor: true, 

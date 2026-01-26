@@ -52,14 +52,18 @@ const getBossSprite = (wave: number = 1) => {
   return BOSS_SPRITES_BY_LEVEL[levelIndex];
 };
 
-// NEW GROUND ENEMY SPRITE MAPPING
+// NEW GROUND ENEMY SPRITE MAPPING - Images face LEFT (toward hero)
+// Ground 1 & 2: Smaller cyber soldiers (~140px)
+// Ground 3: Medium alien beast (~180px)
+// Ground 4: Large spider tank with armor (~220px)
+// Ground 5: LARGEST heavy mech with armor (~260px)
 const GROUND_SPRITES: Record<string, string> = {
-  robot: ground1Sprite,    // Ground 1 - Cyber soldier with cannon
-  mech: ground2Sprite,     // Ground 2 - Demon mech with wings
-  ninja: ground3Sprite,    // Ground 3 - Alien beast with tentacles
-  sentinel: ground4Sprite, // Ground 4 - Sleek soldier with rifle  
-  giant: ground5Sprite,    // Ground 5 - LARGEST - Heavy mech with smoke stacks
-  tank: ground6Sprite,     // Ground 6 - Beast tank with rider
+  robot: ground1Sprite,    // Ground 1 - Cyan cyber soldier with cannon (SMALLER)
+  mech: ground2Sprite,     // Ground 2 - Purple soldier with rifle (SMALLER)
+  ninja: ground3Sprite,    // Ground 3 - Dark alien beast with tentacles (MEDIUM)
+  sentinel: ground4Sprite, // Ground 4 - Spider tank with turret (LARGE + ARMOR)
+  giant: ground5Sprite,    // Ground 5 - LARGEST - Heavy mech (LARGEST + ARMOR)
+  tank: ground6Sprite,     // Ground 4 alt - Beast tank (same as sentinel for now)
 };
 
 const ENEMY_SPRITES: Record<string, string> = {
@@ -77,18 +81,18 @@ const ENEMY_SPRITES: Record<string, string> = {
 };
 
 const ENEMY_COLORS: Record<string, string> = {
-  robot: '#00ffff',     // Cyan glow (matches ground-1)
+  robot: '#00ffff',     // Cyan glow (matches ground-1 cyber soldier)
   drone: '#00ffff',
-  mech: '#ff0066',      // Red/pink glow (matches ground-2 demon)
+  mech: '#00ffff',      // Cyan glow (matches ground-2 purple soldier)
   boss: '#ff0000',
-  ninja: '#ff3333',     // Red glow (matches ground-3 alien)
-  tank: '#00ffff',      // Cyan glow (matches ground-6)
+  ninja: '#ff3333',     // Red glow (matches ground-3 alien beast)
+  tank: '#ff3333',      // Red glow (matches ground-4 spider tank)
   flyer: '#ff66ff',
   chicken: '#ffaa00',
-  giant: '#00ffff',     // Cyan glow (matches ground-5)
+  giant: '#ff3333',     // Red glow (matches ground-5 heavy mech)
   bomber: '#ff6600',
   jetrobot: '#00ff88',
-  sentinel: '#00ffff',  // Cyan glow (matches ground-4)
+  sentinel: '#ff3333',  // Red glow (matches ground-4 spider tank)
 };
 
 export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave = 1 }: EnemyProps) => {
@@ -130,16 +134,19 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
   const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.2) : 1;
   const giantScale = isGiant ? 1.4 : 1;
   
-  // Type-based base sizes - HERO is 90x95px
-  // Ground 5 (Giant) and Ground 6 (Tank) are the largest
+  // Type-based base sizes - SUMMONS are ~200px, scale ground enemies similarly
+  // Ground 1 & 2 (robot, mech): SMALLER (~140px)
+  // Ground 3 (ninja): MEDIUM (~180px)  
+  // Ground 4 (sentinel/tank): LARGE (~220px) + 5s ARMOR
+  // Ground 5 (giant): LARGEST (~260px) + 5s ARMOR
   const typeSizeMultiplier: Record<string, number> = {
-    robot: 0.85,      // Ground 1 - medium (~77x81)
+    robot: 1.4,       // Ground 1 - Cyan soldier (SMALLER ~126x133)
     drone: 0.55,      // Flying - smaller
-    mech: 0.95,       // Ground 2 - large demon mech (~86x90)
-    ninja: 0.8,       // Ground 3 - medium alien (~72x76)
-    tank: 1.3,        // Ground 6 - LARGE beast tank (~117x124)
-    sentinel: 0.9,    // Ground 4 - medium-large soldier (~81x86)
-    giant: 1.5,       // Ground 5 - LARGEST heavy mech (~135x143)
+    mech: 1.5,        // Ground 2 - Purple soldier (SMALLER ~135x143)
+    ninja: 1.9,       // Ground 3 - Alien beast (MEDIUM ~171x180)
+    tank: 2.4,        // Ground 4 alt - Beast tank (LARGE ~216x228)
+    sentinel: 2.4,    // Ground 4 - Spider tank (LARGE + ARMOR ~216x228)
+    giant: 2.8,       // Ground 5 - LARGEST heavy mech + ARMOR (~252x266)
     bomber: 0.6,      // Flying - smaller
     flyer: 0.55,      // Flying - smaller
     jetrobot: 0.7,    // Flying - medium
@@ -375,7 +382,7 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
       )}
       
       {/* ENEMY ARMOR INDICATOR - Shows when ground enemy has activated armor */}
-      {/* Type-specific colors: Giant (orange), Tank (cyan), Others (magenta) */}
+      {/* Type-specific colors: Giant (orange), Sentinel (magenta/cyan), Others (magenta) */}
       {enemy.hasArmor && enemy.armorTimer && enemy.armorTimer > 0 && !enemy.isDying && (
         <>
           {/* Armor shield effect - color based on enemy type */}
@@ -384,14 +391,12 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
             style={{
               background: enemy.type === 'giant' 
                 ? 'radial-gradient(circle, rgba(255,100,0,0.4), rgba(255,100,0,0.2), transparent)'
-                : enemy.type === 'tank'
-                ? 'radial-gradient(circle, rgba(0,255,255,0.4), rgba(0,255,255,0.2), transparent)'
+                : enemy.type === 'sentinel'
+                ? 'radial-gradient(circle, rgba(255,0,255,0.4), rgba(255,0,255,0.2), transparent)'
                 : 'radial-gradient(circle, rgba(255,0,255,0.4), rgba(255,0,255,0.2), transparent)',
-              border: `3px solid ${enemy.type === 'giant' ? '#ff6600' : enemy.type === 'tank' ? '#00ffff' : '#ff00ff'}`,
+              border: `3px solid ${enemy.type === 'giant' ? '#ff6600' : '#ff00ff'}`,
               boxShadow: enemy.type === 'giant'
                 ? '0 0 25px #ff6600, inset 0 0 20px rgba(255,100,0,0.5)'
-                : enemy.type === 'tank'
-                ? '0 0 25px #00ffff, inset 0 0 20px rgba(0,255,255,0.5)'
                 : '0 0 20px #ff00ff, inset 0 0 15px rgba(255,0,255,0.5)',
             }}
             animate={{ scale: [1, 1.1, 1], opacity: [0.8, 1, 0.8] }}
@@ -403,25 +408,25 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
             style={{ 
               background: enemy.type === 'giant'
                 ? 'linear-gradient(135deg, #ff6600, #ff8800)'
-                : enemy.type === 'tank'
-                ? 'linear-gradient(135deg, #00cccc, #00ffff)'
+                : enemy.type === 'sentinel'
+                ? 'linear-gradient(135deg, #ff00ff, #8800ff)'
                 : 'linear-gradient(135deg, #ff00ff, #8800ff)',
               color: '#fff',
               textShadow: '0 0 4px #000',
-              boxShadow: `0 0 12px ${enemy.type === 'giant' ? '#ff6600' : enemy.type === 'tank' ? '#00ffff' : '#ff00ff'}`,
+              boxShadow: `0 0 12px ${enemy.type === 'giant' ? '#ff6600' : '#ff00ff'}`,
             }}
             animate={{ y: [0, -2, 0], scale: [1, 1.05, 1] }}
             transition={{ duration: 0.4, repeat: Infinity }}
           >
-            🛡️ {enemy.type === 'giant' ? 'HEAVY ARMOR' : enemy.type === 'tank' ? 'TANK ARMOR' : 'ARMOR'} {enemy.armorTimer.toFixed(1)}s
+            🛡️ {enemy.type === 'giant' ? 'HEAVY ARMOR' : enemy.type === 'sentinel' ? 'SPIDER ARMOR' : 'ARMOR'} {enemy.armorTimer.toFixed(1)}s
           </motion.div>
-          {/* Additional armor glow rings for giant and tank */}
-          {(enemy.type === 'giant' || enemy.type === 'tank') && (
+          {/* Additional armor glow rings for giant and sentinel (the last 2 with 5s armor) */}
+          {(enemy.type === 'giant' || enemy.type === 'sentinel') && (
             <>
               <motion.div
                 className="absolute -inset-8 rounded-full pointer-events-none"
                 style={{
-                  border: `2px solid ${enemy.type === 'giant' ? 'rgba(255,100,0,0.5)' : 'rgba(0,255,255,0.5)'}`,
+                  border: `2px solid ${enemy.type === 'giant' ? 'rgba(255,100,0,0.5)' : 'rgba(255,0,255,0.5)'}`,
                 }}
                 animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
                 transition={{ duration: 0.5, repeat: Infinity }}
@@ -429,10 +434,229 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
               <motion.div
                 className="absolute -inset-12 rounded-full pointer-events-none"
                 style={{
-                  border: `1px solid ${enemy.type === 'giant' ? 'rgba(255,100,0,0.3)' : 'rgba(0,255,255,0.3)'}`,
+                  border: `1px solid ${enemy.type === 'giant' ? 'rgba(255,100,0,0.3)' : 'rgba(255,0,255,0.3)'}`,
                 }}
                 animate={{ scale: [1, 1.4, 1], opacity: [0.3, 0.6, 0.3] }}
                 transition={{ duration: 0.6, repeat: Infinity, delay: 0.1 }}
+              />
+            </>
+          )}
+        </>
+      )}
+      
+      {/* ============ GROUND ENEMY SPECIAL VFX ============ */}
+      {/* Each ground enemy type has unique visual effects */}
+      {!enemy.isDying && !isSpawning && isGroundUnit && (
+        <>
+          {/* GROUND 1 & 2 (robot, mech) - Cyan energy lines and scanner effect */}
+          {(enemy.type === 'robot' || enemy.type === 'mech') && (
+            <>
+              {/* Scanning laser line */}
+              <motion.div
+                className="absolute pointer-events-none"
+                style={{
+                  left: -20,
+                  top: '40%',
+                  width: 40,
+                  height: 2,
+                  background: 'linear-gradient(90deg, #00ffff, #fff, #00ffff)',
+                  boxShadow: '0 0 10px #00ffff, 0 0 20px #00ffff',
+                }}
+                animate={{ 
+                  top: ['35%', '60%', '35%'],
+                  opacity: [0.6, 1, 0.6],
+                }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+              {/* Energy pulse at feet */}
+              <motion.div
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-full"
+                style={{
+                  width: displayWidth * 0.8,
+                  height: 8,
+                  background: 'radial-gradient(ellipse, #00ffff88, transparent)',
+                }}
+                animate={{ scaleX: [1, 1.3, 1], opacity: [0.5, 0.8, 0.5] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+              />
+            </>
+          )}
+          
+          {/* GROUND 3 (ninja - alien beast) - Red/orange tentacle glow and threat aura */}
+          {enemy.type === 'ninja' && (
+            <>
+              {/* Menacing red aura */}
+              <motion.div
+                className="absolute -inset-4 rounded-full pointer-events-none"
+                style={{
+                  background: 'radial-gradient(circle, rgba(255,50,50,0.3), transparent)',
+                }}
+                animate={{ scale: [1, 1.15, 1], opacity: [0.4, 0.7, 0.4] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+              />
+              {/* Tentacle glow tips */}
+              {[...Array(3)].map((_, i) => (
+                <motion.div
+                  key={`tentacle-${i}`}
+                  className="absolute rounded-full pointer-events-none"
+                  style={{
+                    width: 8,
+                    height: 8,
+                    background: '#00ffff',
+                    boxShadow: '0 0 15px #00ffff, 0 0 25px #00ffff',
+                    top: `${15 + i * 10}%`,
+                    right: `${-5 + i * 5}%`,
+                  }}
+                  animate={{ 
+                    scale: [1, 1.5, 1],
+                    opacity: [0.7, 1, 0.7],
+                  }}
+                  transition={{ duration: 0.4, repeat: Infinity, delay: i * 0.15 }}
+                />
+              ))}
+            </>
+          )}
+          
+          {/* GROUND 4 (sentinel - spider tank) - Red laser targeting and heavy glow */}
+          {enemy.type === 'sentinel' && (
+            <>
+              {/* Red targeting laser */}
+              <motion.div
+                className="absolute pointer-events-none"
+                style={{
+                  left: -80,
+                  top: '25%',
+                  width: 100,
+                  height: 3,
+                  background: 'linear-gradient(90deg, transparent, #ff3333, #ff0000)',
+                  boxShadow: '0 0 8px #ff0000',
+                }}
+                animate={{ 
+                  opacity: [0.4, 0.9, 0.4],
+                  width: [80, 120, 80],
+                }}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+              {/* Turret charging glow */}
+              <motion.div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  top: '15%',
+                  left: '30%',
+                  width: 20,
+                  height: 20,
+                  background: 'radial-gradient(circle, #ff0000, #ff000088, transparent)',
+                  boxShadow: '0 0 20px #ff0000',
+                }}
+                animate={{ scale: [1, 1.4, 1], opacity: [0.6, 1, 0.6] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+              />
+              {/* Ground impact dust */}
+              <motion.div
+                className="absolute -bottom-1 left-1/2 -translate-x-1/2"
+                style={{
+                  width: displayWidth * 1.2,
+                  height: 12,
+                  background: 'radial-gradient(ellipse, rgba(100,100,100,0.5), transparent)',
+                }}
+                animate={{ scaleX: [1, 1.2, 1], opacity: [0.4, 0.6, 0.4] }}
+                transition={{ duration: 1.2, repeat: Infinity }}
+              />
+            </>
+          )}
+          
+          {/* GROUND 5 (giant - heavy mech) - LARGEST with steam, power aura, and heavy FX */}
+          {enemy.type === 'giant' && (
+            <>
+              {/* Power core glow */}
+              <motion.div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  top: '30%',
+                  left: '40%',
+                  width: 30,
+                  height: 30,
+                  background: 'radial-gradient(circle, #ff6600, #ff330088, transparent)',
+                  boxShadow: '0 0 30px #ff6600, 0 0 50px #ff330088',
+                }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.7, 1, 0.7] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+              />
+              {/* Steam vents from shoulders */}
+              {[...Array(2)].map((_, i) => (
+                <motion.div
+                  key={`steam-${i}`}
+                  className="absolute pointer-events-none"
+                  style={{
+                    top: '10%',
+                    left: i === 0 ? '20%' : '70%',
+                    width: 15,
+                    height: 30,
+                    background: 'linear-gradient(180deg, rgba(200,200,200,0.6), transparent)',
+                    filter: 'blur(3px)',
+                  }}
+                  animate={{ 
+                    height: [20, 40, 20],
+                    opacity: [0.4, 0.8, 0.4],
+                    y: [0, -10, 0],
+                  }}
+                  transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.3 }}
+                />
+              ))}
+              {/* Heavy footstep impact zone */}
+              <motion.div
+                className="absolute -bottom-2 left-1/2 -translate-x-1/2"
+                style={{
+                  width: displayWidth * 1.4,
+                  height: 15,
+                  background: 'radial-gradient(ellipse, rgba(255,100,0,0.4), rgba(100,100,100,0.3), transparent)',
+                }}
+                animate={{ scaleX: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] }}
+                transition={{ duration: 0.6, repeat: Infinity }}
+              />
+              {/* Intimidation aura */}
+              <motion.div
+                className="absolute -inset-8 rounded-full pointer-events-none"
+                style={{
+                  background: 'radial-gradient(circle, rgba(255,100,0,0.2), transparent)',
+                  border: '1px solid rgba(255,100,0,0.3)',
+                }}
+                animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+            </>
+          )}
+          
+          {/* GROUND 4 alt (tank) - Similar to sentinel */}
+          {enemy.type === 'tank' && (
+            <>
+              {/* Red targeting laser */}
+              <motion.div
+                className="absolute pointer-events-none"
+                style={{
+                  left: -60,
+                  top: '30%',
+                  width: 80,
+                  height: 2,
+                  background: 'linear-gradient(90deg, transparent, #ff3333)',
+                  boxShadow: '0 0 6px #ff0000',
+                }}
+                animate={{ opacity: [0.4, 0.8, 0.4] }}
+                transition={{ duration: 0.8, repeat: Infinity }}
+              />
+              {/* Turret glow */}
+              <motion.div
+                className="absolute rounded-full pointer-events-none"
+                style={{
+                  top: '20%',
+                  left: '35%',
+                  width: 15,
+                  height: 15,
+                  background: 'radial-gradient(circle, #ff3333, transparent)',
+                  boxShadow: '0 0 15px #ff3333',
+                }}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0.9, 0.5] }}
+                transition={{ duration: 0.7, repeat: Infinity }}
               />
             </>
           )}
@@ -523,13 +747,13 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
               alt={enemy.type}
               className="w-full h-full object-contain"
               style={{
-                // Enemies face LEFT toward the hero (hero is on left side of screen)
-                // If sprite faces right, we DON'T flip. If sprite faces left, we flip.
-                // Ground sprites face RIGHT by default, so NO flip needed
-                // Boss sprites stay as-is
-                transform: isBoss ? 'none' : 'none',
+                // NEW SPRITES face RIGHT by default - FLIP to face LEFT toward hero
+                // Use scaleX(-1) to flip horizontally so enemies face the hero
+                transform: isBoss ? 'none' : 'scaleX(-1)',
                 // Remove any white background - use transparency
                 background: 'transparent',
+                // Ensure PNG transparency is preserved  
+                mixBlendMode: 'normal',
                 // Make boss phase 3 image super bright and visible
                 filter: isBoss && bossPhase === 3 
                   ? 'brightness(1.4) saturate(1.5) contrast(1.2)' 
