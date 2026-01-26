@@ -162,8 +162,8 @@ interface ExtendedGameState extends GameState {
   allyCooldown: number;
   ultCooldown: number;
   tankCooldown: number;
-  // Track if hero has moved - enemies only attack after hero makes first move
-  heroHasMoved: boolean;
+  // Track if first gift was sent - enemies only start moving/attacking after first gift
+  firstGiftSent: boolean;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -233,8 +233,8 @@ const INITIAL_STATE: ExtendedGameState = {
   allyCooldown: 0,
   ultCooldown: 0,
   tankCooldown: 0,
-  // Hero movement tracking - enemies don't attack until hero moves
-  heroHasMoved: false,
+  // First gift tracking - enemies don't move/attack until first gift is sent
+  firstGiftSent: false,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -274,8 +274,9 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const enemies: Enemy[] = [];
   const obstacles: Obstacle[] = [];
   
-  // WAVE 1 = 20 enemies, then increase by 30% each wave
-  const baseEnemyCount = 20;
+  // WAVE 1 = 12 enemies (VERY EASY to learn), then increase by 30% each wave
+  // This gives players time to understand the gift-based combat system
+  const baseEnemyCount = 12;
   const targetEnemyCount = Math.floor(baseEnemyCount * Math.pow(1.3, wave - 1));
   
   // Equal split between drones (flying) and ground enemies
@@ -283,11 +284,16 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const groundCount = targetEnemyCount - droneCount;
   
   // Level length scales with enemy count
-  const levelLength = Math.min(3000 + targetEnemyCount * 80, 50000);
+  const levelLength = Math.min(2500 + targetEnemyCount * 80, 50000);
   
-  // DAMAGE SCALING - Wave 1 has very low damage, increases each wave
-  // Wave 1: base * 0.3, Wave 5: base * 0.7, Wave 10: base * 1.2
-  const damageMultiplier = 0.3 + (wave - 1) * 0.1;
+  // DAMAGE SCALING - Wave 1 has VERY LOW damage for onboarding, scales progressively
+  // Wave 1: base * 0.15 (very forgiving), Wave 5: base * 0.55, Wave 10: base * 1.05
+  // This allows new players to survive longer and learn mechanics
+  const damageMultiplier = 0.15 + (wave - 1) * 0.10;
+  
+  // HEALTH SCALING - Wave 1 enemies are also weaker to die faster
+  // Gives satisfying kills early on, enemies get tankier in later waves
+  const healthMultiplier = 0.6 + (wave - 1) * 0.10; // Wave 1: 0.6x, Wave 10: 1.5x
   const waveBonus = Math.min(wave * 0.15, 3); // Health scaling per wave
   
   // Spread enemies evenly across the level
@@ -307,28 +313,28 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       enemyType = 'robot';
       const size = getEnemySize('robot', wave);
       width = size.width; height = size.height;
-      health = 45 * (1 + waveBonus); speed = 55 + wave * 2.5; 
+      health = Math.floor(45 * healthMultiplier * (1 + waveBonus)); speed = 55 + wave * 2.5; 
       damage = Math.floor((9 + wave) * damageMultiplier);
     } else if (typeRoll < 0.35) {
       // MECH - ground unit
       enemyType = 'mech';
       const size = getEnemySize('mech', wave);
       width = size.width; height = size.height;
-      health = 90 * (1 + waveBonus); speed = 32 + wave * 2.5; 
+      health = Math.floor(90 * healthMultiplier * (1 + waveBonus)); speed = 32 + wave * 2.5; 
       damage = Math.floor((16 + wave) * damageMultiplier);
     } else if (typeRoll < 0.50) {
       // TANK - ground unit
       enemyType = 'tank';
       const size = getEnemySize('tank', wave);
       width = size.width; height = size.height;
-      health = 180 * (1 + waveBonus); speed = 18 + wave * 1.5; 
+      health = Math.floor(180 * healthMultiplier * (1 + waveBonus)); speed = 18 + wave * 1.5; 
       damage = Math.floor((22 + wave) * damageMultiplier);
     } else if (typeRoll < 0.70) {
       // SENTINEL - Large ground mech
       enemyType = 'sentinel';
       const size = getEnemySize('sentinel', wave);
       width = size.width; height = size.height;
-      health = 220 * (1 + waveBonus);
+      health = Math.floor(220 * healthMultiplier * (1 + waveBonus));
       speed = 35 + wave * 1.5; 
       damage = Math.floor((25 + wave) * damageMultiplier);
     } else if (typeRoll < 0.85) {
@@ -336,14 +342,14 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       enemyType = 'ninja';
       const size = getEnemySize('ninja', wave);
       width = size.width; height = size.height;
-      health = 35 * (1 + waveBonus * 0.6); speed = 150 + wave * 8; 
+      health = Math.floor(35 * healthMultiplier * (1 + waveBonus * 0.6)); speed = 150 + wave * 8; 
       damage = Math.floor((12 + wave) * damageMultiplier);
     } else {
       // GIANT - large ground unit
       enemyType = 'giant';
       const size = getEnemySize('giant', wave);
       width = size.width; height = size.height;
-      health = 300 * (1 + waveBonus); speed = 25 + wave; 
+      health = Math.floor(300 * healthMultiplier * (1 + waveBonus)); speed = 25 + wave; 
       damage = Math.floor((30 + wave * 2) * damageMultiplier);
     }
     
@@ -394,7 +400,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       // DRONE - flying enemy (70% of flying enemies)
       const isSpiralDrone = Math.random() < 0.25;
       const spiralCenterY = GROUND_Y + 120 + Math.random() * 80;
-      const droneHealth = 32 * (1 + waveBonus * 0.5);
+      const droneHealth = Math.floor(32 * healthMultiplier * (1 + waveBonus * 0.5));
       
       enemies.push({
         id: `drone-${x}-${Math.random()}`,
@@ -424,7 +430,7 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
       });
     } else {
       // BOMBER - flying enemy (30% of flying enemies)
-      const bomberHealth = 50 * (1 + waveBonus * 0.6);
+      const bomberHealth = Math.floor(50 * healthMultiplier * (1 + waveBonus * 0.6));
       const bomberY = GROUND_Y + 220 + Math.random() * 60;
       
       enemies.push({
@@ -604,11 +610,11 @@ export const useGameState = () => {
       currentWave: wave,
       gameStartTime,
       particleResetTimer: PARTICLE_LIFETIME,
-      heroHasMoved: false, // Reset - enemies wait for hero to move
+      firstGiftSent: false, // Reset - enemies wait for first gift to be sent
     });
     setGiftEvents([]);
     lastUpdateRef.current = Date.now();
-    showSpeechBubble(`WAVE ${wave}! LET'S GO! 🔥`, 'excited');
+    showSpeechBubble(`WAVE ${wave}! SEND A GIFT TO START! 🎁`, 'excited');
   }, [showSpeechBubble]);
 
   const startNextWave = useCallback(() => {
@@ -654,8 +660,8 @@ export const useGameState = () => {
         bombs: [],
         empGrenades: [],
         powerups: [],
-        // Reset hero movement tracking - enemies wait for hero to move
-        heroHasMoved: false,
+        // Reset first gift tracking - enemies wait for first gift to be sent
+        firstGiftSent: false,
       }));
       showSpeechBubble(`WAVE ${nextWave} BEGINS! 🔥💪`, 'excited');
     }
@@ -813,8 +819,6 @@ export const useGameState = () => {
             x: prev.player.x + moveDistance,
             animationState: 'run',
           };
-          // Mark that hero has moved - enemies can now attack
-          newState.heroHasMoved = true;
           // Camera will smoothly follow via the game loop
           newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT/2, 8, 'dash', '#00ffff')];
           newState.score += 15;
@@ -844,10 +848,8 @@ export const useGameState = () => {
           };
           newState.projectiles = [...prev.projectiles, bullet];
           newState.player = { ...prev.player, isShooting: true, animationState: 'attack' };
-          // Mark that hero has moved - enemies can now attack
-          newState.heroHasMoved = true;
           // Particles from correct position
-          newState.particles = [...prev.particles, 
+          newState.particles = [...prev.particles,
             ...createParticles(heroWorldX + (isSpaceshipMode ? 50 : 0), bulletY, 15, 'muzzle', isSpaceshipMode ? '#ff00ff' : '#00ffff'),
             ...createParticles(heroWorldX + (isSpaceshipMode ? 55 : 5), bulletY, 6, 'spark', '#ffffff'),
           ];
@@ -971,6 +973,9 @@ export const useGameState = () => {
           showSpeechBubble(`⚡ EMP TO CENTER! [${newState.empCharges}/2] ⚡`, 'excited');
           break;
       }
+      
+      // Mark that first gift was sent - enemies can now start moving/attacking
+      newState.firstGiftSent = true;
       
       return newState;
     });
@@ -2598,12 +2603,12 @@ export const useGameState = () => {
           .filter(e => !e.isDying || e.deathTimer > 0);
         
         // ENEMIES HIT ONCE THEN JUMP BACK - No auto-kill, enemies attack then retreat
-        // Enemies only start attacking after 2 seconds from game start
+        // Enemies only start moving/attacking after first gift is sent
         const ENEMY_ATTACK_RANGE = 70;
         const attackCooldownDecrement = delta;
         const timeSinceGameStart = (Date.now() - prev.gameStartTime) / 1000;
-        // Enemies only attack after hero makes first move AND 2 second delay has passed
-        const canEnemiesAttack = prev.heroHasMoved && timeSinceGameStart >= ENEMY_ATTACK_DELAY;
+        // Enemies only attack after FIRST GIFT is sent AND 2 second delay has passed
+        const canEnemiesAttack = prev.firstGiftSent && timeSinceGameStart >= ENEMY_ATTACK_DELAY;
         
         newState.enemies = newState.enemies.map(enemy => {
           if (enemy.isDying || enemy.type === 'boss' || enemy.isSpawning) return enemy;
@@ -2983,15 +2988,25 @@ export const useGameState = () => {
               };
             }
 
-            
+
             // Smooth horizontal approach toward player
             const horizontalMove = direction * enemy.speed * delta * 0.25;
+            
+            // Calculate new X position
+            let newX = enemy.x + horizontalMove;
+            
+            // DRONE BOUNDARY: Drones cannot go past the hero's position
+            // This prevents drones from flying behind the player
+            const heroLeftEdge = prev.player.x - 30; // Give small buffer before hero
+            if (newX < heroLeftEdge) {
+              newX = heroLeftEdge; // Stop at hero boundary
+            }
             
             // Continue vertical flying movement
             return {
               ...enemy,
               y: targetY,
-              x: enemy.x + horizontalMove,
+              x: newX,
               animationPhase: newAnimPhase,
               bombCooldown: Math.max(0, bombCooldown),
             };
@@ -3106,9 +3121,18 @@ export const useGameState = () => {
             // Add some vertical oscillation while pursuing
             const oscillationY = Math.sin(newAnimPhase * 3) * 20 * delta;
             
+            // Calculate new X position
+            let newBomberX = enemy.x + moveX;
+            
+            // BOMBER BOUNDARY: Bombers cannot go past the hero's position
+            const heroLeftBomberEdge = prev.player.x - 20;
+            if (newBomberX < heroLeftBomberEdge) {
+              newBomberX = heroLeftBomberEdge;
+            }
+            
             return {
               ...enemy,
-              x: enemy.x + moveX,
+              x: newBomberX,
               y: Math.max(minHeight + GROUND_Y, Math.min(maxHeight + GROUND_Y, enemy.y + moveY + oscillationY)),
               animationPhase: newAnimPhase,
               bombCooldown: Math.max(0, bombCooldown),
