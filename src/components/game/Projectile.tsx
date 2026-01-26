@@ -205,7 +205,7 @@ interface EnemyLaserProps extends ProjectileProps {
   isDroneLaser?: boolean;
 }
 
-export const EnemyLaserSprite = memo(forwardRef<HTMLDivElement, EnemyLaserProps>(
+const EnemyLaserSpriteInner = forwardRef<HTMLDivElement, EnemyLaserProps>(
   ({ projectile, cameraX, isDroneLaser = false }, ref) => {
     const screenX = projectile.x - cameraX;
     
@@ -377,8 +377,9 @@ export const EnemyLaserSprite = memo(forwardRef<HTMLDivElement, EnemyLaserProps>
       </motion.div>
     );
   }
-));
-EnemyLaserSprite.displayName = 'EnemyLaserSprite';
+);
+EnemyLaserSpriteInner.displayName = 'EnemyLaserSprite';
+export const EnemyLaserSprite = memo(EnemyLaserSpriteInner);
 
 // HIGH-END Boss Fireball with dramatic fire effects
 export const FireballSprite = memo(({ fireball, cameraX }: FireballProps) => {
