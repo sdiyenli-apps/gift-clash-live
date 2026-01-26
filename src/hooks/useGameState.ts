@@ -3836,7 +3836,7 @@ export const useGameState = () => {
           const units = createSupportUnits(prev.player.x, prev.player.y, prev.player.maxHealth, prev.player.shield, activeAllies);
           newState.supportUnits = [...prev.supportUnits, ...units.slice(0, 2 - activeAllies)];
           newState.allyCooldown = 15;
-          newState.screenShake = 0.3;
+          newState.screenShake = 1.0; // Heavy screen shake on ally landing
           newState.score += 200;
           showSpeechBubble("🤖 ALLIES DEPLOYED! 🤖", 'excited');
         }
@@ -3853,7 +3853,7 @@ export const useGameState = () => {
           const tank = createTankSupport(prev.player.x, prev.player.y);
           newState.supportUnits = [...prev.supportUnits, tank];
           newState.tankCooldown = 15;
-          newState.screenShake = 0.5;
+          newState.screenShake = 1.5; // Heavy screen shake on tank landing
           newState.score += 300;
           showSpeechBubble("🔫 TANK DEPLOYED! 🔫", 'excited');
         }
