@@ -10,7 +10,13 @@ import { GiftPanel } from '@/components/game/GiftPanel';
 import { GameOverlay } from '@/components/game/GameOverlay';
 import { WaveTransition } from '@/components/game/WaveTransition';
 import { AdminPanel } from '@/components/game/AdminPanel';
-import gameTheme from '@/assets/cpt-squirbert-theme.mp3';
+// Import uploaded music tracks for audio button
+import track1 from '@/assets/music/track-1.mp3';
+import track2 from '@/assets/music/track-2.mp3';
+import track3 from '@/assets/music/track-3.mp3';
+import track4 from '@/assets/music/track-4.mp3';
+
+const MUSIC_TRACKS = [track1, track2, track3, track4];
 
 const Index = () => {
   // ALL HOOKS FIRST - Never place computed values between hooks
@@ -62,27 +68,27 @@ const Index = () => {
   // ALL useCallbacks together
   const handleTriggerGift = useCallback((giftId: string) => {
     if (gameState.phase !== 'playing') return;
-    playSound('gift');
+    // Gift sound removed as requested
     triggerGift(giftId, `Player_${Math.floor(Math.random() * 999)}`);
-  }, [gameState.phase, triggerGift, playSound]);
+  }, [gameState.phase, triggerGift]);
 
   const handleSummonAlly = useCallback(() => {
     if (gameState.phase !== 'playing') return;
-    playSound('gift');
+    // Gift sound removed as requested
     triggerSummon('ally');
-  }, [gameState.phase, playSound, triggerSummon]);
+  }, [gameState.phase, triggerSummon]);
 
   const handleSummonUlt = useCallback(() => {
     if (gameState.phase !== 'playing') return;
-    playSound('gift');
+    // Gift sound removed as requested
     triggerSummon('ult');
-  }, [gameState.phase, playSound, triggerSummon]);
+  }, [gameState.phase, triggerSummon]);
 
   const handleSummonTank = useCallback(() => {
     if (gameState.phase !== 'playing') return;
-    playSound('gift');
+    // Gift sound removed as requested
     triggerSummon('tank');
-  }, [gameState.phase, playSound, triggerSummon]);
+  }, [gameState.phase, triggerSummon]);
 
   // Drag handlers for Arena
   const handleArenaDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
@@ -154,15 +160,30 @@ const Index = () => {
     }
   }, [gameState.phase, startMusic, stopMusic]);
   
-  // Legacy audio toggle (for admin panel)
+  // Audio button toggle - uses uploaded music tracks with rotation
+  const currentTrackRef = useRef(0);
+  
   useEffect(() => {
     if (!audioRef.current) {
-      audioRef.current = new Audio(gameTheme);
-      audioRef.current.loop = true;
-      audioRef.current.volume = 0.5;
+      // Initialize with first track
+      audioRef.current = new Audio(MUSIC_TRACKS[0]);
+      audioRef.current.volume = 0.4;
+      audioRef.current.loop = false;
+      
+      // Setup track rotation on end
+      audioRef.current.addEventListener('ended', () => {
+        if (audioRef.current) {
+          currentTrackRef.current = (currentTrackRef.current + 1) % MUSIC_TRACKS.length;
+          audioRef.current.src = MUSIC_TRACKS[currentTrackRef.current];
+          audioRef.current.play().catch(() => {});
+        }
+      });
     }
     
     if (audioOn) {
+      // Start from a random track for variety
+      currentTrackRef.current = Math.floor(Math.random() * MUSIC_TRACKS.length);
+      audioRef.current.src = MUSIC_TRACKS[currentTrackRef.current];
       audioRef.current.play().catch(console.error);
     } else {
       audioRef.current.pause();

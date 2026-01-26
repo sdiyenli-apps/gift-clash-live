@@ -130,20 +130,20 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
   const bossPhaseScale = isBoss ? (1 + (bossPhase - 1) * 0.2) : 1;
   const giantScale = isGiant ? 1.4 : 1;
   
-  // Type-based base sizes (before strength scaling)
-  // GIANT (ground-5) is now the LARGEST ground unit
+  // Type-based base sizes - HERO is 90x95px
+  // Ground 5 (Giant) and Ground 6 (Tank) are the largest
   const typeSizeMultiplier: Record<string, number> = {
-    robot: 0.75,      // Ground 1 - medium
-    drone: 0.6,
-    mech: 0.9,        // Ground 2 - large demon mech
-    ninja: 0.7,       // Ground 3 - medium alien
-    tank: 0.95,       // Ground 6 - large beast tank
-    sentinel: 0.85,   // Ground 4 - medium-large soldier
-    giant: 1.4,       // Ground 5 - LARGEST (heavy mech)
-    bomber: 0.65,
-    flyer: 0.6,
-    jetrobot: 0.75,
-    boss: 1.0,
+    robot: 0.85,      // Ground 1 - medium (~77x81)
+    drone: 0.55,      // Flying - smaller
+    mech: 0.95,       // Ground 2 - large demon mech (~86x90)
+    ninja: 0.8,       // Ground 3 - medium alien (~72x76)
+    tank: 1.3,        // Ground 6 - LARGE beast tank (~117x124)
+    sentinel: 0.9,    // Ground 4 - medium-large soldier (~81x86)
+    giant: 1.5,       // Ground 5 - LARGEST heavy mech (~135x143)
+    bomber: 0.6,      // Flying - smaller
+    flyer: 0.55,      // Flying - smaller
+    jetrobot: 0.7,    // Flying - medium
+    boss: 1.0,        // Boss - scaled separately
   };
   
   const baseTypeScale = typeSizeMultiplier[enemy.type] || 0.7;
@@ -523,9 +523,13 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
               alt={enemy.type}
               className="w-full h-full object-contain"
               style={{
-                // Non-boss enemies flip to face LEFT toward the hero
-                // Boss sprites stay mirrored (original orientation facing right)
-                transform: isBoss ? 'none' : 'scaleX(-1)',
+                // Enemies face LEFT toward the hero (hero is on left side of screen)
+                // If sprite faces right, we DON'T flip. If sprite faces left, we flip.
+                // Ground sprites face RIGHT by default, so NO flip needed
+                // Boss sprites stay as-is
+                transform: isBoss ? 'none' : 'none',
+                // Remove any white background - use transparency
+                background: 'transparent',
                 // Make boss phase 3 image super bright and visible
                 filter: isBoss && bossPhase === 3 
                   ? 'brightness(1.4) saturate(1.5) contrast(1.2)' 
