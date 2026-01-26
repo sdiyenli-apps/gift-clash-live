@@ -107,6 +107,20 @@ export const Arena = ({ gameState }: ArenaProps) => {
   const prevMultiplierRef = useRef(giftDamageMultiplier);
   const [previousMultiplier, setPreviousMultiplier] = useState(1);
   
+  // WIND EFFECT - oscillating wind direction for dynamic environment
+  const [windPhase, setWindPhase] = useState(0);
+  
+  useEffect(() => {
+    const windInterval = setInterval(() => {
+      setWindPhase(prev => (prev + 0.02) % (Math.PI * 2));
+    }, 50);
+    return () => clearInterval(windInterval);
+  }, []);
+  
+  // Wind strength oscillates between -1 and 1
+  const windStrength = Math.sin(windPhase) * 0.8;
+  const windDirection = windStrength > 0 ? 'right' : 'left';
+  
   useEffect(() => {
     if (giftDamageMultiplier !== prevMultiplierRef.current) {
       setPreviousMultiplier(prevMultiplierRef.current);
@@ -157,8 +171,8 @@ export const Arena = ({ gameState }: ArenaProps) => {
         }}
       />
       
-      {/* SMOKE/WAR MIST EFFECTS - Multiple animated layers */}
-      {/* Bottom ground smoke - dense and slow */}
+      {/* SMOKE/WAR MIST EFFECTS - Wind-affected layers */}
+      {/* Bottom ground smoke - dense, wind-pushed */}
       <motion.div
         className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none z-10"
         style={{
@@ -167,12 +181,12 @@ export const Arena = ({ gameState }: ArenaProps) => {
         }}
         animate={{ 
           opacity: [0.5, 0.7, 0.5],
-          x: [-15, 15, -15],
+          x: windStrength * 40,
         }}
-        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
       />
       
-      {/* Mid-level war smoke wisps - drifting left */}
+      {/* Mid-level war smoke wisps - wind-driven */}
       <motion.div
         className="absolute bottom-16 left-0 right-0 h-24 pointer-events-none z-10"
         style={{
@@ -181,26 +195,26 @@ export const Arena = ({ gameState }: ArenaProps) => {
         }}
         animate={{ 
           opacity: [0.3, 0.5, 0.3],
-          x: [0, -40, 0],
+          x: windStrength * 60,
         }}
-        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
       />
       
-      {/* Right side smoke plume - drifting right */}
+      {/* Right side smoke plume - wind-affected */}
       <motion.div
-        className="absolute bottom-10 left-1/2 right-0 h-32 pointer-events-none z-10"
+        className="absolute bottom-10 left-1/4 right-0 h-32 pointer-events-none z-10"
         style={{
-          background: 'radial-gradient(ellipse 60% 100% at 70% 90%, rgba(55,60,75,0.3) 0%, transparent 60%)',
+          background: 'radial-gradient(ellipse 60% 100% at 60% 90%, rgba(55,60,75,0.3) 0%, transparent 60%)',
           filter: 'blur(14px)',
         }}
         animate={{ 
           opacity: [0.25, 0.45, 0.25],
-          x: [0, 30, 0],
+          x: windStrength * 50,
         }}
-        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
       />
       
-      {/* Upper atmospheric haze */}
+      {/* Upper atmospheric haze - slight wind sway */}
       <motion.div
         className="absolute top-0 left-0 right-0 h-48 pointer-events-none z-10"
         style={{
@@ -209,11 +223,41 @@ export const Arena = ({ gameState }: ArenaProps) => {
         }}
         animate={{ 
           opacity: [0.3, 0.5, 0.3],
+          x: windStrength * 20,
         }}
-        transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 1, ease: 'easeOut' }}
       />
       
-      {/* Dust particles floating in air - subtle war debris */}
+      {/* WIND STREAKS - visible wind effect */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none z-10 overflow-hidden"
+        style={{ opacity: Math.abs(windStrength) * 0.4 }}
+      >
+        {[0, 1, 2, 3, 4].map(i => (
+          <motion.div
+            key={`wind-streak-${i}`}
+            className="absolute h-[1px]"
+            style={{
+              width: 60 + Math.random() * 80,
+              top: `${15 + i * 18}%`,
+              left: windStrength > 0 ? '-20%' : '100%',
+              background: `linear-gradient(${windStrength > 0 ? '90deg' : '270deg'}, transparent, rgba(200,210,230,0.15), rgba(180,190,210,0.08), transparent)`,
+              filter: 'blur(1px)',
+            }}
+            animate={{
+              x: windStrength > 0 ? [0, 800] : [0, -800],
+            }}
+            transition={{
+              duration: 2 + i * 0.3,
+              repeat: Infinity,
+              ease: 'linear',
+              delay: i * 0.4,
+            }}
+          />
+        ))}
+      </motion.div>
+      
+      {/* Dust particles floating in air - wind-affected debris */}
       <motion.div
         className="absolute inset-0 pointer-events-none z-10"
         style={{
@@ -227,9 +271,10 @@ export const Arena = ({ gameState }: ArenaProps) => {
         }}
         animate={{ 
           opacity: [0.4, 0.7, 0.4],
+          x: windStrength * 30,
           y: [-5, 5, -5],
         }}
-        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 0.8, ease: 'easeOut' }}
       />
       {/* Mini-map - positioned at top for visibility */}
       <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50">

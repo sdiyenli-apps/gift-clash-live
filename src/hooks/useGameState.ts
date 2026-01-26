@@ -2552,8 +2552,27 @@ export const useGameState = () => {
                 // ENEMY ARMOR - if ground enemy has active armor, reduce damage by 80%
                 // Apply GIFT COMBO MULTIPLIER to all damage!
                 let actualDamage = proj.damage * prev.giftDamageMultiplier;
+                
+                // SIZE-BASED DAMAGE RESISTANCE - larger enemies take less damage
+                // Boss: 40% damage, Giant: 50%, Tank/Sentinel: 60%, Mech: 80%, others: 100%
+                const sizeResistance: Record<string, number> = {
+                  boss: 0.4,      // Takes only 40% damage (60% reduction)
+                  giant: 0.5,     // Takes only 50% damage
+                  tank: 0.6,      // Takes only 60% damage
+                  sentinel: 0.65, // Takes only 65% damage
+                  mech: 0.8,      // Takes only 80% damage
+                  ninja: 0.9,     // Takes only 90% damage
+                  robot: 1.0,     // Full damage
+                  drone: 1.0,     // Full damage
+                  bomber: 1.0,    // Full damage
+                  flyer: 1.0,     // Full damage
+                  jetrobot: 0.9,  // Takes only 90% damage
+                };
+                const resistanceFactor = sizeResistance[enemy.type] || 1.0;
+                actualDamage *= resistanceFactor;
+                
                 if (enemy.hasArmor && enemy.armorTimer && enemy.armorTimer > 0) {
-                  actualDamage = (proj.damage * prev.giftDamageMultiplier) * 0.2; // Only 20% damage gets through
+                  actualDamage = (proj.damage * prev.giftDamageMultiplier * resistanceFactor) * 0.2; // Only 20% damage gets through
                   newState.particles = [...newState.particles, ...createParticles(
                     proj.x, proj.y, 10, 'spark', '#ff00ff'
                   )];
