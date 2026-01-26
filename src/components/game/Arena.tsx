@@ -5,7 +5,7 @@ import { Hero } from './Hero';
 import { EnemySprite } from './Enemy';
 import { ProjectileSprite, EnemyLaserSprite, FireballSprite } from './Projectile';
 import { MetalSlugProjectile } from './MetalSlugProjectile';
-import { Particles } from './Particles';
+import { OptimizedParticles } from './OptimizedParticles';
 import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
@@ -16,6 +16,7 @@ import { FloorAssets } from './FloorAssets';
 import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
 import { DronePaths } from './DronePath';
+import { EnemiesWaitingIndicator } from './EnemiesWaitingIndicator';
 
 interface NeonLaser {
   id: string;
@@ -56,7 +57,7 @@ interface ExtendedGameState extends GameState {
   supportUnits?: SupportUnit[];
   supportProjectiles?: Projectile[];
   evasionPopup?: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
-  
+  heroHasMoved?: boolean;
 }
 
 interface ArenaProps {
@@ -77,7 +78,11 @@ export const Arena = ({ gameState }: ArenaProps) => {
     bossTransformFlash = 0,
     supportUnits = [], supportProjectiles = [],
     evasionPopup = null,
+    heroHasMoved = true,
   } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
+  
+  // Calculate active enemy count for the waiting indicator
+  const activeEnemyCount = enemies.filter(e => !e.isDying && !e.isSpawning).length;
   
   const shakeX = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
   const shakeY = screenShake ? (Math.random() - 0.5) * screenShake * 8 : 0;
@@ -690,7 +695,14 @@ export const Arena = ({ gameState }: ArenaProps) => {
           isVisible={currentWave === 1000 && !isBossFight && distance > levelLength - 600}
         />
         
-        <Particles particles={particles} cameraX={cameraX} />
+        {/* ENEMIES WAITING INDICATOR - Shows until hero makes first move */}
+        <EnemiesWaitingIndicator 
+          isVisible={!heroHasMoved && activeEnemyCount > 0} 
+          enemyCount={activeEnemyCount} 
+        />
+        
+        {/* Optimized Particles with boss fight performance mode */}
+        <OptimizedParticles particles={particles} cameraX={cameraX} isBossFight={isBossFight} />
         
         <ChaosElements 
           flyingRobots={flyingRobots} 
