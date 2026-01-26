@@ -22,6 +22,7 @@ const Index = () => {
   // ALL HOOKS FIRST - Never place computed values between hooks
   const [autoSimulate] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
+  const [musicVolume, setMusicVolume] = useState(0.7); // Music volume 0-1 (default 70%)
   const [showControls, setShowControls] = useState(false);
   const [editMode, setEditMode] = useState(false);
   
@@ -162,17 +163,18 @@ const Index = () => {
   
   // Audio button toggle - uses uploaded music tracks with rotation
   const currentTrackRef = useRef(0);
+  const isPlayingRef = useRef(false);
   
   useEffect(() => {
     if (!audioRef.current) {
       // Initialize with first track
       audioRef.current = new Audio(MUSIC_TRACKS[0]);
-      audioRef.current.volume = 0.4;
+      audioRef.current.volume = musicVolume;
       audioRef.current.loop = false;
       
-      // Setup track rotation on end
+      // Setup track rotation on end - prevents overlap
       audioRef.current.addEventListener('ended', () => {
-        if (audioRef.current) {
+        if (audioRef.current && isPlayingRef.current) {
           currentTrackRef.current = (currentTrackRef.current + 1) % MUSIC_TRACKS.length;
           audioRef.current.src = MUSIC_TRACKS[currentTrackRef.current];
           audioRef.current.play().catch(() => {});
@@ -181,20 +183,35 @@ const Index = () => {
     }
     
     if (audioOn) {
-      // Start from a random track for variety
-      currentTrackRef.current = Math.floor(Math.random() * MUSIC_TRACKS.length);
-      audioRef.current.src = MUSIC_TRACKS[currentTrackRef.current];
-      audioRef.current.play().catch(console.error);
+      // Ensure no overlap - pause before starting new track
+      if (!isPlayingRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        // Start from a random track for variety
+        currentTrackRef.current = Math.floor(Math.random() * MUSIC_TRACKS.length);
+        audioRef.current.src = MUSIC_TRACKS[currentTrackRef.current];
+        audioRef.current.play().catch(console.error);
+        isPlayingRef.current = true;
+      }
     } else {
       audioRef.current.pause();
+      isPlayingRef.current = false;
     }
     
     return () => {
       if (audioRef.current) {
         audioRef.current.pause();
+        isPlayingRef.current = false;
       }
     };
   }, [audioOn]);
+  
+  // Update music volume when slider changes
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = musicVolume;
+    }
+  }, [musicVolume]);
 
   // Global drag event listeners
   useEffect(() => {
@@ -312,6 +329,8 @@ const Index = () => {
         setShowControls={setShowControls}
         audioOn={audioOn}
         setAudioOn={setAudioOn}
+        musicVolume={musicVolume}
+        setMusicVolume={setMusicVolume}
         editMode={editMode}
         setEditMode={setEditMode}
         arenaScale={arenaScale}
