@@ -56,13 +56,42 @@ export const GiftComboIndicator = memo(({ giftCombo, giftComboTimer, damageMulti
   
   return (
     <AnimatePresence>
+      {/* Screen flash effect on multiplier increase */}
+      {damageMultiplier >= 1.5 && (
+        <motion.div
+          key={`flash-${Math.floor(damageMultiplier * 2)}`}
+          className="fixed inset-0 z-[99] pointer-events-none"
+          style={{
+            background: `radial-gradient(circle at center, ${style.color}40, transparent 70%)`,
+          }}
+          initial={{ opacity: 0.8 }}
+          animate={{ opacity: 0 }}
+          transition={{ duration: 0.4 }}
+        />
+      )}
+      
       <motion.div
         key={`combo-${giftCombo}`}
-        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[100] pointer-events-none"
-        initial={{ scale: 0.5, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.8, opacity: 0 }}
+        className="fixed top-16 left-1/2 -translate-x-1/2 z-[100] pointer-events-none"
+        initial={{ scale: 0.5, opacity: 0, y: -30 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        exit={{ scale: 0.8, opacity: 0, y: -20 }}
       >
+        {/* Power surge effect for high multipliers */}
+        {damageMultiplier >= 2.0 && (
+          <motion.div
+            className="absolute inset-0 -m-8 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse at center, ${style.glow}30, transparent 60%)`,
+            }}
+            animate={{ 
+              scale: [1, 1.5, 1],
+              opacity: [0.4, 0.8, 0.4],
+            }}
+            transition={{ duration: 0.6, repeat: Infinity }}
+          />
+        )}
+        
         {/* Main combo container */}
         <div 
           className="relative px-6 py-3 rounded-xl"
@@ -192,6 +221,32 @@ export const GiftComboIndicator = memo(({ giftCombo, giftComboTimer, damageMulti
                   delay: i * 0.1,
                 }}
               />
+            ))}
+          </>
+        )}
+        
+        {/* Lightning bolts for legendary tier */}
+        {damageMultiplier >= 3.0 && (
+          <>
+            {[0, 1].map((i) => (
+              <motion.div
+                key={`lightning-${i}`}
+                className="absolute pointer-events-none"
+                style={{
+                  left: i === 0 ? -30 : 'auto',
+                  right: i === 1 ? -30 : 'auto',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  fontSize: 24,
+                }}
+                animate={{
+                  opacity: [0.5, 1, 0.5],
+                  scale: [0.9, 1.1, 0.9],
+                }}
+                transition={{ duration: 0.2, repeat: Infinity, delay: i * 0.1 }}
+              >
+                ⚡
+              </motion.div>
             ))}
           </>
         )}

@@ -8,9 +8,39 @@ interface HeroProps {
   cameraX: number;
   isUltraMode: boolean;
   speechBubble: SpeechBubble | null;
+  damageMultiplier?: number;
 }
 
-export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) => {
+// Get power-up visual style based on multiplier
+const getPowerUpStyle = (multiplier: number) => {
+  if (multiplier >= 3.0) return { 
+    glowColor: '#ff00ff', 
+    intensity: 'legendary',
+    pulseSpeed: 0.15,
+    auraSize: 25,
+  };
+  if (multiplier >= 2.5) return { 
+    glowColor: '#ff4400', 
+    intensity: 'mythic',
+    pulseSpeed: 0.2,
+    auraSize: 20,
+  };
+  if (multiplier >= 2.0) return { 
+    glowColor: '#ff6600', 
+    intensity: 'ultra',
+    pulseSpeed: 0.25,
+    auraSize: 15,
+  };
+  if (multiplier >= 1.5) return { 
+    glowColor: '#ffaa00', 
+    intensity: 'super',
+    pulseSpeed: 0.3,
+    auraSize: 10,
+  };
+  return null;
+};
+
+export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultiplier = 1 }: HeroProps) => {
   // Fixed screen position - hero on LEFT side (moved slightly left)
   const screenX = 50;
   const isEmpowered = isUltraMode || player.isMagicDashing;
@@ -118,6 +148,91 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble }: HeroProps) 
           }}
         />
       )}
+      
+      {/* POWER-UP AURA based on damage multiplier */}
+      {damageMultiplier >= 1.5 && (() => {
+        const powerStyle = getPowerUpStyle(damageMultiplier);
+        if (!powerStyle) return null;
+        return (
+          <>
+            {/* Outer pulsing aura */}
+            <motion.div 
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                inset: -powerStyle.auraSize,
+                background: `radial-gradient(circle, ${powerStyle.glowColor}30 0%, ${powerStyle.glowColor}10 50%, transparent 70%)`,
+                filter: 'blur(6px)',
+              }}
+              animate={{
+                scale: [1, 1.15, 1],
+                opacity: [0.6, 0.9, 0.6],
+              }}
+              transition={{ duration: powerStyle.pulseSpeed * 3, repeat: Infinity }}
+            />
+            
+            {/* Inner power ring */}
+            <motion.div 
+              className="absolute rounded-full pointer-events-none"
+              style={{
+                inset: -8,
+                border: `2px solid ${powerStyle.glowColor}`,
+                boxShadow: `0 0 15px ${powerStyle.glowColor}, inset 0 0 10px ${powerStyle.glowColor}50`,
+              }}
+              animate={{
+                scale: [0.95, 1.05, 0.95],
+                opacity: [0.7, 1, 0.7],
+              }}
+              transition={{ duration: powerStyle.pulseSpeed * 2, repeat: Infinity }}
+            />
+            
+            {/* Energy sparks for high multipliers */}
+            {damageMultiplier >= 2.0 && (
+              <>
+                {[0, 1, 2, 3].map((i) => (
+                  <motion.div
+                    key={`spark-${i}`}
+                    className="absolute w-1.5 h-1.5 rounded-full pointer-events-none"
+                    style={{
+                      background: powerStyle.glowColor,
+                      boxShadow: `0 0 6px ${powerStyle.glowColor}`,
+                      left: '50%',
+                      top: '50%',
+                    }}
+                    animate={{
+                      x: [0, Math.cos(i * Math.PI / 2 + Date.now() / 200) * 35],
+                      y: [0, Math.sin(i * Math.PI / 2 + Date.now() / 200) * 35],
+                      opacity: [1, 0.3, 1],
+                      scale: [0.8, 1.2, 0.8],
+                    }}
+                    transition={{ 
+                      duration: 0.5, 
+                      repeat: Infinity, 
+                      delay: i * 0.12,
+                    }}
+                  />
+                ))}
+              </>
+            )}
+            
+            {/* Legendary crown effect */}
+            {damageMultiplier >= 3.0 && (
+              <motion.div
+                className="absolute -top-10 left-1/2 -translate-x-1/2 text-2xl pointer-events-none"
+                animate={{
+                  y: [0, -3, 0],
+                  scale: [1, 1.1, 1],
+                }}
+                transition={{ duration: 0.4, repeat: Infinity }}
+                style={{
+                  filter: `drop-shadow(0 0 8px ${powerStyle.glowColor})`,
+                }}
+              >
+                👑
+              </motion.div>
+            )}
+          </>
+        );
+      })()}
       
       {/* Shield bubble */}
       {player.shield > 0 && (
