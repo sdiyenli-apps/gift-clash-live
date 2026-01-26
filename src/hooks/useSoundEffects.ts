@@ -11,45 +11,45 @@ interface SoundConfig {
 }
 
 const SOUND_CONFIGS: Record<string, SoundConfig> = {
-  // === HERO LASER GUN SOUNDS - High-pitched energy weapon ===
-  shoot: { frequency: 1200, duration: 0.15, type: 'sine', volume: 0.3, attack: 0.005, decay: 0.1 },
-  shootUltra: { frequency: 800, duration: 0.2, type: 'sawtooth', volume: 0.35, attack: 0.005, decay: 0.15 },
-  // === 4K EXPLOSION - Multi-layered rumble with punch ===
-  explosion: { frequency: 60, duration: 0.45, type: 'sawtooth', volume: 0.35, attack: 0.005, decay: 0.35 },
-  // === 4K IMPACT SOUNDS - Crisp and punchy ===
-  hit: { frequency: 250, duration: 0.12, type: 'square', volume: 0.2, attack: 0.003, decay: 0.08 },
-  hurt: { frequency: 180, duration: 0.2, type: 'sawtooth', volume: 0.25, attack: 0.005, decay: 0.15 },
-  // === SUPPORT SOUNDS ===
-  heal: { frequency: 700, duration: 0.25, type: 'sine', volume: 0.18, attack: 0.03, decay: 0.15 },
-  armor: { frequency: 500, duration: 0.2, type: 'triangle', volume: 0.22, attack: 0.01, decay: 0.12 },
-  dash: { frequency: 350, duration: 0.3, type: 'sine', volume: 0.18, attack: 0.01, decay: 0.2 },
-  // === 4K ENEMY ATTACK SOUNDS - Distinct and impactful ===
-  enemyDeath: { frequency: 80, duration: 0.5, type: 'sawtooth', volume: 0.3, attack: 0.005, decay: 0.4 },
-  enemyShoot: { frequency: 400, duration: 0.15, type: 'square', volume: 0.2, attack: 0.005, decay: 0.1 },
-  droneShoot: { frequency: 700, duration: 0.12, type: 'sine', volume: 0.22, attack: 0.005, decay: 0.08 },
-  droneFireShoot: { frequency: 250, duration: 0.25, type: 'sawtooth', volume: 0.3, attack: 0.005, decay: 0.18 },
-  // === 4K BOSS SOUNDS - Massive and cinematic ===
-  bossTaunt: { frequency: 50, duration: 0.7, type: 'square', volume: 0.35, attack: 0.08, decay: 0.5 },
-  bossLaugh: { frequency: 120, duration: 1.5, type: 'sawtooth', volume: 0.4, attack: 0.05, decay: 1.2 },
-  bossFireball: { frequency: 100, duration: 0.4, type: 'sawtooth', volume: 0.38, attack: 0.01, decay: 0.3 },
-  bossMegaAttack: { frequency: 35, duration: 1.2, type: 'sawtooth', volume: 0.5, attack: 0.08, decay: 1.0 },
-  // === MISC SOUNDS ===
-  chicken: { frequency: 1800, duration: 0.12, type: 'sine', volume: 0.12, attack: 0.005 },
-  gift: { frequency: 1000, duration: 0.18, type: 'triangle', volume: 0.18, attack: 0.01 },
-  victory: { frequency: 600, duration: 0.6, type: 'sine', volume: 0.25, attack: 0.03, decay: 0.4 },
-  gameOver: { frequency: 180, duration: 1.0, type: 'sawtooth', volume: 0.3, attack: 0.05, decay: 0.9 },
-  magicFlash: { frequency: 1200, duration: 0.25, type: 'sine', volume: 0.25, attack: 0.005, decay: 0.18 },
-  spawn: { frequency: 300, duration: 0.25, type: 'triangle', volume: 0.18, attack: 0.01 },
-  shieldBlock: { frequency: 600, duration: 0.15, type: 'triangle', volume: 0.25, attack: 0.005, decay: 0.1 },
-  // === 4K BOSS ATTACK SOUNDS - Cinematic and terrifying ===
-  laserSweep: { frequency: 2500, duration: 0.5, type: 'sawtooth', volume: 0.35, attack: 0.01, decay: 0.45 },
-  missileWarning: { frequency: 900, duration: 0.8, type: 'square', volume: 0.38, attack: 0.03, decay: 0.7 },
-  groundPound: { frequency: 40, duration: 0.7, type: 'sawtooth', volume: 0.5, attack: 0.005, decay: 0.6 },
-  screenAttack: { frequency: 25, duration: 1.0, type: 'sawtooth', volume: 0.55, attack: 0.08, decay: 0.9 },
-  // === 4K JET ROBOT SOUNDS ===
-  jetDrop: { frequency: 450, duration: 1.0, type: 'sawtooth', volume: 0.35, attack: 0.03, decay: 0.9 },
-  jetEngine: { frequency: 180, duration: 0.8, type: 'sawtooth', volume: 0.3, attack: 0.08, decay: 0.7 },
-  jetSwoosh: { frequency: 1800, duration: 0.5, type: 'sine', volume: 0.25, attack: 0.005, decay: 0.45 },
+  // === HERO LASER GUN SOUNDS - High-pitched energy weapon (LOWERED) ===
+  shoot: { frequency: 1200, duration: 0.15, type: 'sine', volume: 0.12, attack: 0.005, decay: 0.1 },
+  shootUltra: { frequency: 800, duration: 0.2, type: 'sawtooth', volume: 0.15, attack: 0.005, decay: 0.15 },
+  // === 4K EXPLOSION - Multi-layered rumble with punch (LOWERED) ===
+  explosion: { frequency: 60, duration: 0.45, type: 'sawtooth', volume: 0.18, attack: 0.005, decay: 0.35 },
+  // === 4K IMPACT SOUNDS - Crisp and punchy (LOWERED) ===
+  hit: { frequency: 250, duration: 0.12, type: 'square', volume: 0.1, attack: 0.003, decay: 0.08 },
+  hurt: { frequency: 180, duration: 0.2, type: 'sawtooth', volume: 0.12, attack: 0.005, decay: 0.15 },
+  // === SUPPORT SOUNDS (LOWERED) ===
+  heal: { frequency: 700, duration: 0.25, type: 'sine', volume: 0.08, attack: 0.03, decay: 0.15 },
+  armor: { frequency: 500, duration: 0.2, type: 'triangle', volume: 0.1, attack: 0.01, decay: 0.12 },
+  dash: { frequency: 350, duration: 0.3, type: 'sine', volume: 0.08, attack: 0.01, decay: 0.2 },
+  // === 4K ENEMY ATTACK SOUNDS - Distinct and impactful (LOWERED) ===
+  enemyDeath: { frequency: 80, duration: 0.5, type: 'sawtooth', volume: 0.15, attack: 0.005, decay: 0.4 },
+  enemyShoot: { frequency: 400, duration: 0.15, type: 'square', volume: 0.1, attack: 0.005, decay: 0.1 },
+  droneShoot: { frequency: 700, duration: 0.12, type: 'sine', volume: 0.1, attack: 0.005, decay: 0.08 },
+  droneFireShoot: { frequency: 250, duration: 0.25, type: 'sawtooth', volume: 0.15, attack: 0.005, decay: 0.18 },
+  // === 4K BOSS SOUNDS - Massive and cinematic (SLIGHTLY LOWERED) ===
+  bossTaunt: { frequency: 50, duration: 0.7, type: 'square', volume: 0.18, attack: 0.08, decay: 0.5 },
+  bossLaugh: { frequency: 120, duration: 1.5, type: 'sawtooth', volume: 0.22, attack: 0.05, decay: 1.2 },
+  bossFireball: { frequency: 100, duration: 0.4, type: 'sawtooth', volume: 0.2, attack: 0.01, decay: 0.3 },
+  bossMegaAttack: { frequency: 35, duration: 1.2, type: 'sawtooth', volume: 0.25, attack: 0.08, decay: 1.0 },
+  // === MISC SOUNDS (LOWERED) ===
+  chicken: { frequency: 1800, duration: 0.12, type: 'sine', volume: 0.06, attack: 0.005 },
+  gift: { frequency: 1000, duration: 0.18, type: 'triangle', volume: 0.08, attack: 0.01 },
+  victory: { frequency: 600, duration: 0.6, type: 'sine', volume: 0.12, attack: 0.03, decay: 0.4 },
+  gameOver: { frequency: 180, duration: 1.0, type: 'sawtooth', volume: 0.15, attack: 0.05, decay: 0.9 },
+  magicFlash: { frequency: 1200, duration: 0.25, type: 'sine', volume: 0.12, attack: 0.005, decay: 0.18 },
+  spawn: { frequency: 300, duration: 0.25, type: 'triangle', volume: 0.08, attack: 0.01 },
+  shieldBlock: { frequency: 600, duration: 0.15, type: 'triangle', volume: 0.12, attack: 0.005, decay: 0.1 },
+  // === 4K BOSS ATTACK SOUNDS - Cinematic and terrifying (SLIGHTLY LOWERED) ===
+  laserSweep: { frequency: 2500, duration: 0.5, type: 'sawtooth', volume: 0.18, attack: 0.01, decay: 0.45 },
+  missileWarning: { frequency: 900, duration: 0.8, type: 'square', volume: 0.2, attack: 0.03, decay: 0.7 },
+  groundPound: { frequency: 40, duration: 0.7, type: 'sawtooth', volume: 0.25, attack: 0.005, decay: 0.6 },
+  screenAttack: { frequency: 25, duration: 1.0, type: 'sawtooth', volume: 0.28, attack: 0.08, decay: 0.9 },
+  // === 4K JET ROBOT SOUNDS (LOWERED) ===
+  jetDrop: { frequency: 450, duration: 1.0, type: 'sawtooth', volume: 0.18, attack: 0.03, decay: 0.9 },
+  jetEngine: { frequency: 180, duration: 0.8, type: 'sawtooth', volume: 0.15, attack: 0.08, decay: 0.7 },
+  jetSwoosh: { frequency: 1800, duration: 0.5, type: 'sine', volume: 0.12, attack: 0.005, decay: 0.45 },
 };
 
 export const useSoundEffects = () => {

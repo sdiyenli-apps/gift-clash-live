@@ -156,18 +156,80 @@ export const Arena = ({ gameState }: ArenaProps) => {
           mixBlendMode: 'multiply',
         }}
       />
-      {/* Ground-level fog wisps */}
+      
+      {/* SMOKE/WAR MIST EFFECTS - Multiple animated layers */}
+      {/* Bottom ground smoke - dense and slow */}
       <motion.div
-        className="absolute bottom-0 left-0 right-0 h-32 pointer-events-none z-10"
+        className="absolute bottom-0 left-0 right-0 h-40 pointer-events-none z-10"
         style={{
-          background: 'linear-gradient(180deg, transparent 0%, rgba(40,50,70,0.3) 50%, rgba(30,40,60,0.5) 100%)',
-          filter: 'blur(8px)',
+          background: 'linear-gradient(180deg, transparent 0%, rgba(50,55,70,0.25) 40%, rgba(40,45,60,0.5) 100%)',
+          filter: 'blur(12px)',
         }}
         animate={{ 
-          opacity: [0.4, 0.6, 0.4],
-          x: [-10, 10, -10],
+          opacity: [0.5, 0.7, 0.5],
+          x: [-15, 15, -15],
         }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      
+      {/* Mid-level war smoke wisps - drifting left */}
+      <motion.div
+        className="absolute bottom-16 left-0 right-0 h-24 pointer-events-none z-10"
+        style={{
+          background: 'radial-gradient(ellipse 50% 100% at 30% 80%, rgba(60,65,80,0.35) 0%, transparent 70%)',
+          filter: 'blur(16px)',
+        }}
+        animate={{ 
+          opacity: [0.3, 0.5, 0.3],
+          x: [0, -40, 0],
+        }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      
+      {/* Right side smoke plume - drifting right */}
+      <motion.div
+        className="absolute bottom-10 left-1/2 right-0 h-32 pointer-events-none z-10"
+        style={{
+          background: 'radial-gradient(ellipse 60% 100% at 70% 90%, rgba(55,60,75,0.3) 0%, transparent 60%)',
+          filter: 'blur(14px)',
+        }}
+        animate={{ 
+          opacity: [0.25, 0.45, 0.25],
+          x: [0, 30, 0],
+        }}
+        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+      />
+      
+      {/* Upper atmospheric haze */}
+      <motion.div
+        className="absolute top-0 left-0 right-0 h-48 pointer-events-none z-10"
+        style={{
+          background: 'linear-gradient(180deg, rgba(30,35,50,0.4) 0%, rgba(25,30,45,0.2) 50%, transparent 100%)',
+          filter: 'blur(10px)',
+        }}
+        animate={{ 
+          opacity: [0.3, 0.5, 0.3],
+        }}
+        transition={{ duration: 15, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      
+      {/* Dust particles floating in air - subtle war debris */}
+      <motion.div
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background: `
+            radial-gradient(circle 2px at 20% 30%, rgba(255,255,255,0.1) 0%, transparent 100%),
+            radial-gradient(circle 3px at 60% 20%, rgba(255,255,255,0.08) 0%, transparent 100%),
+            radial-gradient(circle 2px at 80% 50%, rgba(255,255,255,0.1) 0%, transparent 100%),
+            radial-gradient(circle 2px at 40% 70%, rgba(255,255,255,0.07) 0%, transparent 100%),
+            radial-gradient(circle 3px at 10% 60%, rgba(255,255,255,0.09) 0%, transparent 100%)
+          `,
+        }}
+        animate={{ 
+          opacity: [0.4, 0.7, 0.4],
+          y: [-5, 5, -5],
+        }}
+        transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
       />
       {/* Mini-map - positioned at top for visibility */}
       <div className="absolute top-12 left-1/2 -translate-x-1/2 z-50">

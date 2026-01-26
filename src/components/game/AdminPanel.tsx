@@ -7,6 +7,8 @@ interface AdminPanelProps {
   setShowControls: (show: boolean) => void;
   audioOn: boolean;
   setAudioOn: (on: boolean) => void;
+  musicVolume: number;
+  setMusicVolume: (v: number) => void;
   
   // Edit mode
   editMode: boolean;
@@ -33,6 +35,8 @@ export const AdminPanel = ({
   setShowControls,
   audioOn,
   setAudioOn,
+  musicVolume,
+  setMusicVolume,
   editMode,
   setEditMode,
   arenaScale,
@@ -205,6 +209,24 @@ export const AdminPanel = ({
                   className="flex-1 accent-yellow-400 h-1"
                 />
                 <span className="text-yellow-400 text-[9px] w-8">{Math.round(hudScale * 100)}%</span>
+              </div>
+            </div>
+            
+            {/* Music Volume Control */}
+            <div className="text-gray-400 text-[10px] mb-1 mt-3">🔊 Music Volume</div>
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-2">
+                <span className="text-white text-[9px] w-8">🎵</span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={musicVolume}
+                  onChange={(e) => setMusicVolume(parseFloat(e.target.value))}
+                  className="flex-1 accent-green-400 h-1"
+                />
+                <span className="text-green-400 text-[9px] w-8">{Math.round(musicVolume * 100)}%</span>
               </div>
             </div>
             
