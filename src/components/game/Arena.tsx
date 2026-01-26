@@ -17,6 +17,7 @@ import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
 import { DronePaths } from './DronePath';
 import { EnemiesWaitingIndicator } from './EnemiesWaitingIndicator';
+import { GiftComboIndicator } from './GiftComboIndicator';
 
 interface NeonLaser {
   id: string;
@@ -58,6 +59,10 @@ interface ExtendedGameState extends GameState {
   supportProjectiles?: Projectile[];
   evasionPopup?: { x: number; y: number; timer: number; target: 'hero' | 'enemy' | 'ally' } | null;
   firstGiftSent?: boolean;
+  // Gift combo system
+  giftCombo?: number;
+  giftComboTimer?: number;
+  giftDamageMultiplier?: number;
 }
 
 interface ArenaProps {
@@ -79,6 +84,9 @@ export const Arena = ({ gameState }: ArenaProps) => {
     supportUnits = [], supportProjectiles = [],
     evasionPopup = null,
     firstGiftSent = false,
+    giftCombo = 0,
+    giftComboTimer = 0,
+    giftDamageMultiplier = 1,
   } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
   
   // Calculate active enemy count for the waiting indicator
@@ -760,6 +768,13 @@ export const Arena = ({ gameState }: ArenaProps) => {
       {/* Scanlines */}
       <div className="absolute inset-0 pointer-events-none opacity-8"
         style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px)' }}
+      />
+      
+      {/* Gift Combo Indicator */}
+      <GiftComboIndicator 
+        giftCombo={giftCombo} 
+        giftComboTimer={giftComboTimer} 
+        damageMultiplier={giftDamageMultiplier} 
       />
     </div>
   );

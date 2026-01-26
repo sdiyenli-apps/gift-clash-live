@@ -164,6 +164,10 @@ interface ExtendedGameState extends GameState {
   tankCooldown: number;
   // Track if first gift was sent - enemies only start moving/attacking after first gift
   firstGiftSent: boolean;
+  // GIFT COMBO SYSTEM - rapid gifts boost damage!
+  giftCombo: number;
+  giftComboTimer: number;
+  giftDamageMultiplier: number;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -235,6 +239,10 @@ const INITIAL_STATE: ExtendedGameState = {
   tankCooldown: 0,
   // First gift tracking - enemies don't move/attack until first gift is sent
   firstGiftSent: false,
+  // GIFT COMBO SYSTEM - starts at 0
+  giftCombo: 0,
+  giftComboTimer: 0,
+  giftDamageMultiplier: 1.0,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -808,7 +816,18 @@ export const useGameState = () => {
     setGameState(prev => {
       if (prev.phase !== 'playing') return prev;
       
-      let newState = { ...prev, lastGiftTime: Date.now() };
+      // GIFT COMBO SYSTEM - increment combo and reset timer!
+      const newGiftCombo = prev.giftComboTimer > 0 ? prev.giftCombo + 1 : 1;
+      // Damage multiplier: 1.0 + 0.15 per combo, max 3.0x at 14+ combo
+      const newDamageMultiplier = Math.min(1.0 + (newGiftCombo - 1) * 0.15, 3.0);
+      
+      let newState = { 
+        ...prev, 
+        lastGiftTime: Date.now(),
+        giftCombo: newGiftCombo,
+        giftComboTimer: 3, // 3 seconds to keep combo alive
+        giftDamageMultiplier: newDamageMultiplier,
+      };
       
       switch (action) {
         case 'move_forward':
@@ -1153,41 +1172,63 @@ export const useGameState = () => {
               availableAttacks.push('shield');
             }
             
-            // Level-specific attack patterns
+            // Level-specific attack patterns - EACH BOSS HAS UNIQUE SIGNATURE!
+            // Attack style defines visual FX color and pattern
             switch (wave) {
-              case 1: // Neon Streets - Basic fireballs only
-                availableAttacks.push('fireball');
+              case 1: // NEON GUARDIAN - Single slow fireballs, cyan theme
+                // Easy intro boss - telegraphed attacks, slow fireball
+                availableAttacks.push('fireball', 'fireball');
+                newState.bossAttackCooldown = 2.5; // Slow attacks
                 break;
-              case 2: // Robot Factory - Fireballs + laser sweep
-                availableAttacks.push('fireball', 'laser_sweep');
+              case 2: // FACTORY FOREMAN - Fireballs + horizontal laser, orange theme
+                // Introduces laser sweep mechanic
+                availableAttacks.push('fireball', 'laser_sweep', 'fireball');
+                newState.bossAttackCooldown = 2.0;
                 break;
-              case 3: // Data Core - Fast laser sweeps
-                availableAttacks.push('laser_sweep', 'laser_sweep', 'fireball');
+              case 3: // DATA DAEMON - Rapid laser sweeps, purple theme
+                // Laser specialist - faster, more dangerous
+                availableAttacks.push('laser_sweep', 'laser_sweep', 'laser_sweep', 'fireball');
+                newState.bossAttackCooldown = 1.5;
                 break;
-              case 4: // Rooftops - Missile barrages from above
-                availableAttacks.push('fireball', 'missile_barrage');
+              case 4: // ROOFTOP RAVAGER - Missile barrages from above, red theme
+                // Introduces vertical threat with missiles
+                availableAttacks.push('missile_barrage', 'missile_barrage', 'fireball');
+                newState.bossAttackCooldown = 1.8;
                 break;
-              case 5: // Bunker - Ground pound specialist
-                availableAttacks.push('ground_pound', 'fireball', 'ground_pound');
+              case 5: // BUNKER BREAKER - Ground pound specialist, green theme
+                // Heavy ground attacks, shockwaves
+                availableAttacks.push('ground_pound', 'ground_pound', 'ground_pound', 'fireball');
+                newState.bossAttackCooldown = 1.6;
                 break;
-              case 6: // Highway - Fast missiles + lasers
-                availableAttacks.push('missile_barrage', 'laser_sweep', 'fireball');
+              case 6: // HIGHWAY HUNTER - Fast missiles + sweeping lasers, yellow theme
+                // Speed-focused, fast attack combinations
+                availableAttacks.push('missile_barrage', 'laser_sweep', 'missile_barrage', 'fireball');
+                newState.bossAttackCooldown = 1.3;
                 break;
-              case 7: // Mega Mall - Everything except screen attack
+              case 7: // MALL MONARCH - Varied attacks, pink theme
+                // Master of all basic attacks
                 availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound');
+                newState.bossAttackCooldown = 1.4;
                 break;
-              case 8: // Power Plant - Heavy ground pounds + lasers
-                availableAttacks.push('ground_pound', 'ground_pound', 'laser_sweep', 'fireball');
+              case 8: // POWER TYRANT - Heavy ground + laser combos, electric blue theme
+                // Power-focused, devastating combos
+                availableAttacks.push('ground_pound', 'laser_sweep', 'ground_pound', 'laser_sweep', 'fireball');
+                newState.bossAttackCooldown = 1.2;
                 break;
-              case 9: // Spaceport - Missile hell
-                availableAttacks.push('missile_barrage', 'missile_barrage', 'laser_sweep', 'fireball');
+              case 9: // SPACE OVERLORD - Missile hell, cosmic purple theme
+                // Overwhelming ranged assault
+                availableAttacks.push('missile_barrage', 'missile_barrage', 'missile_barrage', 'laser_sweep', 'fireball');
+                newState.bossAttackCooldown = 1.0;
                 break;
-              case 10: // Boss Lair - EVERYTHING including screen attack
+              case 10: // OMEGA DESTROYER - ALL attacks + screen attack, blood red theme
+                // Final boss - uses everything, including screen-wide attack
                 availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'screen_attack');
+                newState.bossAttackCooldown = 0.8;
                 break;
-              default: // Higher waves - all attacks
+              default: // Higher waves - all attacks with phase scaling
                 availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound');
                 if (bossPhase >= 3) availableAttacks.push('screen_attack');
+                newState.bossAttackCooldown = Math.max(0.5, 1.5 - wave * 0.1);
             }
             
             // More attacks in higher phases
@@ -2146,10 +2187,10 @@ export const useGameState = () => {
             if (distance < hitRadius) {
               hitProjectileIds.add(proj.id);
               
-              // Calculate damage
-              let damage = proj.damage;
+              // Calculate damage - apply gift combo multiplier!
+              let damage = proj.damage * prev.giftDamageMultiplier;
               if (enemy.bossShieldTimer && enemy.bossShieldTimer > 0) {
-                damage = proj.damage * 0.3;
+                damage = (proj.damage * prev.giftDamageMultiplier) * 0.3;
               }
               
               // Accumulate damage by enemy ID
@@ -2473,9 +2514,10 @@ export const useGameState = () => {
                 }
                 
                 // ENEMY ARMOR - if ground enemy has active armor, reduce damage by 80%
-                let actualDamage = proj.damage;
+                // Apply GIFT COMBO MULTIPLIER to all damage!
+                let actualDamage = proj.damage * prev.giftDamageMultiplier;
                 if (enemy.hasArmor && enemy.armorTimer && enemy.armorTimer > 0) {
-                  actualDamage = proj.damage * 0.2; // Only 20% damage gets through
+                  actualDamage = (proj.damage * prev.giftDamageMultiplier) * 0.2; // Only 20% damage gets through
                   newState.particles = [...newState.particles, ...createParticles(
                     proj.x, proj.y, 10, 'spark', '#ff00ff'
                   )];
@@ -3541,10 +3583,19 @@ export const useGameState = () => {
           }];
         }
         
-        // Combo timer
+        // Kill combo timer
         if (prev.comboTimer > 0) {
           newState.comboTimer = prev.comboTimer - delta;
           if (newState.comboTimer <= 0) newState.combo = 0;
+        }
+        
+        // GIFT COMBO TIMER - decays over 3 seconds
+        if (prev.giftComboTimer > 0) {
+          newState.giftComboTimer = prev.giftComboTimer - delta;
+          if (newState.giftComboTimer <= 0) {
+            newState.giftCombo = 0;
+            newState.giftDamageMultiplier = 1.0;
+          }
         }
         
         // Win condition - Hero must enter the portal after boss is defeated
