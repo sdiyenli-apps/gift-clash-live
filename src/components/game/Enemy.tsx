@@ -963,9 +963,8 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
               alt={enemy.type}
               className="w-full h-full object-contain"
               style={{
-                // NEW SPRITES face RIGHT by default - FLIP to face LEFT toward hero
-                // Use scaleX(-1) to flip horizontally so enemies face the hero
-                transform: isBoss ? 'none' : 'scaleX(-1)',
+                // ALL enemies face LEFT toward hero - use scaleX(-1) to flip
+                transform: 'scaleX(-1)',
                 // Remove any white background - use transparency
                 background: 'transparent',
                 // Ensure PNG transparency is preserved  
