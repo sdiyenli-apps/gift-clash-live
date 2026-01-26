@@ -1154,14 +1154,15 @@ export const useGameState = () => {
           // Attack cooldown
           newState.bossAttackCooldown -= delta;
           
+          // BOSS SHIELD TIMER - ALWAYS decrement (FIXED: was only decrementing when cooldown <= 0)
+          if (bossIdx !== -1 && bossEnemy.bossShieldTimer && bossEnemy.bossShieldTimer > 0) {
+            newState.enemies[bossIdx] = {
+              ...newState.enemies[bossIdx],
+              bossShieldTimer: Math.max(0, bossEnemy.bossShieldTimer - delta),
+            };
+          }
+          
           if (newState.bossAttackCooldown <= 0 && bossIdx !== -1) {
-            // Update boss shield timer
-            if (bossEnemy.bossShieldTimer && bossEnemy.bossShieldTimer > 0) {
-              newState.enemies[bossIdx] = {
-                ...newState.enemies[bossIdx],
-                bossShieldTimer: bossEnemy.bossShieldTimer - delta,
-              };
-            }
             
             // LEVEL-SPECIFIC BOSS ATTACK STYLES!
             // Each wave boss has different attack patterns
@@ -2187,11 +2188,17 @@ export const useGameState = () => {
             if (distance < hitRadius) {
               hitProjectileIds.add(proj.id);
               
+              // BOSS SHIELD - COMPLETELY BLOCKS damage (FIXED: was allowing 30% through)
+              if (enemy.bossShieldTimer && enemy.bossShieldTimer > 0) {
+                // Shield absorbs hit completely - show spark only
+                newState.particles = [...newState.particles, ...createParticles(
+                  proj.x, proj.y, 8, 'spark', '#00ffff'
+                )];
+                return; // Shield absorbed - no damage!
+              }
+              
               // Calculate damage - apply gift combo multiplier!
               let damage = proj.damage * prev.giftDamageMultiplier;
-              if (enemy.bossShieldTimer && enemy.bossShieldTimer > 0) {
-                damage = (proj.damage * prev.giftDamageMultiplier) * 0.3;
-              }
               
               // Accumulate damage by enemy ID
               const currentDamage = enemyDamageById.get(enemy.id) || 0;
