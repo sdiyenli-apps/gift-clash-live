@@ -28,9 +28,15 @@ const PARTICLE_LIFETIME = 3;
 const EVASION_CHANCE = 1 / 15;
 const ARMOR_ACTIVATION_THRESHOLD = 0.2;
 const ARMOR_DURATION = 3;
-// BOSS ARMOR - activates at 70% health, lasts 10 seconds
-const BOSS_ARMOR_THRESHOLD = 0.7; // 70% health
+// BOSS PHASES - Phase 2 at 70%, Phase 3 at 50%
+const BOSS_PHASE_2_THRESHOLD = 0.7; // 70% health
+const BOSS_PHASE_3_THRESHOLD = 0.5; // 50% health
+// BOSS ARMOR - activates at PHASE 3 (50% health), lasts 10 seconds
+const BOSS_ARMOR_THRESHOLD = 0.5; // 50% health (Phase 3)
 const BOSS_ARMOR_DURATION = 10; // 10 seconds of invulnerability
+// Boss laser attack duration
+const BOSS_LASER_LOCK_DURATION = 3; // 3 seconds lock-on laser
+const BOSS_LASER_DAMAGE_PER_SECOND = 15; // Damage per second during laser
 
 // Ground Y positions for entity movement - SPREAD OUT for depth effect
 const GROUND_Y_BACK = GROUND_Y + 60;      // Back lane (furthest, smaller looking)
@@ -39,8 +45,8 @@ const GROUND_Y_MIDDLE = GROUND_Y + 10;    // Middle lane (hero level)
 const GROUND_Y_MID_FRONT = GROUND_Y - 15; // Mid-front lane
 const GROUND_Y_FRONT = GROUND_Y - 40;     // Front lane (closest, larger looking)
 
-// Boss attack types
-type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield' | 'jump_bomb';
+// Boss attack types - includes neon_laser for lock-on attack
+type BossAttackType = 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield' | 'jump_bomb' | 'neon_laser';
 
 interface BossAttack {
   id: string;
@@ -134,6 +140,18 @@ interface EMPGrenade {
   timer: number;
 }
 
+// Damage number for visual feedback
+interface DamageNumberData {
+  id: string;
+  x: number;
+  y: number;
+  damage: number;
+  isResist: boolean;
+  isCrit: boolean;
+  color: string;
+  timestamp: number;
+}
+
 interface ExtendedGameState extends GameState {
   fireballs: Fireball[];
   bossFireballTimer: number;
@@ -174,6 +192,13 @@ interface ExtendedGameState extends GameState {
   giftCombo: number;
   giftComboTimer: number;
   giftDamageMultiplier: number;
+  // VISUAL DAMAGE NUMBERS
+  damageNumbers: DamageNumberData[];
+  // BOSS NEON LASER ATTACK
+  bossLaserActive: boolean;
+  bossLaserTimer: number;
+  // ENEMY LASER ATTACKS (for large enemies)
+  enemyLaserAttacks: { enemyId: string; timer: number }[];
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -249,6 +274,13 @@ const INITIAL_STATE: ExtendedGameState = {
   giftCombo: 0,
   giftComboTimer: 0,
   giftDamageMultiplier: 1.0,
+  // VISUAL DAMAGE NUMBERS
+  damageNumbers: [],
+  // BOSS NEON LASER ATTACK
+  bossLaserActive: false,
+  bossLaserTimer: 0,
+  // ENEMY LASER ATTACKS (for large enemies)
+  enemyLaserAttacks: [],
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -413,6 +445,8 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
     if (typeRoll < 0.7) {
       // DRONE - flying enemy (70% of flying enemies)
       const isSpiralDrone = Math.random() < 0.25;
+      // 30% of drones DESCEND FROM TOP of screen
+      const isDescendingDrone = Math.random() < 0.3;
       const spiralCenterY = GROUND_Y + 120 + Math.random() * 80;
       const droneHealth = Math.floor(32 * healthMultiplier * (1 + waveBonus * 0.5));
       
@@ -425,14 +459,14 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         health: droneHealth,
         maxHealth: droneHealth,
         speed: 90 + wave * 3,
-        damage: Math.floor((7 + Math.floor(wave / 2)) * damageMultiplier),
+        damage: Math.floor((10 + Math.floor(wave / 2)) * damageMultiplier), // INCREASED drone damage
         type: 'drone',
         isDying: false,
         deathTimer: 0,
         attackCooldown: 0,
         animationPhase: Math.random() * Math.PI * 2,
-        isSpawning: true,
-        spawnTimer: 0.8,
+        isSpawning: !isDescendingDrone, // Descending drones don't spawn, they drop
+        spawnTimer: isDescendingDrone ? 0 : 0.8,
         isFlying: true,
         flyHeight: 60 + Math.random() * 50,
         isSpiralDrone,
@@ -441,6 +475,9 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
         spiralCenterY,
         bombCooldown: 1.5 + Math.random() * 2,
         droneVariant: Math.floor(Math.random() * 5),
+        // Descending drones drop from top of screen
+        isDropping: isDescendingDrone,
+        dropTimer: isDescendingDrone ? 1.5 : 0,
       });
     } else {
       // BOMBER - flying enemy (30% of flying enemies)
@@ -517,10 +554,10 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const sizeMultiplier = isFinalBoss ? 4 : (1 + wave * 0.005); // Final boss is 4x size
   const bossSize = Math.min(baseBossSize * sizeMultiplier, isFinalBoss ? 500 : 320);
   
-  // Boss health scales dramatically
+  // Boss health scales dramatically - INCREASED for longer battle time
   const bossBaseHealth = isFinalBoss 
-    ? 50000 // Final boss has 50k health
-    : (1800 + wave * 250) * (isMegaBoss ? 2 : isMiniBoss ? 1.5 : 1);
+    ? 80000 // Final boss has 80k health
+    : (3000 + wave * 400) * (isMegaBoss ? 2.5 : isMiniBoss ? 1.8 : 1);
   
   enemies.push({
     id: 'boss-monster',
@@ -1216,22 +1253,8 @@ export const useGameState = () => {
             };
           }
           
-          // BOSS ARMOR AUTO-ACTIVATION - Triggers at 70% health, lasts 10 seconds!
-          if (bossIdx !== -1 && !bossEnemy.bossShieldUsed && bossHealthPercent <= BOSS_ARMOR_THRESHOLD) {
-            newState.enemies[bossIdx] = {
-              ...newState.enemies[bossIdx],
-              bossShieldTimer: BOSS_ARMOR_DURATION, // 10 seconds of invulnerability
-              bossShieldUsed: true, // Mark as used - can only use once
-            };
-            newState.screenShake = 0.8;
-            newState.bossTaunt = "MY ARMOR IS IMPENETRABLE! 10 SECONDS!";
-            newState.lastBossAttack = 'shield';
-            showSpeechBubble("🛡️ BOSS ARMOR ACTIVATED! 10 SECONDS! 🛡️", 'urgent');
-            newState.particles = [...newState.particles, ...createParticles(
-              bossEnemy.x + bossEnemy.width / 2, bossEnemy.y + bossEnemy.height / 2, 
-              40, 'spark', '#00ffff'
-            )];
-          }
+          // BOSS ARMOR is now activated at Phase 3 (50% health) - see phase transition code below
+          // This section removed to prevent duplicate armor activation
           
           if (newState.bossAttackCooldown <= 0 && bossIdx !== -1) {
             
@@ -1288,13 +1311,13 @@ export const useGameState = () => {
                 availableAttacks.push('missile_barrage', 'missile_barrage', 'missile_barrage', 'laser_sweep', 'fireball', 'jump_bomb');
                 newState.bossAttackCooldown = 1.0;
                 break;
-              case 10: // OMEGA DESTROYER - ALL attacks + screen attack, blood red theme
-                // Final boss - uses everything, including screen-wide attack
-                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'screen_attack', 'jump_bomb');
+              case 10: // OMEGA DESTROYER - ALL attacks + screen attack + neon laser, blood red theme
+                // Final boss - uses everything, including screen-wide attack and neon laser
+                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'screen_attack', 'jump_bomb', 'neon_laser');
                 newState.bossAttackCooldown = 0.8;
                 break;
-              default: // Higher waves - all attacks with phase scaling
-                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'jump_bomb');
+              default: // Higher waves - all attacks with phase scaling + neon laser
+                availableAttacks.push('fireball', 'laser_sweep', 'missile_barrage', 'ground_pound', 'jump_bomb', 'neon_laser');
                 if (bossPhase >= 3) availableAttacks.push('screen_attack');
                 newState.bossAttackCooldown = Math.max(0.5, 1.5 - wave * 0.1);
             }
@@ -1470,12 +1493,12 @@ export const useGameState = () => {
             }
           }
           
-          // Boss phase transitions - grows bigger and more evil!
+          // Boss phase transitions - FIXED: Phase 2 at 70%, Phase 3 at 50%
           if (bossIdx !== -1) {
             const currentPhase = newState.enemies[bossIdx].bossPhase || 1;
             
-            // Phase 2: 50% health - TRANSFORMATION WITH EFFECTS
-            if (bossHealthPercent <= 0.5 && currentPhase < 2) {
+            // Phase 2: 70% health - TRANSFORMATION WITH EFFECTS
+            if (bossHealthPercent <= BOSS_PHASE_2_THRESHOLD && currentPhase < 2) {
               newState.enemies[bossIdx] = {
                 ...newState.enemies[bossIdx],
                 bossPhase: 2,
@@ -1499,11 +1522,11 @@ export const useGameState = () => {
                 ...createParticles(bossX, bossY + 50, 30, 'spark', '#ffff00'),
                 ...createParticles(bossX, bossY + 50, 20, 'magic', '#ff00ff'),
               ];
-              showSpeechBubble("💀 BOSS EVOLVED! PHASE 2! 💀", 'urgent');
+              showSpeechBubble("💀 BOSS EVOLVED! PHASE 2! 70% HP 💀", 'urgent');
             }
             
-            // Phase 3: 25% health - MAXIMUM TRANSFORMATION EFFECTS
-            if (bossHealthPercent <= 0.25 && currentPhase < 3) {
+            // Phase 3: 50% health - MAXIMUM TRANSFORMATION + ARMOR ACTIVATION
+            if (bossHealthPercent <= BOSS_PHASE_3_THRESHOLD && currentPhase < 3) {
               newState.enemies[bossIdx] = {
                 ...newState.enemies[bossIdx],
                 bossPhase: 3,
@@ -1511,13 +1534,17 @@ export const useGameState = () => {
                 height: newState.enemies[bossIdx].height * 1.25,
                 damage: newState.enemies[bossIdx].damage * 1.5,
                 speed: newState.enemies[bossIdx].speed * 1.5,
+                // ARMOR ACTIVATES AT PHASE 3!
+                bossShieldTimer: BOSS_ARMOR_DURATION,
+                bossShieldUsed: true,
               };
               // MAXIMUM DRAMATIC EFFECTS FOR FINAL PHASE
               newState.screenShake = 4; // Maximum shake
               newState.redFlash = 3; // Intense red flash
               newState.magicFlash = 2; // Purple flash
               newState.bossTransformFlash = 3; // Intense white flash
-              newState.bossTaunt = "FINAL PHASE! PREPARE TO DIE!!!";
+              newState.bossTaunt = "FINAL PHASE! ARMOR ACTIVATED! PREPARE TO DIE!!!";
+              newState.lastBossAttack = 'shield';
               // MASSIVE explosion particles at boss
               const bossX = newState.enemies[bossIdx].x;
               const bossY = newState.enemies[bossIdx].y;

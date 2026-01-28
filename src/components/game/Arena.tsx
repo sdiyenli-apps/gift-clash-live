@@ -27,6 +27,9 @@ import { BossLaserSweepVFX } from './BossLaserSweepVFX';
 import { MultiplierVFX } from './MultiplierVFX';
 import { EnemyMuzzleFlash, AttackWarning } from './EnemyAttackVFX';
 import { DroneFireFlash, DroneFireProjectile, DroneAttackWarning } from './DroneAttackVFX';
+import { DamageNumbers, DamageNumber } from './DamageNumbers';
+import { ThunderController } from './ThunderStrike';
+import { BossNeonLaser, EnemyLaserAttack } from './BossNeonLaser';
 
 interface NeonLaser {
   id: string;
@@ -73,8 +76,15 @@ interface ExtendedGameState extends GameState {
   giftComboTimer?: number;
   giftDamageMultiplier?: number;
   // Boss attack tracking for VFX
-  lastBossAttack?: 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield' | 'jump_bomb' | null;
+  lastBossAttack?: 'fireball' | 'laser_sweep' | 'missile_barrage' | 'ground_pound' | 'screen_attack' | 'shield' | 'jump_bomb' | 'neon_laser' | null;
   lastBossAttackTime?: number;
+  // Damage numbers for visual feedback
+  damageNumbers?: DamageNumber[];
+  // Boss neon laser attack
+  bossLaserActive?: boolean;
+  bossLaserTimer?: number;
+  // Enemy laser attacks
+  enemyLaserAttacks?: { enemyId: string; timer: number }[];
 }
 
 interface ArenaProps {
@@ -101,6 +111,10 @@ export const Arena = ({ gameState }: ArenaProps) => {
     giftDamageMultiplier = 1,
     lastBossAttack = null,
     lastBossAttackTime = 0,
+    damageNumbers = [],
+    bossLaserActive = false,
+    bossLaserTimer = 0,
+    enemyLaserAttacks = [],
   } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
   
   // Track previous multiplier for VFX trigger
@@ -319,6 +333,24 @@ export const Arena = ({ gameState }: ArenaProps) => {
         />
       )}
       
+      {/* Boss Neon Laser Attack - lock-on laser for 3 seconds */}
+      {bossEnemy && isBossFight && (lastBossAttack === 'neon_laser' || bossLaserActive) && (
+        <BossNeonLaser
+          isActive={lastBossAttack === 'neon_laser' || bossLaserActive}
+          bossX={bossEnemy.x + bossEnemy.width / 2}
+          bossY={bossEnemy.y + bossEnemy.height / 2}
+          heroX={player.x + 16}
+          heroY={player.y + 24}
+          cameraX={cameraX}
+          duration={3}
+        />
+      )}
+      
+      {/* THUNDER STRIKE - atmospheric battlefield effect */}
+      <ThunderController isBossFight={isBossFight} />
+      
+      {/* DAMAGE NUMBERS - visual feedback for hits */}
+      <DamageNumbers damageNumbers={damageNumbers} cameraX={cameraX} />
       {/* Bomb explosion VFX - renders for each active bomb as visual flair */}
       {bombs.map(bomb => {
         const screenX = bomb.x - cameraX;
