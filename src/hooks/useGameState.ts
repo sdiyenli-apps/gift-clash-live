@@ -20,9 +20,9 @@ const SLASH_ATTACK_RANGE = 80;
 const ROCKET_ATTACK_RANGE = 350;
 const BOSS_FIREBALL_INTERVAL = 4;
 const BOSS_MEGA_ATTACK_THRESHOLD = 0.25;
-const BOSS_KEEP_DISTANCE = 200; // Boss attacks when hero is about 3 inches away (~200px)
+const BOSS_KEEP_DISTANCE = 100; // Boss stays CLOSE to hero for tighter combat
 const HERO_FIXED_SCREEN_X = 30; // Hero on FAR LEFT side of screen
-const BOSS_JUMP_ATTACK_DURATION = 6; // Boss jump attack takes 6 seconds total
+const BOSS_JUMP_ATTACK_DURATION = 5; // Boss jump attack takes 5 seconds (faster)
 const ENEMY_ATTACK_DELAY = 2;
 const PARTICLE_LIFETIME = 3;
 const EVASION_CHANCE = 1 / 15;
@@ -297,7 +297,7 @@ const ENEMY_BASE_SIZES: Record<string, { width: number; height: number }> = {
   giant: { width: 90, height: 100 },    // Very large unit
   bomber: { width: 50, height: 45 },    // Medium flying unit
   sentinel: { width: 75, height: 80 },  // Large ranged unit
-  boss: { width: 180, height: 180 },    // Boss unit base
+  boss: { width: 100, height: 100 },    // SMALLER boss collision hitbox
   jetrobot: { width: 55, height: 50 },  // Medium flying unit
   flyer: { width: 42, height: 42 },     // Small flying unit
 };
@@ -549,15 +549,15 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const isMegaBoss = wave % 100 === 0; // Every 100 waves = mega boss
   const isMiniBoss = wave % 10 === 0; // Every 10 waves = mini boss
   
-  // Boss size scales with wave - MUCH LARGER boss!
-  const baseBossSize = 180; // Larger base size
-  const sizeMultiplier = isFinalBoss ? 4 : (1 + wave * 0.005); // Final boss is 4x size
-  const bossSize = Math.min(baseBossSize * sizeMultiplier, isFinalBoss ? 500 : 320);
+  // Boss size - SMALLER for tighter combat feel
+  const baseBossSize = 100; // Smaller boss hitbox
+  const sizeMultiplier = isFinalBoss ? 2.5 : (1 + wave * 0.003); // Smaller scaling
+  const bossSize = Math.min(baseBossSize * sizeMultiplier, isFinalBoss ? 250 : 160);
   
   // Boss health scales dramatically - INCREASED for longer battle time
   const bossBaseHealth = isFinalBoss 
-    ? 80000 // Final boss has 80k health
-    : (3000 + wave * 400) * (isMegaBoss ? 2.5 : isMiniBoss ? 1.8 : 1);
+    ? 120000 // Final boss has 120k health for epic battle
+    : (6000 + wave * 800) * (isMegaBoss ? 2.5 : isMiniBoss ? 1.8 : 1);
   
   enemies.push({
     id: 'boss-monster',
@@ -783,7 +783,7 @@ export const useGameState = () => {
   };
 
   // Create support units - mech and walker allies that fight alongside hero
-  // One positioned ABOVE hero, one BELOW hero on the ground
+  // DOUBLED SIZE for better visibility - One positioned ABOVE hero, one BELOW hero on the ground
   const createSupportUnits = (playerX: number, playerY: number, playerMaxHealth: number, playerShield: number, existingCount: number): SupportUnit[] => {
     const supportUnits: SupportUnit[] = [];
     // Half of hero's stats
@@ -791,15 +791,15 @@ export const useGameState = () => {
     const halfShield = Math.floor(playerShield / 2);
     
     // Stagger offset based on existing allies to prevent overlap
-    const staggerOffset = existingCount * 80;
+    const staggerOffset = existingCount * 100;
     
-    // Mech unit - LARGE TANK (2.5x size) - positioned ABOVE hero (higher Y)
+    // Mech unit - DOUBLED SIZE (5x base) - positioned ABOVE hero (higher Y)
     supportUnits.push({
       id: `support-mech-${Date.now()}-${Math.random()}`,
       x: playerX + 60 + staggerOffset,
       y: GROUND_Y_BACK, // Above hero's ground level (back lane)
-      width: 130, // 2.5x width - LARGER
-      height: 140, // 2.5x height - LARGER
+      width: 260, // DOUBLED - 5x width
+      height: 280, // DOUBLED - 5x height
       health: halfMaxHealth,
       maxHealth: halfMaxHealth,
       shield: halfShield,
@@ -811,13 +811,13 @@ export const useGameState = () => {
       landingTimer: 1.0,
     });
     
-    // Walker unit - LARGER size (1.5x), positioned BELOW hero (lower Y)
+    // Walker unit - DOUBLED SIZE (3x base), positioned BELOW hero (lower Y)
     supportUnits.push({
       id: `support-walker-${Date.now()}-${Math.random()}`,
-      x: playerX + 200 + staggerOffset,
+      x: playerX + 250 + staggerOffset,
       y: GROUND_Y_FRONT, // Below hero's ground level (front lane)
-      width: 75, // 1.5x width - LARGER
-      height: 85, // 1.5x height - LARGER
+      width: 150, // DOUBLED - 3x width
+      height: 170, // DOUBLED - 3x height
       health: halfMaxHealth,
       maxHealth: halfMaxHealth,
       shield: halfShield,
@@ -859,23 +859,16 @@ export const useGameState = () => {
     setGameState(prev => {
       if (prev.phase !== 'playing') return prev;
       
-      // GIFT COMBO SYSTEM - increment combo and reset timer!
-      const newGiftCombo = prev.giftComboTimer > 0 ? prev.giftCombo + 1 : 1;
-      // Damage multiplier: ONLY increases every 3 gifts! (1.0 at 1-2, 1.5 at 3-5, 2.0 at 6-8, etc.)
-      // Math.floor(combo / 3) gives us tier 0 at 1-2, tier 1 at 3-5, etc.
-      const comboTier = Math.floor(newGiftCombo / 3);
-      const newDamageMultiplier = Math.min(1.0 + comboTier * 0.5, 3.0); // +0.5x per tier, max 3.0x
-      
+      // MULTIPLIER NOW BASED ON KILLS - gifts just trigger actions, not multiplier!
       let newState = { 
         ...prev, 
         lastGiftTime: Date.now(),
-        giftCombo: newGiftCombo,
-        giftComboTimer: 3, // 3 seconds to keep combo alive
-        giftDamageMultiplier: newDamageMultiplier,
       };
       
-      // FLIP ATTACK - Every 15 gifts triggers epic flip attack!
-      if (newGiftCombo > 0 && newGiftCombo % 15 === 0 && !prev.player.isFlipAttacking) {
+      // FLIP ATTACK - Every 15 KILLS triggers epic flip attack!
+      // (Changed from gifts to kills - tracked by killStreak)
+      if (prev.killStreak > 0 && prev.killStreak % 15 === 0 && !prev.player.isFlipAttacking && prev.killStreak !== (prev as any).lastFlipTriggerKills) {
+        (newState as any).lastFlipTriggerKills = prev.killStreak;
         const heroScreenX = HERO_FIXED_SCREEN_X;
         const heroWorldX = prev.cameraX + heroScreenX + PLAYER_WIDTH / 2;
         
@@ -893,7 +886,7 @@ export const useGameState = () => {
             y: baseY,
             velocityX: Math.cos(angleRad) * speed,
             velocityY: Math.sin(angleRad) * speed * 0.3,
-            damage: 80 * newDamageMultiplier,
+            damage: 80 * prev.giftDamageMultiplier,
             type: 'ultra',
           });
         });
@@ -2690,6 +2683,12 @@ export const useGameState = () => {
                   newState.combo++;
                   newState.comboTimer = 2;
                   newState.killStreak++;
+                  
+                  // KILL-BASED MULTIPLIER SYSTEM - increases every 3 kills!
+                  newState.giftCombo = (prev.giftComboTimer > 0 ? prev.giftCombo : 0) + 1;
+                  newState.giftComboTimer = 3; // 3 seconds to keep combo alive
+                  const killTier = Math.floor(newState.giftCombo / 3);
+                  newState.giftDamageMultiplier = Math.min(1.0 + killTier * 0.5, 3.0); // +0.5x per 3 kills, max 3.0x
                   
                   newState.particles = [...newState.particles, ...createParticles(
                     enemy.x + enemy.width/2, enemy.y + enemy.height/2, 

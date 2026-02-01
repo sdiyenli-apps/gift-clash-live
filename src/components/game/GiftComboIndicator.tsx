@@ -2,14 +2,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { memo } from 'react';
 
 interface GiftComboIndicatorProps {
-  giftCombo: number;
+  giftCombo: number; // Now actually "kill combo"
   giftComboTimer: number;
   damageMultiplier: number;
 }
 
-// Neon color palette based on combo tier - EVERY 3 GIFTS increases tier
+// Neon color palette based on combo tier - EVERY 3 KILLS increases tier
 const getComboStyle = (combo: number, multiplier: number) => {
-  // Tier is based on multiplier level (every 3 gifts = +0.5x multiplier)
+  // Tier is based on multiplier level (every 3 kills = +0.5x multiplier)
   if (multiplier >= 3.0) return { 
     color: '#ff00ff', 
     glow: '#ff00ff',
@@ -22,7 +22,7 @@ const getComboStyle = (combo: number, multiplier: number) => {
     glow: '#ff4400',
     label: 'MYTHIC',
     icon: '🔥',
-    nextTier: 3 - (combo % 3) // Gifts until next tier
+    nextTier: 3 - (combo % 3) // Kills until next tier
   };
   if (multiplier >= 2.0) return { 
     color: '#ff4400', 
@@ -38,12 +38,12 @@ const getComboStyle = (combo: number, multiplier: number) => {
     icon: '💥',
     nextTier: 3 - (combo % 3)
   };
-  // Starting tier - first 3 gifts build to 1.5x
+  // Starting tier - first 3 kills build to 1.5x
   return { 
     color: '#00ff88', 
     glow: '#00ff44',
-    label: 'COMBO',
-    icon: '✨',
+    label: 'KILLS',
+    icon: '💀',
     nextTier: 3 - (combo % 3)
   };
 };
