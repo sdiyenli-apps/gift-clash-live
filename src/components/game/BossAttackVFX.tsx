@@ -50,74 +50,30 @@ export const BossAttackVFX = memo(({ attackType, bossX, bossY, cameraX }: BossAt
 
 BossAttackVFX.displayName = 'BossAttackVFX';
 
-// Fireball launch flash - orange/red burst from boss
+// Fireball launch flash - SIMPLIFIED for performance
 const FireballVFX = memo(({ x, y }: { x: number; y: number }) => {
   return (
     <motion.div
       className="absolute pointer-events-none"
       style={{
-        left: x - 60,
-        bottom: 280 - y - 60,
-        width: 120,
-        height: 120,
+        left: x - 40,
+        bottom: 280 - y - 40,
+        width: 80,
+        height: 80,
         zIndex: 45,
       }}
-      initial={{ scale: 0.3, opacity: 1 }}
-      animate={{ scale: [0.3, 1.5, 1.2], opacity: [1, 1, 0] }}
-      transition={{ duration: 0.4 }}
+      initial={{ scale: 0.5, opacity: 1 }}
+      animate={{ scale: 1.2, opacity: 0 }}
+      transition={{ duration: 0.3 }}
     >
-      {/* Core flash */}
-      <motion.div
+      {/* Core flash only - removed extra elements for performance */}
+      <div
         className="absolute inset-0 rounded-full"
         style={{
-          background: 'radial-gradient(circle, #fff 10%, #ffaa00 30%, #ff4400 60%, transparent 70%)',
-          boxShadow: '0 0 40px #ff6600, 0 0 80px #ff4400',
+          background: 'radial-gradient(circle, #fff 10%, #ffaa00 40%, #ff4400 70%, transparent 100%)',
+          boxShadow: '0 0 30px #ff6600',
         }}
-        animate={{ scale: [1, 1.3, 1] }}
-        transition={{ duration: 0.2, repeat: 2 }}
       />
-      
-      {/* Fire streaks */}
-      {[...Array(8)].map((_, i) => {
-        const angle = (i / 8) * Math.PI * 2;
-        return (
-          <motion.div
-            key={i}
-            className="absolute"
-            style={{
-              left: 60 - 3,
-              top: 60 - 15,
-              width: 6,
-              height: 30,
-              background: 'linear-gradient(180deg, #fff, #ffaa00, transparent)',
-              transformOrigin: 'center bottom',
-              transform: `rotate(${angle}rad)`,
-              borderRadius: '50%',
-            }}
-            initial={{ scaleY: 0, opacity: 1 }}
-            animate={{ scaleY: 1, opacity: 0 }}
-            transition={{ duration: 0.3, delay: i * 0.02 }}
-          />
-        );
-      })}
-      
-      {/* Smoke puffs */}
-      {[...Array(4)].map((_, i) => (
-        <motion.div
-          key={`smoke-${i}`}
-          className="absolute rounded-full"
-          style={{
-            left: 40 + Math.random() * 40,
-            top: 40 + Math.random() * 40,
-            width: 20,
-            height: 20,
-            background: 'radial-gradient(circle, rgba(80,80,80,0.6), transparent)',
-          }}
-          initial={{ scale: 0.5, opacity: 0.8, y: 0 }}
-          animate={{ scale: 2, opacity: 0, y: -50, x: (Math.random() - 0.5) * 40 }}
-          transition={{ duration: 0.5, delay: 0.1 + i * 0.05 }}
-        />
-      ))}
     </motion.div>
   );
 });
@@ -207,7 +163,7 @@ const LaserVFX = memo(({ x, y }: { x: number; y: number }) => {
 
 LaserVFX.displayName = 'LaserVFX';
 
-// Missile barrage VFX - warning indicators and launch trails
+// Missile barrage VFX - SIMPLIFIED for performance
 const MissileVFX = memo(() => {
   return (
     <motion.div
@@ -216,47 +172,28 @@ const MissileVFX = memo(() => {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      {/* Warning lines falling from top */}
-      {[...Array(8)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute"
-          style={{
-            left: `${10 + i * 10}%`,
-            top: 0,
-            width: 2,
-            height: '100%',
-            background: 'linear-gradient(180deg, #ff0000, #ff6600, transparent 40%)',
-            opacity: 0.6,
-          }}
-          initial={{ scaleY: 0 }}
-          animate={{ scaleY: [0, 1, 0] }}
-          transition={{ duration: 0.5, delay: i * 0.05 }}
-        />
-      ))}
-      
-      {/* Danger flash at top */}
+      {/* Simple danger flash at top - reduced from 8 lines to just a flash */}
       <motion.div
-        className="absolute top-0 left-0 right-0 h-16"
+        className="absolute top-0 left-0 right-0 h-12"
         style={{
-          background: 'linear-gradient(180deg, rgba(255,100,0,0.7), transparent)',
+          background: 'linear-gradient(180deg, rgba(255,100,0,0.6), transparent)',
         }}
-        animate={{ opacity: [0.5, 1, 0.5] }}
-        transition={{ duration: 0.15, repeat: 4 }}
+        animate={{ opacity: [0.4, 0.8, 0.4] }}
+        transition={{ duration: 0.2, repeat: 2 }}
       />
       
-      {/* Incoming missile indicators */}
-      {[...Array(5)].map((_, i) => (
+      {/* Just 2 missile indicators instead of 5 */}
+      {[0, 1].map((i) => (
         <motion.div
           key={`missile-${i}`}
-          className="absolute text-2xl"
+          className="absolute text-xl"
           style={{
-            left: `${15 + i * 15}%`,
-            top: 10,
+            left: `${25 + i * 50}%`,
+            top: 8,
           }}
-          initial={{ y: -30, opacity: 0 }}
-          animate={{ y: 0, opacity: [0, 1, 1, 0] }}
-          transition={{ duration: 0.6, delay: i * 0.08 }}
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: [0, 1, 0] }}
+          transition={{ duration: 0.4, delay: i * 0.1 }}
         >
           🚀
         </motion.div>
@@ -267,148 +204,85 @@ const MissileVFX = memo(() => {
 
 MissileVFX.displayName = 'MissileVFX';
 
-// Ground pound VFX - shockwave and debris
+// Ground pound VFX - SIMPLIFIED for performance
 const GroundPoundVFX = memo(({ x, y }: { x: number; y: number }) => {
   return (
     <motion.div
       className="absolute pointer-events-none"
       style={{
-        left: x - 100,
+        left: x - 60,
         bottom: 0,
-        width: 200,
-        height: 150,
+        width: 120,
+        height: 80,
         zIndex: 45,
       }}
     >
-      {/* Impact flash */}
+      {/* Impact flash - simplified */}
       <motion.div
         className="absolute"
         style={{
-          left: 50,
-          bottom: 20,
+          left: 10,
+          bottom: 15,
           width: 100,
-          height: 60,
-          background: 'radial-gradient(ellipse at center bottom, #fff 0%, #ff00ff 30%, #ff0066 60%, transparent 80%)',
-          boxShadow: '0 0 50px #ff00ff',
+          height: 40,
+          background: 'radial-gradient(ellipse at center bottom, #fff 0%, #ff00ff 40%, transparent 80%)',
+          boxShadow: '0 0 30px #ff00ff',
         }}
-        initial={{ scaleX: 0.5, scaleY: 0.3, opacity: 1 }}
-        animate={{ scaleX: 3, scaleY: 1.5, opacity: 0 }}
-        transition={{ duration: 0.4 }}
+        initial={{ scaleX: 0.5, opacity: 1 }}
+        animate={{ scaleX: 2, opacity: 0 }}
+        transition={{ duration: 0.3 }}
       />
       
-      {/* Shockwave rings */}
-      {[...Array(3)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute"
-          style={{
-            left: 0,
-            bottom: 15,
-            width: 200,
-            height: 30,
-            border: '3px solid #ff00ff',
-            borderRadius: '50%',
-            boxShadow: '0 0 15px #ff00ff',
-          }}
-          initial={{ scaleX: 0.3, opacity: 1 }}
-          animate={{ scaleX: 4, opacity: 0 }}
-          transition={{ duration: 0.5, delay: i * 0.1 }}
-        />
-      ))}
-      
-      {/* Debris particles */}
-      {[...Array(12)].map((_, i) => {
-        const angle = (i / 12) * Math.PI;
-        const dist = 60 + Math.random() * 40;
-        return (
-          <motion.div
-            key={`debris-${i}`}
-            className="absolute rounded"
-            style={{
-              left: 95,
-              bottom: 25,
-              width: 8 + Math.random() * 6,
-              height: 8 + Math.random() * 6,
-              background: i % 2 === 0 ? '#ff00ff' : '#666',
-              boxShadow: i % 2 === 0 ? '0 0 8px #ff00ff' : 'none',
-            }}
-            initial={{ x: 0, y: 0, rotate: 0 }}
-            animate={{
-              x: Math.cos(angle) * dist,
-              y: -Math.sin(angle) * dist - 20,
-              rotate: 360 + Math.random() * 360,
-              opacity: 0,
-            }}
-            transition={{ duration: 0.5, ease: 'easeOut' }}
-          />
-        );
-      })}
+      {/* Single shockwave ring */}
+      <motion.div
+        className="absolute"
+        style={{
+          left: 0,
+          bottom: 10,
+          width: 120,
+          height: 20,
+          border: '2px solid #ff00ff',
+          borderRadius: '50%',
+          boxShadow: '0 0 10px #ff00ff',
+        }}
+        initial={{ scaleX: 0.5, opacity: 1 }}
+        animate={{ scaleX: 3, opacity: 0 }}
+        transition={{ duration: 0.4 }}
+      />
     </motion.div>
   );
 });
 
 GroundPoundVFX.displayName = 'GroundPoundVFX';
 
-// Screen attack VFX - full screen danger effects
+// Screen attack VFX - SIMPLIFIED for performance
 const ScreenAttackVFX = memo(() => {
   return (
     <motion.div className="absolute inset-0 pointer-events-none z-50">
-      {/* Danger border pulse */}
+      {/* Simple danger border pulse */}
       <motion.div
         className="absolute inset-0"
         style={{
-          border: '8px solid #ff0000',
-          boxShadow: 'inset 0 0 100px rgba(255,0,0,0.5)',
+          border: '6px solid #ff0000',
+          boxShadow: 'inset 0 0 60px rgba(255,0,0,0.4)',
         }}
-        animate={{ 
-          opacity: [0, 1, 0],
-          borderColor: ['#ff0000', '#ffff00', '#ff0000'],
-        }}
-        transition={{ duration: 0.15, repeat: 5 }}
+        animate={{ opacity: [0, 1, 0] }}
+        transition={{ duration: 0.2, repeat: 2 }}
       />
       
-      {/* Warning skull */}
+      {/* Warning text only */}
       <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-8xl"
-        initial={{ scale: 0, opacity: 0, rotate: -180 }}
-        animate={{ 
-          scale: [0, 2, 1.5],
-          opacity: [0, 1, 0],
-          rotate: 0,
-        }}
-        transition={{ duration: 0.6 }}
-      >
-        ☠️
-      </motion.div>
-      
-      {/* Danger text */}
-      <motion.div
-        className="absolute top-1/3 left-1/2 -translate-x-1/2 text-4xl font-black"
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 text-3xl font-black"
         style={{
           color: '#ff0000',
-          textShadow: '0 0 20px #ff0000, 0 0 40px #ff0000',
-          fontFamily: 'Impact, sans-serif',
+          textShadow: '0 0 15px #ff0000',
         }}
-        initial={{ opacity: 0, y: -30 }}
-        animate={{ 
-          opacity: [0, 1, 1, 0],
-          y: 0,
-        }}
-        transition={{ duration: 0.6, times: [0, 0.2, 0.8, 1] }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 1, 0] }}
+        transition={{ duration: 0.5 }}
       >
         ⚠️ MEGA ATTACK ⚠️
       </motion.div>
-      
-      {/* Screen flash */}
-      <motion.div
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(circle, rgba(255,255,255,0.8), rgba(255,0,0,0.6))',
-        }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0, 0.8, 0] }}
-        transition={{ duration: 0.3, delay: 0.4 }}
-      />
     </motion.div>
   );
 });

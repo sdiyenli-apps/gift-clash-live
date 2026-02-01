@@ -198,15 +198,15 @@ export const ThunderController = memo(({ isBossFight }: ThunderControllerProps) 
   const [strikeX, setStrikeX] = useState(300);
   
   useEffect(() => {
-    // Random thunder strikes - more frequent during boss fights
+    // REDUCED frequency for better performance
     const interval = setInterval(() => {
-      const chance = isBossFight ? 0.15 : 0.05;
+      const chance = isBossFight ? 0.08 : 0.02; // Much lower chance
       if (Math.random() < chance) {
         setStrikeX(80 + Math.random() * 440);
         setIsStriking(true);
-        setTimeout(() => setIsStriking(false), 500);
+        setTimeout(() => setIsStriking(false), 400);
       }
-    }, 2000);
+    }, 4000); // Less frequent checks (was 2000)
     
     return () => clearInterval(interval);
   }, [isBossFight]);
