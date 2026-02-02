@@ -907,8 +907,10 @@ export const Arena = ({ gameState }: ArenaProps) => {
           })}
         </div>
         
-        {/* Floor Assets - dustbins, rats, debris */}
-        <FloorAssets cameraX={cameraX} levelLength={levelLength} />
+        {/* Floor Assets - dustbins, rats, debris - BROUGHT TO FRONT z-35 */}
+        <div className="absolute inset-0 z-35 pointer-events-none">
+          <FloorAssets cameraX={cameraX} levelLength={levelLength} />
+        </div>
         
         {/* Floor - Original size */}
         <div 
