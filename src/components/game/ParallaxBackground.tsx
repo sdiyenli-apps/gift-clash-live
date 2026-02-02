@@ -578,51 +578,7 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
         />
       )}
       
-      {/* SEARCHLIGHTS - Sweeping beams during boss fights */}
-      {isBossFight && (
-        <div className="absolute inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 5 }}>
-          {SEARCHLIGHTS.map((light, i) => {
-            const angle = light.baseAngle + Math.sin(searchlightTime * light.speed) * 45;
-            return (
-              <div
-                key={`searchlight-${i}`}
-                className="absolute"
-                style={{
-                  left: light.x,
-                  bottom: 0,
-                  width: light.width,
-                  height: light.length,
-                  background: `linear-gradient(180deg, 
-                    rgba(255,0,0,0.5) 0%, 
-                    rgba(255,50,50,0.3) 30%, 
-                    rgba(200,0,0,0.15) 60%, 
-                    transparent 100%)`,
-                  transformOrigin: 'bottom center',
-                  transform: `rotate(${angle - 90}deg)`,
-                  filter: 'blur(4px)',
-                  clipPath: 'polygon(40% 0%, 60% 0%, 100% 100%, 0% 100%)',
-                }}
-              />
-            );
-          })}
-          
-          {/* Searchlight base glow effects */}
-          {SEARCHLIGHTS.map((light, i) => (
-            <div
-              key={`searchlight-base-${i}`}
-              className="absolute"
-              style={{
-                left: light.x + light.width / 2 - 15,
-                bottom: -5,
-                width: 30,
-                height: 20,
-                background: 'radial-gradient(ellipse, rgba(255,255,200,0.6), rgba(255,200,100,0.3), transparent)',
-                filter: 'blur(5px)',
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* SEARCHLIGHTS REMOVED - No longer displayed during boss fights for cleaner visuals */}
       
       {/* Vignette effect */}
       <div 

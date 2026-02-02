@@ -199,6 +199,8 @@ interface ExtendedGameState extends GameState {
   bossLaserTimer: number;
   // ENEMY LASER ATTACKS (for large enemies)
   enemyLaserAttacks: { enemyId: string; timer: number }[];
+  // GO GIFT COUNTER - Every 10 GO gifts triggers flip attack
+  goGiftCount: number;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -281,6 +283,8 @@ const INITIAL_STATE: ExtendedGameState = {
   bossLaserTimer: 0,
   // ENEMY LASER ATTACKS (for large enemies)
   enemyLaserAttacks: [],
+  // GO GIFT COUNTER - Every 10 GO gifts triggers flip attack
+  goGiftCount: 0,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -721,6 +725,8 @@ export const useGameState = () => {
         powerups: [],
         // Reset first gift tracking - enemies wait for first gift to be sent
         firstGiftSent: false,
+        // Reset GO gift counter for new wave
+        goGiftCount: 0,
       }));
       showSpeechBubble(`WAVE ${nextWave} BEGINS! 🔥💪`, 'excited');
     }
@@ -925,6 +931,8 @@ export const useGameState = () => {
         case 'move_forward':
           // Hero moves forward, camera follows to create movement feeling
           const moveDistance = 80;
+          const newGoCount = (prev as any).goGiftCount + 1;
+          
           newState.player = {
             ...prev.player,
             x: prev.player.x + moveDistance,
@@ -933,7 +941,48 @@ export const useGameState = () => {
           // Camera will smoothly follow via the game loop
           newState.particles = [...prev.particles, ...createParticles(prev.player.x, prev.player.y + PLAYER_HEIGHT/2, 8, 'dash', '#00ffff')];
           newState.score += 15;
-          showSpeechBubble("MOVING! 🏃", 'normal');
+          (newState as any).goGiftCount = newGoCount;
+          
+          // EVERY 10 GO GIFTS TRIGGERS FLIP ATTACK!
+          if (newGoCount % 10 === 0 && !prev.player.isFlipAttacking) {
+            const heroScreenX_go = HERO_FIXED_SCREEN_X;
+            const heroWorldX_go = prev.cameraX + heroScreenX_go + PLAYER_WIDTH / 2;
+            
+            // Create 8 projectiles in spread pattern - fire through MIDDLE OF GROUND
+            const flipProjectiles_go: Projectile[] = [];
+            const baseY_go = GROUND_Y; // Middle ground level for projectiles
+            const spreadAngles_go = [-15, -10, -5, 0, 3, 6, 10, 15]; // Tighter spread for ground combat
+            
+            spreadAngles_go.forEach((angleDeg, idx) => {
+              const angleRad = (angleDeg * Math.PI) / 180;
+              const speed = 950;
+              flipProjectiles_go.push({
+                id: `flip-go-${Date.now()}-${idx}`,
+                x: heroWorldX_go + 30,
+                y: baseY_go,
+                velocityX: Math.cos(angleRad) * speed,
+                velocityY: Math.sin(angleRad) * speed * 0.15, // Less vertical spread to stay in middle ground
+                damage: 90 * prev.giftDamageMultiplier,
+                type: 'ultra',
+              });
+            });
+            
+            newState.projectiles = [...(newState.projectiles || prev.projectiles), ...flipProjectiles_go];
+            newState.player = {
+              ...newState.player,
+              isFlipAttacking: true,
+              flipAttackTimer: 1.2,
+              animationState: 'flip_attack',
+              isShooting: true,
+            };
+            
+            newState.screenShake = 0.7;
+            newState.score += 600;
+            showSpeechBubble(`🌀 x${newGoCount} GO! FLIP BARRAGE! 🌀`, 'excited');
+          } else {
+            showSpeechBubble("MOVING! 🏃", 'normal');
+          }
+          
           setTimeout(() => setGameState(s => ({ ...s, player: { ...s.player, animationState: 'idle' } })), 300);
           break;
           
@@ -941,19 +990,19 @@ export const useGameState = () => {
           // Hero fires BULLET - position changes based on spaceship mode
           const heroScreenX = HERO_FIXED_SCREEN_X;
           const heroWorldX = prev.cameraX + heroScreenX + PLAYER_WIDTH / 2;
-          // In spaceship mode, fire from spaceship height (200), else from ground torso
+          // In spaceship mode, fire from spaceship height, else fire through MIDDLE OF GROUND
           const isSpaceshipMode = prev.player.isMagicDashing;
+          // FIXED: All projectiles fire through the MIDDLE OF THE GROUND combat area
+          const middleGroundY = GROUND_Y_MIDDLE; // Uses middle lane Y for all ground combat
           const spaceshipY = 200; // Spaceship flying height
-          // Hero fires through the GREEN ZONE (floor combat area)
-          const groundTorsoY = GROUND_Y - 15; // Lower firing position for ground combat
-          const bulletY = isSpaceshipMode ? spaceshipY + 30 : groundTorsoY;
+          const bulletY = isSpaceshipMode ? spaceshipY + 30 : middleGroundY;
           
           const bullet: Projectile = {
             id: `proj-${Date.now()}-${Math.random()}`,
             x: heroWorldX + (isSpaceshipMode ? 50 : 0), // Spaceship fires from front
             y: bulletY,
             velocityX: isSpaceshipMode ? 1000 : 800, // Faster in spaceship
-            velocityY: 0,
+            velocityY: 0, // Straight horizontal through middle ground
             damage: isSpaceshipMode ? 150 : 60,
             type: isSpaceshipMode ? 'ultra' : 'mega',
           };
@@ -981,14 +1030,16 @@ export const useGameState = () => {
             const startX = unit.x + unit.width / 2; // Center X
             const startY = unit.y + unit.height / 2; // Center Y
             
-            // Fire BULLET at nearest enemy
+            // Fire BULLET at nearest enemy - constrained to MIDDLE GROUND combat area
             if (allEnemies.length > 0) {
               const target = allEnemies[0];
               const targetX = target.x + target.width / 2;
-              const targetY = (target.y || GROUND_Y) + target.height / 2;
+              // Target the MIDDLE GROUND Y position for consistent combat
+              const targetY = target.isFlying ? (target.y || GROUND_Y) + target.height / 2 : GROUND_Y_MIDDLE;
               
               const dx = targetX - startX;
-              const dy = targetY - startY;
+              // Force projectiles to stay in middle ground zone - minimize vertical variance
+              const dy = target.isFlying ? (targetY - startY) : 0;
               const dist = Math.sqrt(dx * dx + dy * dy);
               
               if (dist > 0) {
@@ -996,9 +1047,9 @@ export const useGameState = () => {
                 const proj: Projectile = {
                   id: `ally-bullet-${unit.id}-${Date.now()}-${idx}`,
                   x: startX,
-                  y: startY,
+                  y: GROUND_Y_MIDDLE, // Always fire from middle ground level
                   velocityX: (dx / dist) * projSpeed,
-                  velocityY: (dy / dist) * projSpeed,
+                  velocityY: target.isFlying ? (dy / dist) * projSpeed * 0.3 : 0, // Only vertical if targeting flyers
                   damage: unit.type === 'mech' ? 25 : 18, // Mech does more damage
                   type: unit.type === 'mech' ? 'ultra' : 'mega',
                   isAllyProjectile: true,

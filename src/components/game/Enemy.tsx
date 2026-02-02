@@ -1257,40 +1257,51 @@ export const EnemySprite = ({ enemy, cameraX, isTankActive = false, currentWave 
         {/* Boss special effects - SCARY with phases */}
         {enemy.type === 'boss' && !enemy.isDying && (
           <>
-            {/* BOSS SHIELD - glowing protective barrier - SCALED TO HITBOX */}
+            {/* BOSS ARMOR - Blue glow effect around boss (not a circle border) */}
             {enemy.bossShieldTimer && enemy.bossShieldTimer > 0 && (
-              <motion.div
-                className="absolute pointer-events-none"
-                style={{
-                  // FIXED: Shield scaled to 90% of boss dimensions - not oversized!
-                  top: '5%',
-                  left: '5%',
-                  right: '5%',
-                  bottom: '5%',
-                  borderRadius: '50%',
-                  background: 'radial-gradient(circle, rgba(0,255,255,0.1), rgba(0,200,255,0.2), transparent 60%)',
-                  border: '2px solid rgba(0,255,255,0.8)',
-                  boxShadow: '0 0 10px #00ffff, 0 0 20px #00ffff60, inset 0 0 15px rgba(0,255,255,0.15)',
-                }}
-                animate={{ 
-                  scale: [1, 1.03, 1],
-                  opacity: [0.7, 0.9, 0.7],
-                }}
-                transition={{ duration: 0.3, repeat: Infinity }}
-              >
-                {/* Shield timer indicator - positioned at top of shield */}
+              <>
+                {/* Blue aura glow - radiating from boss body */}
                 <motion.div
-                  className="absolute -top-3 left-1/2 -translate-x-1/2 text-[9px] font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap"
+                  className="absolute pointer-events-none -z-10"
+                  style={{
+                    inset: -15,
+                    background: 'radial-gradient(ellipse at center, rgba(0,150,255,0.4), rgba(0,200,255,0.25), rgba(0,255,255,0.15), transparent 70%)',
+                    filter: 'blur(12px)',
+                  }}
+                  animate={{ 
+                    opacity: [0.5, 0.8, 0.5],
+                    scale: [1, 1.05, 1],
+                  }}
+                  transition={{ duration: 0.4, repeat: Infinity }}
+                />
+                
+                {/* Inner intense glow */}
+                <motion.div
+                  className="absolute pointer-events-none -z-10"
+                  style={{
+                    inset: -8,
+                    background: 'radial-gradient(ellipse at center, rgba(0,200,255,0.3), rgba(0,150,255,0.15), transparent 60%)',
+                    filter: 'blur(8px)',
+                  }}
+                  animate={{ 
+                    opacity: [0.6, 1, 0.6],
+                  }}
+                  transition={{ duration: 0.25, repeat: Infinity }}
+                />
+                
+                {/* Armor timer indicator - positioned at top */}
+                <motion.div
+                  className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap z-10"
                   style={{ 
-                    color: '#00ffff', 
-                    textShadow: '0 0 5px #00ffff',
-                    background: 'rgba(0,0,0,0.7)',
-                    border: '1px solid #00ffff',
+                    color: '#00ddff', 
+                    textShadow: '0 0 8px #00ddff',
+                    background: 'rgba(0,0,0,0.8)',
+                    border: '1px solid #00aaff',
                   }}
                 >
-                  🛡️ {enemy.bossShieldTimer.toFixed(1)}s
+                  🛡️ ARMOR {enemy.bossShieldTimer.toFixed(1)}s
                 </motion.div>
-              </motion.div>
+              </>
             )}
             
             {/* BOSS JUMP ATTACK INDICATOR - Shows when boss is off screen */}
