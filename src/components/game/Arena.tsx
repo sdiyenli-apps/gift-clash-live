@@ -386,18 +386,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
         />
       )}
       
-      {/* DAMAGE FLASH - red screen flash when hero takes damage */}
-      {damageFlash > 0 && (
-        <motion.div
-          className="absolute inset-0 z-50 pointer-events-none"
-          style={{ 
-            background: 'radial-gradient(circle, rgba(255,0,0,0.6), rgba(255,0,0,0.8))',
-            boxShadow: 'inset 0 0 100px rgba(255,0,0,0.9)',
-          }}
-          initial={{ opacity: 1 }}
-          animate={{ opacity: damageFlash }}
-        />
-      )}
+      {/* DAMAGE FLASH REMOVED - No longer showing red screen flashes for cleaner gameplay */}
       
       {/* SHIELD BLOCK FLASH - cyan/blue flash when shield blocks attack */}
       {shieldBlockFlash > 0 && (

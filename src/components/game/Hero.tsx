@@ -290,9 +290,69 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
               }}
               animate={{
                 y: [0, -3, 0],
+                scaleX: [1, 1.02, 1], // Slight pulse when "attacking"
               }}
-              transition={{ duration: 0.3, repeat: Infinity }}
+              transition={{ duration: 0.15, repeat: Infinity }}
             />
+            
+            {/* CONTINUOUS ATTACK EFFECT - Rapid fire lasers from front */}
+            <motion.div
+              className="absolute"
+              style={{
+                right: -50,
+                top: '40%',
+                width: 60,
+                height: 8,
+                background: 'linear-gradient(90deg, #ff00ff, #fff, #00ffff)',
+                boxShadow: '0 0 15px #ff00ff, 0 0 30px #00ffff',
+                filter: 'blur(1px)',
+                borderRadius: 4,
+              }}
+              animate={{ 
+                scaleX: [0.5, 1.5, 0.5],
+                opacity: [0.8, 1, 0.8],
+              }}
+              transition={{ duration: 0.08, repeat: Infinity }}
+            />
+            
+            {/* Secondary laser beam */}
+            <motion.div
+              className="absolute"
+              style={{
+                right: -30,
+                top: '50%',
+                width: 45,
+                height: 5,
+                background: 'linear-gradient(90deg, #00ffff, #fff, #ff00ff)',
+                boxShadow: '0 0 10px #00ffff',
+                filter: 'blur(1px)',
+                borderRadius: 3,
+              }}
+              animate={{ 
+                scaleX: [0.7, 1.2, 0.7],
+                opacity: [0.6, 1, 0.6],
+              }}
+              transition={{ duration: 0.1, repeat: Infinity, delay: 0.05 }}
+            />
+            
+            {/* Muzzle flash at front */}
+            <motion.div
+              className="absolute rounded-full"
+              style={{
+                right: -20,
+                top: '40%',
+                width: 20,
+                height: 20,
+                background: 'radial-gradient(circle, #fff, #ff00ff, transparent)',
+                boxShadow: '0 0 20px #ff00ff',
+              }}
+              animate={{ 
+                scale: [0.8, 1.5, 0.8],
+                opacity: [0.7, 1, 0.7],
+              }}
+              transition={{ duration: 0.06, repeat: Infinity }}
+            />
+            
             {/* Engine boost trail behind spaceship */}
             <motion.div
               className="absolute"
@@ -344,7 +404,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
               animate={{ scale: [1, 1.1, 1] }}
               transition={{ duration: 0.3, repeat: Infinity }}
             >
-              🚀 SPACESHIP MODE 🚀
+              🚀 ATTACKING! 🔥
             </motion.div>
           </motion.div>
         ) : (
