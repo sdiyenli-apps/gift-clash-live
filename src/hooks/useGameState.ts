@@ -549,25 +549,29 @@ const generateLevel = (wave: number): { enemies: Enemy[], obstacles: Obstacle[],
   const isMegaBoss = wave % 100 === 0; // Every 100 waves = mega boss
   const isMiniBoss = wave % 10 === 0; // Every 10 waves = mini boss
   
-  // Boss size - SMALLER for tighter combat feel
-  const baseBossSize = 100; // Smaller boss hitbox
-  const sizeMultiplier = isFinalBoss ? 2.5 : (1 + wave * 0.003); // Smaller scaling
-  const bossSize = Math.min(baseBossSize * sizeMultiplier, isFinalBoss ? 250 : 160);
+  // Boss size - SMALLER for tighter combat feel, scales with wave
+  // Levels 1-5 have smaller bosses, 6-10 have larger ones
+  const baseBossSize = wave <= 5 ? 80 : 100; // Smaller boss hitbox for early levels
+  const sizeMultiplier = isFinalBoss ? 2.0 : (1 + wave * 0.002); // Reduced scaling
+  const bossSize = Math.min(baseBossSize * sizeMultiplier, isFinalBoss ? 200 : 140);
   
-  // Boss health scales dramatically - INCREASED for longer battle time
+  // Boss health scales dramatically - balanced for longer battle time
+  // Levels 1-5 have LESS health for quicker fights (only 2 phases)
   const bossBaseHealth = isFinalBoss 
-    ? 120000 // Final boss has 120k health for epic battle
-    : (6000 + wave * 800) * (isMegaBoss ? 2.5 : isMiniBoss ? 1.8 : 1);
+    ? 100000 // Final boss has 100k health for epic battle
+    : wave <= 5 
+      ? (4000 + wave * 600) * (isMegaBoss ? 2.5 : isMiniBoss ? 1.8 : 1) // Lower health for early bosses
+      : (6000 + wave * 800) * (isMegaBoss ? 2.5 : isMiniBoss ? 1.8 : 1);
   
   enemies.push({
     id: 'boss-monster',
-    x: levelLength - 500,
-    y: GROUND_Y - (bossSize * 0.4), // Bigger bosses need more ground clearance
+    x: levelLength - 400, // Boss starts CLOSER to hero
+    y: GROUND_Y - (bossSize * 0.35), // Adjusted ground clearance
     width: bossSize,
     height: bossSize,
     health: bossBaseHealth,
     maxHealth: bossBaseHealth,
-    speed: 40 + wave * 0.5,
+    speed: 50 + wave * 0.5, // Slightly faster approach
     damage: isFinalBoss ? 100 : (35 + wave * 2),
     type: 'boss',
     isDying: false,
@@ -603,29 +607,33 @@ export const useGameState = () => {
   const lastUpdateRef = useRef<number>(Date.now());
   const helpRequestTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // PERFORMANCE: Aggressive particle and FX limits - reduce lag
-  const MAX_PARTICLES = 4;
+  // PERFORMANCE: MINIMAL particle and FX limits - reduce lag significantly
+  const MAX_PARTICLES = 2; // Reduced from 4
   const MAX_SUPPORT_PROJECTILES = 2;
 
   // Particle pool - reuse particle objects instead of creating new ones
   const particlePoolRef = useRef<Particle[]>([]);
   
   const createParticles = useCallback((x: number, y: number, count: number, type: Particle['type'], color?: string): Particle[] => {
-    // PERFORMANCE: Skip ALL non-essential particle creation to reduce lag
-    if (type === 'spark' || type === 'magic' || type === 'neon') return [];
+    // PERFORMANCE: Skip ALL particle creation except essential explosions
+    // This eliminates particle residue from ally/tank shooting
+    if (type === 'spark' || type === 'magic' || type === 'neon' || type === 'muzzle') return [];
+    
+    // Only create particles for death/explosion effects, and very few
+    if (type !== 'explosion' && type !== 'death') return [];
     
     const colors = ['#ff00ff', '#00ffff', '#ffff00'];
     
-    // Only create 1 particle max with very short life
+    // Only create 1 particle max with ULTRA short life to prevent residue
     const particle: Particle = {
-      id: `p-${Date.now()}`,
+      id: `p-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       x,
       y,
-      velocityX: (Math.random() - 0.5) * 80,
-      velocityY: (Math.random() - 0.8) * 80,
+      velocityX: (Math.random() - 0.5) * 60,
+      velocityY: (Math.random() - 0.8) * 60,
       color: color || colors[Math.floor(Math.random() * colors.length)],
-      size: 2 + Math.random() * 2,
-      life: 0.03 + Math.random() * 0.05, // Extremely short lifespan (30-80ms)
+      size: 2,
+      life: 0.02 + Math.random() * 0.02, // ULTRA short lifespan (20-40ms)
       type,
     };
     return [particle];
@@ -1486,69 +1494,76 @@ export const useGameState = () => {
             }
           }
           
-          // Boss phase transitions - FIXED: Phase 2 at 70%, Phase 3 at 50%
+          // Boss phase transitions - LEVELS 1-5 only 2 phases, LEVELS 6+ get 3 phases
           if (bossIdx !== -1) {
             const currentPhase = newState.enemies[bossIdx].bossPhase || 1;
+            const isEarlyBoss = wave <= 5;
             
-            // Phase 2: 70% health - TRANSFORMATION WITH EFFECTS
-            if (bossHealthPercent <= BOSS_PHASE_2_THRESHOLD && currentPhase < 2) {
-              newState.enemies[bossIdx] = {
-                ...newState.enemies[bossIdx],
-                bossPhase: 2,
-                width: newState.enemies[bossIdx].width * 1.15,
-                height: newState.enemies[bossIdx].height * 1.15,
-                damage: newState.enemies[bossIdx].damage * 1.3,
-                speed: newState.enemies[bossIdx].speed * 1.3,
-              };
-              // DRAMATIC TRANSFORMATION EFFECTS
-              newState.screenShake = 3; // Intense shake
-              newState.redFlash = 2.5; // Bright flash
-              newState.magicFlash = 1.5; // Additional flash
-              newState.bossTransformFlash = 2; // White flash for transformation
-              newState.bossTaunt = "PHASE 2! I GROW STRONGER!";
-              // Explosion particles at boss
-              const bossX = newState.enemies[bossIdx].x;
-              const bossY = newState.enemies[bossIdx].y;
-              newState.particles = [
-                ...newState.particles,
-                ...createParticles(bossX, bossY + 50, 40, 'explosion', '#ff0000'),
-                ...createParticles(bossX, bossY + 50, 30, 'spark', '#ffff00'),
-                ...createParticles(bossX, bossY + 50, 20, 'magic', '#ff00ff'),
-              ];
-              showSpeechBubble("💀 BOSS EVOLVED! PHASE 2! 70% HP 💀", 'urgent');
-            }
-            
-            // Phase 3: 50% health - MAXIMUM TRANSFORMATION + ARMOR ACTIVATION
-            if (bossHealthPercent <= BOSS_PHASE_3_THRESHOLD && currentPhase < 3) {
-              newState.enemies[bossIdx] = {
-                ...newState.enemies[bossIdx],
-                bossPhase: 3,
-                width: newState.enemies[bossIdx].width * 1.25,
-                height: newState.enemies[bossIdx].height * 1.25,
-                damage: newState.enemies[bossIdx].damage * 1.5,
-                speed: newState.enemies[bossIdx].speed * 1.5,
-                // ARMOR ACTIVATES AT PHASE 3!
-                bossShieldTimer: BOSS_ARMOR_DURATION,
-                bossShieldUsed: true,
-              };
-              // MAXIMUM DRAMATIC EFFECTS FOR FINAL PHASE
-              newState.screenShake = 4; // Maximum shake
-              newState.redFlash = 3; // Intense red flash
-              newState.magicFlash = 2; // Purple flash
-              newState.bossTransformFlash = 3; // Intense white flash
-              newState.bossTaunt = "FINAL PHASE! ARMOR ACTIVATED! PREPARE TO DIE!!!";
-              newState.lastBossAttack = 'shield';
-              // MASSIVE explosion particles at boss
-              const bossX = newState.enemies[bossIdx].x;
-              const bossY = newState.enemies[bossIdx].y;
-              newState.particles = [
-                ...newState.particles,
-                ...createParticles(bossX, bossY + 50, 60, 'explosion', '#ff0000'),
-                ...createParticles(bossX, bossY + 50, 50, 'spark', '#ff4400'),
-                ...createParticles(bossX, bossY + 50, 40, 'magic', '#ff00ff'),
-                ...createParticles(bossX, bossY + 50, 30, 'spark', '#ffffff'),
-              ];
-              showSpeechBubble("☠️ BOSS RAGE MODE! PHASE 3! ☠️", 'urgent');
+            // EARLY BOSSES (1-5): Only 2 phases, less dramatic effects
+            if (isEarlyBoss) {
+              // Phase 2: 50% health - FINAL PHASE for early bosses with armor
+              if (bossHealthPercent <= 0.5 && currentPhase < 2) {
+                newState.enemies[bossIdx] = {
+                  ...newState.enemies[bossIdx],
+                  bossPhase: 2,
+                  width: newState.enemies[bossIdx].width * 1.1, // Smaller growth
+                  height: newState.enemies[bossIdx].height * 1.1,
+                  damage: newState.enemies[bossIdx].damage * 1.2,
+                  speed: newState.enemies[bossIdx].speed * 1.2,
+                  // Early bosses get SHORTER armor duration
+                  bossShieldTimer: 5, // 5 seconds armor (half of normal)
+                  bossShieldUsed: true,
+                };
+                // REDUCED effects for early bosses to decrease lag
+                newState.screenShake = 1.5;
+                newState.redFlash = 1;
+                newState.bossTransformFlash = 1;
+                newState.bossTaunt = "FINAL FORM!";
+                newState.lastBossAttack = 'shield';
+                showSpeechBubble("💀 BOSS ENRAGED! FINAL PHASE! 💀", 'urgent');
+              }
+            } else {
+              // LATER BOSSES (6+): Full 3 phases with all effects
+              // Phase 2: 70% health
+              if (bossHealthPercent <= BOSS_PHASE_2_THRESHOLD && currentPhase < 2) {
+                newState.enemies[bossIdx] = {
+                  ...newState.enemies[bossIdx],
+                  bossPhase: 2,
+                  width: newState.enemies[bossIdx].width * 1.1,
+                  height: newState.enemies[bossIdx].height * 1.1,
+                  damage: newState.enemies[bossIdx].damage * 1.3,
+                  speed: newState.enemies[bossIdx].speed * 1.3,
+                };
+                // Moderate transformation effects
+                newState.screenShake = 2;
+                newState.redFlash = 1.5;
+                newState.bossTransformFlash = 1.5;
+                newState.bossTaunt = "PHASE 2! I GROW STRONGER!";
+                showSpeechBubble("💀 BOSS EVOLVED! PHASE 2! 💀", 'urgent');
+              }
+              
+              // Phase 3: 50% health - MAXIMUM TRANSFORMATION + ARMOR ACTIVATION
+              if (bossHealthPercent <= BOSS_PHASE_3_THRESHOLD && currentPhase < 3) {
+                newState.enemies[bossIdx] = {
+                  ...newState.enemies[bossIdx],
+                  bossPhase: 3,
+                  width: newState.enemies[bossIdx].width * 1.15,
+                  height: newState.enemies[bossIdx].height * 1.15,
+                  damage: newState.enemies[bossIdx].damage * 1.5,
+                  speed: newState.enemies[bossIdx].speed * 1.5,
+                  // ARMOR ACTIVATES AT PHASE 3!
+                  bossShieldTimer: BOSS_ARMOR_DURATION,
+                  bossShieldUsed: true,
+                };
+                // Full dramatic effects for later bosses
+                newState.screenShake = 3;
+                newState.redFlash = 2;
+                newState.magicFlash = 1;
+                newState.bossTransformFlash = 2;
+                newState.bossTaunt = "FINAL PHASE! ARMOR ACTIVATED!";
+                newState.lastBossAttack = 'shield';
+                showSpeechBubble("☠️ BOSS RAGE MODE! PHASE 3! ☠️", 'urgent');
+              }
             }
           }
           
@@ -1810,42 +1825,51 @@ export const useGameState = () => {
         // PARTICLE CLEANUP - Aggressive cleanup every frame to prevent residue
         newState.particleResetTimer = prev.particleResetTimer - delta;
         
-        // Remove expired particles (life <= 0) with ultra-fast decay
+        // ULTRA-AGGRESSIVE particle cleanup - instant decay to prevent ANY residue
         newState.particles = prev.particles
-          .filter(p => p.life > 0.01)
+          .filter(p => p.life > 0.005)
           .map(p => ({
             ...p,
-            life: p.life - delta * 12, // Ultra-fast decay to prevent residue
+            life: p.life - delta * 20, // VERY fast decay (was 12)
             x: p.x + p.velocityX * delta,
             y: p.y + p.velocityY * delta,
           }))
           .filter(p => {
-            // Remove particles that go off-screen
+            // Remove particles that go off-screen - tighter bounds
             const screenX = p.x - newState.cameraX;
-            return screenX > -50 && screenX < 750 && p.y > -50 && p.y < 500;
-          });
+            return screenX > -30 && screenX < 700 && p.y > -30 && p.y < 450;
+          })
+          .slice(-2); // HARD LIMIT: Max 2 particles at any time
         
-        // Full reset every 1 second (faster cleanup)
+        // Full reset every 0.5 seconds (faster cleanup to prevent residue)
         if (newState.particleResetTimer <= 0) {
           newState.particles = [];
           newState.supportProjectiles = [];
+          newState.fireballs = newState.fireballs.filter(f => {
+            const screenX = f.x - newState.cameraX;
+            return screenX > -30 && screenX < 700;
+          });
           newState.projectiles = newState.projectiles.filter(p => {
             const screenX = p.x - newState.cameraX;
             return screenX > -30 && screenX < 700;
           });
-          newState.particleResetTimer = 1.0;
+          newState.enemyLasers = newState.enemyLasers.filter(l => {
+            const screenX = l.x - newState.cameraX;
+            return screenX > -30 && screenX < 700;
+          });
+          newState.particleResetTimer = 0.5; // Reset every 0.5 seconds (was 1.0)
         }
         
-        // STRICT LIMITS - never exceed max
-        if (newState.particles.length > MAX_PARTICLES) {
-          newState.particles = newState.particles.slice(-MAX_PARTICLES);
+        // STRICT LIMITS - very low to prevent lag
+        if (newState.particles.length > 2) {
+          newState.particles = newState.particles.slice(-2);
         }
         if ((newState.supportProjectiles || []).length > MAX_SUPPORT_PROJECTILES) {
           newState.supportProjectiles = (newState.supportProjectiles || []).slice(-MAX_SUPPORT_PROJECTILES);
         }
-        // Also limit regular projectiles
-        if (newState.projectiles.length > 8) {
-          newState.projectiles = newState.projectiles.slice(-8);
+        // Limit regular projectiles tightly
+        if (newState.projectiles.length > 5) {
+          newState.projectiles = newState.projectiles.slice(-5);
         }
         
         // Summon cooldowns tick down

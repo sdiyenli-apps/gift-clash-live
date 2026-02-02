@@ -55,9 +55,11 @@ export const GameOverlay = ({ phase, score, distance, currentWave, maxWaves, onS
                 COMMUNITY HERO
               </motion.p>
               
-              <p className="text-xs sm:text-sm text-gray-300">
-                🎁 Each gift = One action!<br />
-                <span className="text-cyan-400 text-[10px] sm:text-xs">🌹Move • 🫰Shoot • 🧢Armor • 💐Heal • 🌌Magic • 💀Danger</span>
+              <p className="text-xs sm:text-sm text-gray-300 font-semibold">
+                🎁 Send Gifts to control the hero and save the world!
+              </p>
+              <p className="text-[10px] sm:text-xs text-cyan-400">
+                🌹Move • 🫰Shoot • 🧢Armor • 💐Heal • ⚡EMP • 💀Danger
               </p>
 
               <div className="text-xs text-yellow-400 font-bold">
