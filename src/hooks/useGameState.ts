@@ -2610,13 +2610,20 @@ export const useGameState = () => {
               }
             }
 
-            // 2) If not blocked by ally, check player collision with EVASION CHANCE
-            if (
-              laser.x < newState.player.x + PLAYER_WIDTH + 5 &&
-              laser.x + laserWidth > newState.player.x - 5 &&
-              laser.y < newState.player.y + PLAYER_HEIGHT + 10 &&
-              laser.y + laserHeight > newState.player.y - 10
-            ) {
+            // 2) If not blocked by ally, check player collision with IMPROVED HEIGHT-AWARE HITBOX
+            // Hero hitbox is at GROUND_Y with height PLAYER_HEIGHT
+            const heroBottomY = GROUND_Y;
+            const heroTopY = GROUND_Y + PLAYER_HEIGHT;
+            const heroCenterX = newState.player.x + PLAYER_WIDTH / 2;
+            const heroCenterY = GROUND_Y + PLAYER_HEIGHT / 2;
+            
+            // Distance-based collision for more accurate hit detection
+            const dx = laserCenterX - heroCenterX;
+            const dy = laserCenterY - heroCenterY;
+            const hitDistance = Math.sqrt(dx * dx + dy * dy);
+            const heroHitRadius = 35; // Hero hitbox radius
+            
+            if (hitDistance < heroHitRadius) {
               // EVASION CHECK - 1 in 15 attacks are evaded!
               if (Math.random() < EVASION_CHANCE) {
                 // Hero evades!
