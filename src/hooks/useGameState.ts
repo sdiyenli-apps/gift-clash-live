@@ -1898,20 +1898,22 @@ export const useGameState = () => {
           newState.supportProjectiles = [];
           newState.fireballs = newState.fireballs.filter(f => {
             const screenX = f.x - newState.cameraX;
-            return screenX > -30 && screenX < 700;
+            return screenX > -50 && screenX < 700;
           });
           newState.projectiles = newState.projectiles.filter(p => {
             const screenX = p.x - newState.cameraX;
-            return screenX > -30 && screenX < 700;
+            return screenX > -50 && screenX < 700;
           });
           newState.enemyLasers = newState.enemyLasers.filter(l => {
             const screenX = l.x - newState.cameraX;
-            return screenX > -30 && screenX < 700;
+            return screenX > -50 && screenX < 700;
           });
-          newState.particleResetTimer = 0.5; // Reset every 0.5 seconds (was 1.0)
+          // AGGRESSIVE: Clean neon lasers that are stuck
+          newState.neonLasers = (newState.neonLasers || []).filter(l => l.life > 0 && l.bounces >= 0);
+          newState.particleResetTimer = 0.5; // Reset every 0.5 seconds
         }
         
-        // STRICT LIMITS - very low to prevent lag
+        // STRICT LIMITS - very low to prevent lag and stuck FX
         if (newState.particles.length > 2) {
           newState.particles = newState.particles.slice(-2);
         }
@@ -1921,6 +1923,14 @@ export const useGameState = () => {
         // Limit regular projectiles tightly
         if (newState.projectiles.length > 5) {
           newState.projectiles = newState.projectiles.slice(-5);
+        }
+        // Limit enemy lasers to prevent stuck FX
+        if (newState.enemyLasers.length > 10) {
+          newState.enemyLasers = newState.enemyLasers.slice(-10);
+        }
+        // Limit fireballs
+        if (newState.fireballs.length > 6) {
+          newState.fireballs = newState.fireballs.slice(-6);
         }
         
         // Summon cooldowns tick down
@@ -2818,6 +2828,15 @@ export const useGameState = () => {
         newState.projectiles = newState.projectiles.filter(p => !hitProjectiles.has(p.id));
         
         // Update dying and spawning enemies, and handle ENEMY ARMOR ACTIVATION
+        // FIRST: Check for any boss that's about to be removed - ensure portal opens!
+        const dyingBoss = newState.enemies.find(e => e.type === 'boss' && e.isDying && e.deathTimer <= delta);
+        if (dyingBoss && !newState.portalOpen) {
+          newState.portalOpen = true;
+          newState.portalX = dyingBoss.x + dyingBoss.width / 2;
+          showSpeechBubble("🌀 BOSS DEFEATED! PORTAL OPEN! 🌀", 'excited');
+          newState.screenShake = 1.5;
+        }
+        
         newState.enemies = newState.enemies
           .map(e => {
             if (e.isDying) return { ...e, deathTimer: e.deathTimer - delta };

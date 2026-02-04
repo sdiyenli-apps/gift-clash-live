@@ -10,9 +10,7 @@ import { OptimizedParticles } from './OptimizedParticles';
 import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
-// BossHealthBar REMOVED - boss HP shown in BossHUD only
 import { MiniMap } from './MiniMap';
-// CyberpunkBuildings REMOVED - unused import
 import { FloorAssets } from './FloorAssets';
 import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
@@ -30,6 +28,7 @@ import { DroneFireFlash, DroneFireProjectile, DroneAttackWarning } from './Drone
 import { DamageNumbers, DamageNumber } from './DamageNumbers';
 import { ThunderController } from './ThunderStrike';
 import { BossNeonLaser, EnemyLaserAttack } from './BossNeonLaser';
+import { UpbeatFX } from './UpbeatFX';
 
 interface NeonLaser {
   id: string;
@@ -880,14 +879,14 @@ export const Arena = ({ gameState }: ArenaProps) => {
         {/* Projectiles Layer (z-30) - Above entities for visibility */}
         <div className="absolute inset-0 z-30 pointer-events-none">
           {/* Support Unit Projectiles - Metal Slug style with shell casings */}
-          {supportProjectiles.map(proj => {
+          {supportProjectiles.map((proj, index) => {
             const isTank = proj.id.includes('tank');
             const isMech = proj.type === 'ultra' && !isTank;
             const unitType = isTank ? 'tank' : isMech ? 'mech' : 'walker';
             
             return (
               <MetalSlugProjectile
-                key={proj.id}
+                key={`${proj.id}-${index}`}
                 projectile={proj}
                 cameraX={cameraX}
                 unitType={unitType}
@@ -1093,6 +1092,14 @@ export const Arena = ({ gameState }: ArenaProps) => {
       <MultiplierVFX 
         damageMultiplier={giftDamageMultiplier} 
         previousMultiplier={previousMultiplier} 
+      />
+      
+      {/* Upbeat celebratory FX for streaks and high action */}
+      <UpbeatFX 
+        killStreak={killStreak}
+        score={gameState.score}
+        isBossFight={isBossFight}
+        giftDamageMultiplier={giftDamageMultiplier}
       />
     </div>
   );
