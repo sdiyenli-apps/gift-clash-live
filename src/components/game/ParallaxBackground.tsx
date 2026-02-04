@@ -45,61 +45,35 @@ const LAYER_SPEEDS = {
   near: 0.5,
 };
 
-// Smoke particle configuration
-const SMOKE_PARTICLES = Array.from({ length: 6 }, (_, i) => ({
+// Smoke particle configuration - REDUCED for performance
+const SMOKE_PARTICLES = Array.from({ length: 3 }, (_, i) => ({
   id: i,
-  baseX: i * 250 + Math.random() * 100,
-  baseY: 80 + Math.random() * 120,
-  size: 40 + Math.random() * 60,
-  speed: 0.05 + Math.random() * 0.08,
+  baseX: i * 400 + Math.random() * 100,
+  baseY: 80 + Math.random() * 80,
+  size: 50 + Math.random() * 40,
+  speed: 0.05 + Math.random() * 0.05,
   drift: Math.random() * 2 - 1,
 }));
 
-// Neon sign configuration
+// Neon sign configuration - REDUCED for performance
 const NEON_SIGNS = [
-  { x: 150, y: 140, text: 'CYBER', width: 60 },
-  { x: 450, y: 160, text: 'ZONE', width: 50 },
-  { x: 800, y: 130, text: 'NEON', width: 55 },
-  { x: 1100, y: 150, text: 'BAR', width: 40 },
-  { x: 1400, y: 145, text: 'HOTEL', width: 65 },
+  { x: 200, y: 140, text: 'CYBER', width: 60 },
+  { x: 700, y: 130, text: 'ZONE', width: 50 },
+  { x: 1200, y: 150, text: 'NEON', width: 55 },
 ];
 
-// Distant explosion configuration
-const EXPLOSION_SPOTS = [
-  { x: 300, y: 200 },
-  { x: 700, y: 180 },
-  { x: 1200, y: 210 },
-  { x: 1600, y: 190 },
-];
+// Distant explosions REMOVED - cleaner visuals and reduced lag
 
-// Rain drops configuration
-const RAIN_DROPS = Array.from({ length: 40 }, (_, i) => ({
+// Rain drops configuration - REDUCED for performance
+const RAIN_DROPS = Array.from({ length: 15 }, (_, i) => ({
   id: i,
-  x: (i * 37) % 800,
+  x: (i * 50) % 800,
   delay: Math.random() * 2,
   speed: 0.8 + Math.random() * 0.4,
-  length: 15 + Math.random() * 20,
+  length: 15 + Math.random() * 15,
 }));
 
-// War scene silhouettes - soldiers, tanks, helicopters, explosions
-const WAR_SILHOUETTES = [
-  // Soldiers in action poses
-  { x: 100, y: 220, type: 'soldier-crouching' as const },
-  { x: 350, y: 215, type: 'soldier-aiming' as const },
-  { x: 600, y: 220, type: 'soldier-running' as const },
-  { x: 900, y: 218, type: 'soldier-prone' as const },
-  // Tanks
-  { x: 250, y: 230, type: 'tank' as const },
-  { x: 750, y: 228, type: 'tank' as const },
-  { x: 1300, y: 232, type: 'tank' as const },
-  // Helicopters
-  { x: 180, y: 80, type: 'helicopter' as const },
-  { x: 520, y: 60, type: 'helicopter' as const },
-  { x: 1100, y: 70, type: 'helicopter' as const },
-  // Wreckage
-  { x: 450, y: 235, type: 'wreckage' as const },
-  { x: 1000, y: 230, type: 'wreckage' as const },
-];
+// WAR_SILHOUETTES REMOVED - No longer displayed for cleaner visuals and reduced lag
 
 // Searchlight configuration for boss fights - RED lights from OFF SCREEN edges
 const SEARCHLIGHTS = [
@@ -265,29 +239,7 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
     return () => clearInterval(interval);
   }, []);
 
-  // Distant explosions state
-  const [explosions, setExplosions] = useState<{ id: number; x: number; y: number; phase: number }[]>([]);
-  
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // Randomly trigger a distant explosion
-      if (Math.random() > 0.7 && explosions.length < 2) {
-        const spot = EXPLOSION_SPOTS[Math.floor(Math.random() * EXPLOSION_SPOTS.length)];
-        setExplosions(prev => [...prev, {
-          id: Date.now(),
-          x: spot.x + Math.random() * 100 - 50,
-          y: spot.y + Math.random() * 40 - 20,
-          phase: 0,
-        }]);
-      }
-      // Progress explosion phases
-      setExplosions(prev => prev
-        .map(e => ({ ...e, phase: e.phase + 1 }))
-        .filter(e => e.phase < 8)
-      );
-    }, 200);
-    return () => clearInterval(interval);
-  }, [explosions.length]);
+  // Distant explosions REMOVED for performance
 
   // Smoke animation time
   const [smokeTime, setSmokeTime] = useState(0);
@@ -319,41 +271,7 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
         {farSkyline}
       </div>
       
-      {/* LAYER 2.5: Distant explosions */}
-      <div className="absolute inset-0 pointer-events-none">
-        {explosions.map(exp => {
-          const screenX = ((exp.x - cameraX * LAYER_SPEEDS.far) % 1600 + 1600) % 1600;
-          const size = 20 + exp.phase * 8;
-          const opacity = Math.max(0, 1 - exp.phase * 0.15);
-          return (
-            <div key={exp.id} className="absolute" style={{ left: screenX, bottom: exp.y }}>
-              {/* Flash */}
-              <div
-                className="absolute rounded-full"
-                style={{
-                  width: size,
-                  height: size,
-                  background: `radial-gradient(circle, #ff8800${Math.floor(opacity * 255).toString(16).padStart(2, '0')}, #ff4400${Math.floor(opacity * 150).toString(16).padStart(2, '0')}, transparent)`,
-                  transform: 'translate(-50%, 50%)',
-                  boxShadow: exp.phase < 3 ? `0 0 ${30 - exp.phase * 8}px #ff6600` : 'none',
-                }}
-              />
-              {/* Smoke ring */}
-              {exp.phase > 2 && (
-                <div
-                  className="absolute rounded-full border"
-                  style={{
-                    width: size * 1.5,
-                    height: size * 0.8,
-                    borderColor: `rgba(100,100,100,${opacity * 0.5})`,
-                    transform: 'translate(-50%, 50%)',
-                  }}
-                />
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {/* DISTANT EXPLOSIONS REMOVED for performance */}
       
       {/* LAYER 3: Mid-ground buildings with window lights */}
       <div className="absolute inset-0 pointer-events-none">
@@ -398,80 +316,7 @@ export const ParallaxBackground = ({ cameraX, currentWave, isBossFight }: Parall
         {debrisElements}
       </div>
       
-      {/* LAYER 4.5: War scene silhouettes */}
-      <div className="absolute inset-0 pointer-events-none">
-        {WAR_SILHOUETTES.map((silhouette, i) => {
-          const screenX = ((silhouette.x - cameraX * LAYER_SPEEDS.mid * 0.6) % 1500 + 1500) % 1500;
-          return (
-            <div
-              key={`war-${i}`}
-              className="absolute"
-              style={{ left: screenX, bottom: 280 - silhouette.y }}
-            >
-              {silhouette.type === 'soldier-crouching' && (
-                <svg width="20" height="25" viewBox="0 0 20 25" fill="black">
-                  <ellipse cx="10" cy="3" rx="3" ry="3" /> {/* Head */}
-                  <path d="M7 6 L5 15 L8 15 L10 10 L12 15 L15 15 L13 6 Z" /> {/* Body crouching */}
-                  <path d="M5 15 L3 22 L6 22 L8 15" /> {/* Left leg */}
-                  <path d="M12 15 L14 22 L17 22 L15 15" /> {/* Right leg */}
-                  <path d="M13 8 L20 10 L20 11 L13 10" /> {/* Gun */}
-                </svg>
-              )}
-              {silhouette.type === 'soldier-aiming' && (
-                <svg width="24" height="28" viewBox="0 0 24 28" fill="black">
-                  <ellipse cx="8" cy="4" rx="3" ry="3" /> {/* Head */}
-                  <path d="M5 7 L3 20 L7 20 L8 12 L9 20 L13 20 L11 7 Z" /> {/* Body */}
-                  <path d="M3 20 L2 28 L5 28 L7 20" /> {/* Legs */}
-                  <path d="M9 9 L22 6 L22 8 L9 12" /> {/* Rifle aiming */}
-                </svg>
-              )}
-              {silhouette.type === 'soldier-running' && (
-                <svg width="28" height="28" viewBox="0 0 28 28" fill="black">
-                  <ellipse cx="14" cy="4" rx="3" ry="3" /> {/* Head */}
-                  <path d="M11 7 L9 18 L14 15 L19 18 L17 7 Z" /> {/* Torso */}
-                  <path d="M9 18 L3 26 L6 27 L14 18" /> {/* Back leg */}
-                  <path d="M19 18 L25 24 L22 26 L14 18" /> {/* Front leg */}
-                  <path d="M17 9 L24 11 L24 12 L17 11" /> {/* Gun */}
-                </svg>
-              )}
-              {silhouette.type === 'soldier-prone' && (
-                <svg width="35" height="12" viewBox="0 0 35 12" fill="black">
-                  <ellipse cx="4" cy="6" rx="3" ry="3" /> {/* Head */}
-                  <path d="M7 4 L30 3 L30 9 L7 8 Z" /> {/* Body prone */}
-                  <path d="M30 5 L35 4 L35 6 L30 7" /> {/* Feet */}
-                  <path d="M4 8 L0 6 L0 7 L4 9" /> {/* Gun barrel */}
-                </svg>
-              )}
-              {silhouette.type === 'tank' && (
-                <svg width="50" height="25" viewBox="0 0 50 25" fill="black">
-                  <rect x="5" y="15" width="40" height="10" rx="2" /> {/* Body */}
-                  <rect x="8" y="8" width="25" height="10" rx="2" /> {/* Turret */}
-                  <rect x="33" y="11" width="15" height="4" /> {/* Barrel */}
-                  <circle cx="10" cy="22" r="4" /> {/* Wheel */}
-                  <circle cx="25" cy="22" r="4" /> {/* Wheel */}
-                  <circle cx="40" cy="22" r="4" /> {/* Wheel */}
-                </svg>
-              )}
-              {silhouette.type === 'helicopter' && (
-                <svg width="45" height="25" viewBox="0 0 45 25" fill="black">
-                  <ellipse cx="18" cy="14" rx="14" ry="8" /> {/* Body */}
-                  <path d="M32 12 L44 10 L44 14 L32 16 Z" /> {/* Tail */}
-                  <rect x="42" y="6" width="2" height="12" /> {/* Tail rotor */}
-                  <rect x="5" y="4" width="26" height="2" /> {/* Main rotor */}
-                  <path d="M14 22 L12 25 L24 25 L22 22" /> {/* Skids */}
-                </svg>
-              )}
-              {silhouette.type === 'wreckage' && (
-                <svg width="40" height="20" viewBox="0 0 40 20" fill="black">
-                  <path d="M0 18 L5 10 L15 15 L20 5 L25 12 L35 8 L40 18 Z" /> {/* Debris pile */}
-                  <rect x="8" y="3" width="3" height="12" transform="rotate(-15 8 3)" /> {/* Broken beam */}
-                  <rect x="28" y="2" width="2" height="10" transform="rotate(20 28 2)" /> {/* Pole */}
-                </svg>
-              )}
-            </div>
-          );
-        })}
-      </div>
+      {/* WAR SILHOUETTES REMOVED for performance */}
       
       {/* LAYER 5: Floating smoke particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">

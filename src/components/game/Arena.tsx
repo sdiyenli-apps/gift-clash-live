@@ -10,9 +10,9 @@ import { OptimizedParticles } from './OptimizedParticles';
 import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
-import { BossHealthBar } from './BossHealthBar';
+// BossHealthBar REMOVED - boss HP shown in BossHUD only
 import { MiniMap } from './MiniMap';
-import { CyberpunkBuildings } from './CyberpunkBuildings';
+// CyberpunkBuildings REMOVED - unused import
 import { FloorAssets } from './FloorAssets';
 import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
