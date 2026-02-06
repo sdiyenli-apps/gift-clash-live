@@ -297,8 +297,8 @@ export const TIKTOK_GIFTS: Record<string, TikTokGift> = {
   // HEAL
   perfume: { id: 'perfume', name: 'Perfume', tier: 'medium', diamonds: 199, emoji: '💐', action: 'heal' },
   
-  // SPAWN DANGEROUS ENEMIES (chaos gift)
-  skull: { id: 'skull', name: 'Skull', tier: 'medium', diamonds: 50, emoji: '💀', action: 'spawn_enemies' },
+  // RAY CANNON - Powerful laser attack (renamed from spawn_enemies)
+  skull: { id: 'skull', name: 'Ray Cannon', tier: 'medium', diamonds: 50, emoji: '💀', action: 'spawn_enemies' },
   
   // EMP GRENADE - Kills ALL flying enemies (drones, bombers, flyers)!
   lightning: { id: 'lightning', name: 'EMP Grenade', tier: 'medium', diamonds: 75, emoji: '⚡', action: 'emp_grenade' },
@@ -311,7 +311,7 @@ export const GIFT_ACTION_INFO: Record<GiftAction, { name: string; description: s
   armor: { name: '🛡️ ARMOR', description: '+60 Shield!', effect: 'help' },
   heal: { name: '💚 HEAL', description: '+40 HP!', effect: 'help' },
   magic_dash: { name: '✨ ULT', description: '6s spaceship mode!', effect: 'help' },
-  spawn_enemies: { name: '💀 DANGER', description: 'Spawns enemies!', effect: 'chaos' },
+  spawn_enemies: { name: '💀 RAY', description: '3s laser cannon!', effect: 'help' },
   emp_grenade: { name: '⚡ EMP', description: 'Kills ALL flying enemies!', effect: 'help' },
   summon_support: { name: '🤖 ALLY', description: '2 allies for 10s!', effect: 'help' },
 };
