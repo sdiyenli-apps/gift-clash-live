@@ -38,7 +38,7 @@ export const GiftPanel = ({
     shoot: { border: '#6496ff', bg: 'rgba(100,150,255,0.3)', color: '#6496ff' },
     armor: { border: '#00c896', bg: 'rgba(0,200,150,0.3)', color: '#00c896' },
     heal: { border: '#c864c8', bg: 'rgba(200,100,200,0.3)', color: '#c864c8' },
-    spawn_enemies: { border: '#ff5050', bg: 'rgba(255,80,80,0.3)', color: '#ff5050' },
+    spawn_enemies: { border: '#ff00ff', bg: 'rgba(255,0,255,0.3)', color: '#ff00ff' },
     emp_grenade: { border: '#00ffc8', bg: 'rgba(0,255,200,0.3)', color: '#00ffc8' },
   };
 
@@ -47,7 +47,7 @@ export const GiftPanel = ({
     shoot: 'FIRE',
     armor: 'DEF',
     heal: 'HP',
-    spawn_enemies: 'MOB',
+    spawn_enemies: 'RAY',
     emp_grenade: 'EMP',
   };
 

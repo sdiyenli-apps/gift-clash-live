@@ -28,7 +28,7 @@ import { DroneFireFlash, DroneFireProjectile, DroneAttackWarning } from './Drone
 import { DamageNumbers, DamageNumber } from './DamageNumbers';
 import { ThunderController } from './ThunderStrike';
 import { BossNeonLaser, EnemyLaserAttack } from './BossNeonLaser';
-import { UpbeatFX } from './UpbeatFX';
+import { RayCannonVFX } from './RayCannonVFX';
 
 interface NeonLaser {
   id: string;
@@ -84,6 +84,9 @@ interface ExtendedGameState extends GameState {
   bossLaserTimer?: number;
   // Enemy laser attacks
   enemyLaserAttacks?: { enemyId: string; timer: number }[];
+  // Ray cannon attack
+  rayCannonActive?: boolean;
+  rayCannonTimer?: number;
 }
 
 interface ArenaProps {
@@ -1094,12 +1097,13 @@ export const Arena = ({ gameState }: ArenaProps) => {
         previousMultiplier={previousMultiplier} 
       />
       
-      {/* Upbeat celebratory FX for streaks and high action */}
-      <UpbeatFX 
-        killStreak={killStreak}
-        score={gameState.score}
-        isBossFight={isBossFight}
-        giftDamageMultiplier={giftDamageMultiplier}
+      {/* Ray Cannon VFX - Powerful laser beam for MOB gift */}
+      <RayCannonVFX
+        isActive={(gameState as any).rayCannonActive || false}
+        heroX={player.x}
+        heroY={player.y}
+        cameraX={cameraX}
+        duration={3}
       />
     </div>
   );

@@ -201,6 +201,9 @@ interface ExtendedGameState extends GameState {
   enemyLaserAttacks: { enemyId: string; timer: number }[];
   // GO GIFT COUNTER - Every 10 GO gifts triggers flip attack
   goGiftCount: number;
+  // RAY CANNON ATTACK - 3 second powerful laser
+  rayCannonActive: boolean;
+  rayCannonTimer: number;
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -285,6 +288,9 @@ const INITIAL_STATE: ExtendedGameState = {
   enemyLaserAttacks: [],
   // GO GIFT COUNTER - Every 10 GO gifts triggers flip attack
   goGiftCount: 0,
+  // RAY CANNON ATTACK - starts inactive
+  rayCannonActive: false,
+  rayCannonTimer: 0,
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -1095,10 +1101,15 @@ export const useGameState = () => {
           break;
           
         case 'spawn_enemies' as GiftAction:
-          // New gift that spawns dangerous enemies
-          newState.enemies = [...prev.enemies, ...createDangerousEnemies(prev.player.x, 3, prev.enemies)];
-          newState.screenShake = 0.4;
-          showSpeechBubble("⚠️ DANGER! ENEMIES SPAWNED! ⚠️", 'urgent');
+          // RAY CANNON - 3 second powerful laser that damages everything in its path!
+          if (!prev.rayCannonActive) {
+            newState.rayCannonActive = true;
+            newState.rayCannonTimer = 3; // 3 seconds of destruction
+            newState.screenShake = 1.5;
+            newState.magicFlash = 1.2;
+            newState.score += 150;
+            showSpeechBubble("⚡ RAY CANNON ACTIVATED! ⚡", 'excited');
+          }
           break;
 
         case 'emp_grenade' as GiftAction:
@@ -1953,6 +1964,44 @@ export const useGameState = () => {
           }
         }
         
+        // RAY CANNON - 3 second laser that damages all visible enemies
+        if (prev.rayCannonActive && prev.rayCannonTimer > 0) {
+          newState.rayCannonTimer = prev.rayCannonTimer - delta;
+          
+          // Continuous damage to ALL visible enemies!
+          const rayDamagePerSecond = 80 * prev.giftDamageMultiplier;
+          const rayDamage = rayDamagePerSecond * delta;
+          
+          newState.enemies = newState.enemies.map(enemy => {
+            if (enemy.isDying || enemy.isSpawning) return enemy;
+            
+            // Hit all enemies in front of hero
+            if (enemy.x > prev.player.x && enemy.x < prev.cameraX + 700) {
+              const newHealth = enemy.health - rayDamage;
+              
+              // Check for kill
+              if (newHealth <= 0 && !enemy.isDying) {
+                newState.score += enemy.type === 'boss' ? 2500 : 100;
+                newState.killStreak++;
+                return { ...enemy, health: 0, isDying: true, deathTimer: 0.5 };
+              }
+              
+              return { ...enemy, health: newHealth };
+            }
+            return enemy;
+          });
+          
+          // Continuous screen shake during ray cannon
+          newState.screenShake = Math.max(newState.screenShake, 0.5);
+          
+          // Deactivate when timer runs out
+          if (newState.rayCannonTimer <= 0) {
+            newState.rayCannonActive = false;
+            newState.rayCannonTimer = 0;
+            showSpeechBubble("⚡ RAY CANNON COMPLETE! ⚡", 'excited');
+          }
+        }
+        
         // Time since game start for attack delay check (used later in enemy attack section)
         // Magic Dash auto-actions - NUKE ALL ENEMIES ON SCREEN
         if (prev.player.isMagicDashing) {
@@ -2278,25 +2327,30 @@ export const useGameState = () => {
               const nearestEnemy = enemiesInRange[0];
               
               if (nearestEnemy) {
-                // Tank fires RAPIDLY with AI targeting, mech is medium, walker is fast
-                newUnit.attackCooldown = isTank ? 0.12 : unit.type === 'mech' ? 0.6 : 0.4;
+                // Determine if target is flying for anti-air mode
+                const targetIsFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
                 
-                // Get enemy position - ground enemies are AT ground level, flying enemies have Y offset
-                const isFlying = nearestEnemy.isFlying || nearestEnemy.type === 'drone' || nearestEnemy.type === 'bomber' || nearestEnemy.type === 'flyer' || nearestEnemy.type === 'jetrobot';
+                // TANK ANTI-AIR MODE: Machine gun burst for flying enemies, slower cannon for ground
+                if (isTank && targetIsFlying) {
+                  // Machine gun burst - 3 rapid shots at flying targets
+                  newUnit.attackCooldown = 0.08; // Very fast for anti-air
+                } else {
+                  // Normal attack speed
+                  newUnit.attackCooldown = isTank ? 0.18 : unit.type === 'mech' ? 0.6 : 0.4;
+                }
                 
-                // For ground enemies, they stand ON the ground - their feet are at GROUND_Y
-                // So their center is at GROUND_Y + height/2
-                // For flying enemies, their Y is already set above ground
+                // Get enemy position
+                const isFlying = targetIsFlying;
+                
                 const enemyCenterX = nearestEnemy.x + nearestEnemy.width / 2;
                 const enemyCenterY = isFlying 
                   ? (nearestEnemy.y || GROUND_Y) + nearestEnemy.height / 2
                   : GROUND_Y + nearestEnemy.height / 2;
                 
-                // All units fire from their weapon position
                 // TANK fires from VERY TOP of image (turret tip), others from center/torso
                 const startY = unit.type === 'tank' 
-                  ? unit.y + unit.height * 0.02 // Tank fires from very top of turret (2% from top)
-                  : GROUND_Y - 10; // Others fire from green zone
+                  ? unit.y + unit.height * 0.02 
+                  : GROUND_Y - 10;
                 const startX = unit.x + unit.width + 5;
                 
                 // Calculate direction to enemy center
@@ -2304,15 +2358,21 @@ export const useGameState = () => {
                 const dy = enemyCenterY - startY;
                 const dist = Math.sqrt(dx * dx + dy * dy);
                 
-                // Prevent division by zero
                 if (dist > 0) {
-                  // Tank has slower but stronger laser attacks
-                  const projSpeed = unit.type === 'tank' ? 1200 : 1000;
-                  const velocityX = (dx / dist) * projSpeed;
-                  const velocityY = (dy / dist) * projSpeed;
+                  // Anti-air uses faster projectiles with spread
+                  const projSpeed = isTank ? (targetIsFlying ? 1500 : 1200) : 1000;
                   
-                  // Tank does 120 damage (double hero's 60), mech 25, walker 15
-                  const projDamage = isTank ? 120 : unit.type === 'mech' ? 25 : 15;
+                  // Add slight spread for anti-air machine gun effect
+                  const spreadAngle = isTank && targetIsFlying ? (Math.random() - 0.5) * 0.15 : 0;
+                  const baseVelX = (dx / dist) * projSpeed;
+                  const baseVelY = (dy / dist) * projSpeed;
+                  const velocityX = baseVelX * Math.cos(spreadAngle) - baseVelY * Math.sin(spreadAngle);
+                  const velocityY = baseVelX * Math.sin(spreadAngle) + baseVelY * Math.cos(spreadAngle);
+                  
+                  // Anti-air does less damage per shot but shoots faster
+                  const projDamage = isTank 
+                    ? (targetIsFlying ? 45 : 120) // Anti-air: 45 dmg fast, Ground: 120 dmg slow
+                    : unit.type === 'mech' ? 25 : 15;
                   
                   const proj: Projectile = {
                     id: `ally-${unit.type}-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`,
@@ -2323,17 +2383,18 @@ export const useGameState = () => {
                     damage: projDamage,
                     type: isTank ? 'ultra' : unit.type === 'mech' ? 'ultra' : 'mega',
                     isAllyProjectile: true,
-                    // Store origin for tracer effect
                     originX: startX,
                     originY: startY,
                   };
                   newState.supportProjectiles = [...(newState.supportProjectiles || []), proj];
                   
-                  // Muzzle flash - tank is pink, mech is orange, walker is green
-                  const muzzleColor = isTank ? '#ff0066' : unit.type === 'mech' ? '#ff6600' : '#00ff88';
+                  // Anti-air has orange tracer, ground has pink
+                  const muzzleColor = isTank 
+                    ? (targetIsFlying ? '#ff8800' : '#ff0066')
+                    : unit.type === 'mech' ? '#ff6600' : '#00ff88';
                   newState.particles = [
                     ...newState.particles,
-                    ...createParticles(startX, startY, isTank ? 8 : 2, 'muzzle', muzzleColor),
+                    ...createParticles(startX, startY, isTank ? (targetIsFlying ? 4 : 8) : 2, 'muzzle', muzzleColor),
                   ];
                 }
               }
@@ -3165,38 +3226,66 @@ export const useGameState = () => {
             const tooClose = distanceToBoss < BOSS_KEEP_DISTANCE - 50;
             const tooFar = distanceToBoss > BOSS_KEEP_DISTANCE + 50 && distanceToBoss <= BOSS_ENGAGE_RANGE;
             
-            // DYNAMIC BOSS MOVEMENT - Boss jumps and hops around menacingly!
-            const bossJumpCycle = Math.sin(enemy.animationPhase * 2);
-            const bossHopHeight = Math.abs(bossJumpCycle) * 30; // 30px hop height
-            const bossSwayX = Math.sin(enemy.animationPhase * 1.5) * 15; // Side-to-side sway
+            // ENHANCED BOSS MOVEMENT - Dynamic jumping forward and backward with visible attacks!
+            const bossJumpCycle = Math.sin(enemy.animationPhase * 3);
+            const bossSecondJump = Math.cos(enemy.animationPhase * 1.8);
+            const bossHopHeight = Math.abs(bossJumpCycle) * 40 + Math.abs(bossSecondJump) * 20; // Higher hops
             
-            // Random intimidation jump (rare)
-            const randomBossJump = Math.random() > 0.995 ? 60 : 0;
-            const totalBossJump = bossHopHeight + randomBossJump;
+            // Forward/backward lunge pattern - boss aggressively moves toward and away from hero
+            const lungePhase = Math.sin(enemy.animationPhase * 0.8);
+            const lungeMagnitude = 100 * lungePhase; // -100 to +100 px lunge range
+            
+            // Random aggressive jump toward hero (more frequent)
+            const aggressiveJump = Math.random() > 0.98;
+            const jumpForwardDistance = aggressiveJump ? -80 : 0; // Jump toward hero
+            const jumpUpHeight = aggressiveJump ? 80 : 0;
+            
+            // Trigger ranged attack during aggressive jump
+            if (aggressiveJump && (enemy.attackCooldown || 0) <= 0) {
+              // Fire visible projectile during jump!
+              const bossProjectile: Projectile = {
+                id: `boss-jump-attack-${Date.now()}`,
+                x: enemy.x - 20,
+                y: GROUND_Y - 50,
+                velocityX: -450,
+                velocityY: (Math.random() - 0.3) * 100,
+                damage: 18 + Math.floor(prev.currentWave / 2),
+                type: 'mega',
+              };
+              newState.enemyLasers = [...newState.enemyLasers, bossProjectile];
+              newState.particles = [...newState.particles, ...createParticles(enemy.x - 20, GROUND_Y - 50, 10, 'muzzle', '#ff00ff')];
+            }
+            
+            // Random backward dodge when hero attacks
+            const dodgeBackward = Math.random() > 0.992;
+            const dodgeDistance = dodgeBackward ? 60 : 0;
+            
+            const totalBossJump = bossHopHeight + jumpUpHeight;
+            const horizontalMove = lungeMagnitude * delta * 0.5 + jumpForwardDistance + dodgeDistance;
             
             if (tooClose) {
-              // Move away slightly to maintain distance with hopping
+              // Move away with dramatic backward jump
               return { 
                 ...enemy, 
-                x: enemy.x + 30 * delta + bossSwayX * delta,
+                x: enemy.x + 50 * delta + horizontalMove,
                 y: GROUND_Y - totalBossJump,
-                animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
+                animationPhase: (enemy.animationPhase + delta * 5) % (Math.PI * 2),
               };
             } else if (tooFar) {
-              // Move closer to stay in attack range with hopping
+              // Move closer with aggressive forward lunge
               return { 
                 ...enemy, 
-                x: enemy.x - 20 * delta + bossSwayX * delta,
+                x: enemy.x - 40 * delta + horizontalMove,
                 y: GROUND_Y - totalBossJump,
-                animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
+                animationPhase: (enemy.animationPhase + delta * 5) % (Math.PI * 2),
               };
             }
-            // At ideal distance - hop and sway menacingly
+            // At ideal distance - dynamic hopping and lunging
             return { 
               ...enemy, 
-              x: enemy.x + bossSwayX * delta,
+              x: enemy.x + horizontalMove,
               y: GROUND_Y - totalBossJump,
-              animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
+              animationPhase: (enemy.animationPhase + delta * 5) % (Math.PI * 2),
             };
           }
           
