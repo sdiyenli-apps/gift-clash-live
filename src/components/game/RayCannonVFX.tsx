@@ -10,19 +10,21 @@ interface RayCannonVFXProps {
 }
 
 // =============================================
-// STUDIO-QUALITY RAY CANNON VFX
-// Cinematic laser beam with electricity, plasma, and screen-shaking power
+// STUDIO-QUALITY RAY CANNON VFX WITH CAMERA PAN
+// Cinematic laser beam with POV pan left/right effect
 // =============================================
 
 export const RayCannonVFX = memo(({ isActive, heroX, heroY, cameraX, duration = 3 }: RayCannonVFXProps) => {
   const [phase, setPhase] = useState<'charging' | 'firing' | 'cooling'>('charging');
   const [elapsedTime, setElapsedTime] = useState(0);
   const [pulseIntensity, setPulseIntensity] = useState(0);
+  const [cameraPan, setCameraPan] = useState(0); // -1 to 1 for left/right pan
   
   useEffect(() => {
     if (!isActive) {
       setPhase('charging');
       setElapsedTime(0);
+      setCameraPan(0);
       return;
     }
     
@@ -35,6 +37,9 @@ export const RayCannonVFX = memo(({ isActive, heroX, heroY, cameraX, duration = 
         return newTime;
       });
       setPulseIntensity(Math.sin(Date.now() / 30) * 0.5 + 0.5);
+      
+      // CAMERA PAN - oscillate left and right during firing
+      setCameraPan(Math.sin(Date.now() / 150) * 1); // Smooth oscillation
     }, 33);
     
     return () => clearInterval(interval);
@@ -45,32 +50,62 @@ export const RayCannonVFX = memo(({ isActive, heroX, heroY, cameraX, duration = 
   const screenX = heroX - cameraX + 60;
   const screenY = 280 - heroY - 25;
   
+  // Camera pan offset in pixels
+  const panOffset = phase === 'firing' ? cameraPan * 25 : 0;
+  
   return (
     <AnimatePresence>
-      {/* CINEMATIC SCREEN OVERLAY - pulsing danger effect */}
-      {phase === 'firing' && (
-        <>
-          {/* Screen-wide plasma glow */}
-          <motion.div
-            className="fixed inset-0 z-40 pointer-events-none"
-            style={{
-              background: `radial-gradient(ellipse 80% 100% at 15% 50%, 
-                rgba(255,0,100,${0.25 + pulseIntensity * 0.15}), 
-                rgba(255,100,0,0.1) 40%,
-                transparent 70%)`,
-            }}
-            animate={{ opacity: [0.8, 1, 0.8] }}
-            transition={{ duration: 0.08, repeat: Infinity }}
-          />
-          {/* Scanline overlay for retro feel */}
-          <motion.div
-            className="fixed inset-0 z-40 pointer-events-none opacity-20"
-            style={{
-              backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
-            }}
-          />
-        </>
-      )}
+      {/* CAMERA PAN CONTAINER - Entire screen shifts left/right */}
+      <motion.div
+        className="fixed inset-0 z-35 pointer-events-none"
+        animate={{
+          x: panOffset,
+        }}
+        transition={{ duration: 0.1, ease: 'easeOut' }}
+      >
+        {/* CINEMATIC SCREEN OVERLAY - pulsing danger effect */}
+        {phase === 'firing' && (
+          <>
+            {/* Screen-wide plasma glow */}
+            <motion.div
+              className="absolute inset-0"
+              style={{
+                background: `radial-gradient(ellipse 80% 100% at 15% 50%, 
+                  rgba(255,0,100,${0.25 + pulseIntensity * 0.15}), 
+                  rgba(255,100,0,0.1) 40%,
+                  transparent 70%)`,
+              }}
+              animate={{ opacity: [0.8, 1, 0.8] }}
+              transition={{ duration: 0.08, repeat: Infinity }}
+            />
+            {/* Scanline overlay for retro feel */}
+            <motion.div
+              className="absolute inset-0 opacity-20"
+              style={{
+                backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.3) 2px, rgba(0,0,0,0.3) 4px)',
+              }}
+            />
+            
+            {/* SIDE BLUR STREAKS - Emphasizes pan motion */}
+            <motion.div
+              className="absolute top-0 bottom-0 left-0 w-16"
+              style={{
+                background: `linear-gradient(90deg, rgba(255,0,100,${0.4 + cameraPan * 0.2}), transparent)`,
+                filter: 'blur(8px)',
+              }}
+              animate={{ opacity: cameraPan < 0 ? 0.8 : 0.3 }}
+            />
+            <motion.div
+              className="absolute top-0 bottom-0 right-0 w-16"
+              style={{
+                background: `linear-gradient(270deg, rgba(255,0,100,${0.4 - cameraPan * 0.2}), transparent)`,
+                filter: 'blur(8px)',
+              }}
+              animate={{ opacity: cameraPan > 0 ? 0.8 : 0.3 }}
+            />
+          </>
+        )}
+      </motion.div>
       
       {/* CHARGING PHASE - Dramatic energy gathering */}
       {phase === 'charging' && (
@@ -488,6 +523,35 @@ export const RayCannonVFX = memo(({ isActive, heroX, heroY, cameraX, duration = 
               transition={{ duration: 0.2, delay: i * 0.03 }}
             />
           ))}
+        </motion.div>
+      )}
+      
+      {/* SCREEN SHAKE INDICATOR - Visual feedback during firing */}
+      {phase === 'firing' && (
+        <motion.div
+          className="fixed bottom-4 left-1/2 -translate-x-1/2 z-60 pointer-events-none"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ 
+            opacity: 1, 
+            y: 0,
+            x: [0, -5, 5, -3, 3, 0],
+          }}
+          transition={{ 
+            x: { duration: 0.15, repeat: Infinity },
+            opacity: { duration: 0.2 },
+          }}
+        >
+          <div
+            className="px-4 py-2 rounded-lg font-black text-lg tracking-widest"
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,0,102,0.9), rgba(255,100,0,0.9))',
+              color: '#fff',
+              textShadow: '0 0 10px #fff, 2px 2px 0 #000',
+              boxShadow: '0 0 30px rgba(255,0,102,0.8), 0 0 60px rgba(255,100,0,0.5)',
+            }}
+          >
+            🔥 DEVASTATION 🔥
+          </div>
         </motion.div>
       )}
     </AnimatePresence>

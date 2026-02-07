@@ -11,7 +11,7 @@ import { ChaosElements } from './ChaosElements';
 import { Princess } from './Princess';
 import { BossHUD } from './BossHUD';
 import { MiniMap } from './MiniMap';
-import { FloorAssets } from './FloorAssets';
+// FloorAssets removed - using dynamic hero movement instead
 import { SupportUnitSprite } from './SupportUnit';
 import { Portal } from './Portal';
 import { DronePaths } from './DronePath';
@@ -905,10 +905,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
           })}
         </div>
         
-        {/* Floor Assets - dustbins, rats, debris - BROUGHT TO FRONT z-35 */}
-        <div className="absolute inset-0 z-35 pointer-events-none">
-          <FloorAssets cameraX={cameraX} levelLength={levelLength} />
-        </div>
+        {/* Floor Assets removed - cleaner look */}
         
         {/* Floor - Original size */}
         <div 
