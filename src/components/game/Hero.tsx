@@ -2,6 +2,8 @@ import { motion } from 'framer-motion';
 import { Player, SpeechBubble } from '@/types/game';
 import heroSprite from '@/assets/hero-sprite.gif';
 import spaceshipSprite from '@/assets/hero-spaceship.gif';
+import armorShieldGif from '@/assets/armor-shield.gif';
+import ultBackgroundGif from '@/assets/ult-background.gif';
 
 interface HeroProps {
   player: Player;
@@ -246,17 +248,32 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
         );
       })()}
       
-      {/* Shield bubble */}
+      {/* Shield bubble - Using electric shield GIF */}
       {player.shield > 0 && (
         <div
-          className="absolute -inset-3 rounded-full"
+          className="absolute -inset-6 pointer-events-none"
           style={{
-            background: 'radial-gradient(circle, rgba(0,255,255,0.1) 0%, rgba(0,255,255,0.3) 100%)',
-            border: '2px solid #00ffff',
-            boxShadow: '0 0 12px #00ffff, 0 0 24px rgba(0,255,255,0.5)',
             opacity: Math.min(1, player.shield / 50),
           }}
-        />
+        >
+          {/* The animated electric shield GIF */}
+          <img
+            src={armorShieldGif}
+            alt="Shield"
+            className="w-full h-full object-contain"
+            style={{
+              filter: 'drop-shadow(0 0 15px #00ffff) drop-shadow(0 0 30px #00aaff) brightness(1.2)',
+              mixBlendMode: 'screen',
+            }}
+          />
+          {/* Extra glow layer */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(circle, rgba(0,255,255,0.2) 0%, transparent 70%)',
+            }}
+          />
+        </div>
       )}
       
       {/* Hero Character - Normal or SPACESHIP mode during ULT */}
@@ -285,6 +302,27 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
             animate={{ scale: 1, rotate: 0 }}
             transition={{ duration: 0.3, type: 'spring' }}
           >
+            {/* ULT BACKGROUND EFFECT - Hyperspeed lines behind spaceship */}
+            <motion.div
+              className="absolute pointer-events-none z-0"
+              style={{
+                left: -400,
+                top: -100,
+                width: 800,
+                height: 300,
+              }}
+            >
+              <img
+                src={ultBackgroundGif}
+                alt="Hyperspeed"
+                className="w-full h-full object-cover"
+                style={{
+                  filter: 'brightness(1.2)',
+                  mixBlendMode: 'screen',
+                  opacity: 0.7,
+                }}
+              />
+            </motion.div>
             {/* Spaceship sprite image */}
             <motion.img
               src={spaceshipSprite}

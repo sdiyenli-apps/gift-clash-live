@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
 import { SupportUnit as SupportUnitType } from '@/types/game';
+import { useRef, useEffect, useState } from 'react';
 import supportMech from '@/assets/support-mech.gif';
 import supportWalker from '@/assets/support-walker.gif';
 import supportTank from '@/assets/support-tank.gif';
+import tankExplosionGif from '@/assets/tank-explosion.gif';
 
 interface SupportUnitProps {
   unit: SupportUnitType;
@@ -10,7 +12,28 @@ interface SupportUnitProps {
 }
 
 export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
+  // Track tank attack count for explosion effect every 4th attack
+  const attackCountRef = useRef(0);
+  const [showExplosionFX, setShowExplosionFX] = useState(false);
+  const wasAttackingRef = useRef(false);
+  
   const screenX = unit.x - cameraX;
+  const isTank = unit.type === 'tank';
+  
+  // Check if attacking - moved before hooks that depend on it
+  const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : unit.type === 'tank' ? 0.3 : 0.4);
+  
+  // Track attack count for tank explosion FX - every 4th attack shows explosion GIF
+  useEffect(() => {
+    if (isTank && isAttacking && !wasAttackingRef.current) {
+      attackCountRef.current++;
+      if (attackCountRef.current % 4 === 0) {
+        setShowExplosionFX(true);
+        setTimeout(() => setShowExplosionFX(false), 800);
+      }
+    }
+    wasAttackingRef.current = isAttacking;
+  }, [isAttacking, isTank]);
   
   if (screenX < -150 || screenX > 750) return null;
   
@@ -30,7 +53,6 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   
   // Size based on type - Tank is 3x larger
   const isMech = unit.type === 'mech';
-  const isTank = unit.type === 'tank';
   const baseScale = isTank ? 1.0 : 0.80; // Tank uses full size (already 3x in config)
   const displayWidth = unit.width * baseScale;
   const displayHeight = unit.height * baseScale;
@@ -42,9 +64,6 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   // Self-destruct mode
   const isSelfDestructing = unit.isSelfDestructing;
   const selfDestructProgress = isSelfDestructing ? 1 - ((unit.selfDestructTimer || 1) / 1.0) : 0;
-  
-  // Check if attacking
-  const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : unit.type === 'tank' ? 0.3 : 0.4);
   
   // Tank has armor indicator
   const hasArmor = unit.hasArmor && (unit.armorTimer || 0) > 0;
@@ -201,6 +220,43 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
               animate={{ scaleX: [0, 1, 0.8], opacity: [0, 1, 0] }}
               transition={{ duration: 0.15 }}
             />
+          )}
+          
+          {/* TANK EXPLOSION GIF - Every 4th attack */}
+          {isTank && showExplosionFX && (
+            <motion.div
+              className="absolute pointer-events-none z-50"
+              style={{
+                left: displayWidth + 80,
+                top: '20%',
+                transform: 'translateY(-50%)',
+                width: 150,
+                height: 150,
+              }}
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <img
+                src={tankExplosionGif}
+                alt="Explosion"
+                className="w-full h-full object-contain"
+                style={{
+                  filter: 'drop-shadow(0 0 20px #ff6600) drop-shadow(0 0 40px #ff4400) brightness(1.3)',
+                  mixBlendMode: 'screen',
+                }}
+              />
+              {/* Extra glow */}
+              <motion.div
+                className="absolute inset-0 rounded-full"
+                style={{
+                  background: 'radial-gradient(circle, rgba(255,100,0,0.5), transparent 70%)',
+                  filter: 'blur(10px)',
+                }}
+                animate={{ scale: [1, 1.5, 1], opacity: [0.8, 1, 0.8] }}
+                transition={{ duration: 0.15, repeat: 5 }}
+              />
+            </motion.div>
           )}
           
           {/* Energy rings */}
