@@ -1,5 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { memo, useEffect, useState } from 'react';
+import rayChargeGif from '@/assets/ray-charge.gif';
+import rayFireGif from '@/assets/ray-fire.gif';
 
 interface RayCannonVFXProps {
   isActive: boolean;
@@ -112,74 +114,51 @@ export const RayCannonVFX = memo(({ isActive, heroX, heroY, cameraX, duration = 
         <motion.div
           className="absolute z-50 pointer-events-none"
           style={{
-            left: screenX - 30,
-            bottom: screenY - 30,
-            width: 60,
-            height: 60,
+            left: screenX - 60,
+            bottom: screenY - 60,
+            width: 120,
+            height: 120,
           }}
         >
-          {/* Core charging orb - plasma effect */}
+          {/* THE CHARGE GIF - Blue electric charge effect */}
+          <motion.div
+            className="absolute inset-0"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: [0.5, 1.5, 1, 1.8], opacity: 1 }}
+            transition={{ duration: 0.4, repeat: Infinity }}
+          >
+            <img
+              src={rayChargeGif}
+              alt="Charging"
+              className="w-full h-full object-contain"
+              style={{
+                filter: 'drop-shadow(0 0 20px #00aaff) drop-shadow(0 0 40px #0066ff) brightness(1.5)',
+                mixBlendMode: 'screen',
+              }}
+            />
+          </motion.div>
+          
+          {/* Additional glow behind charge */}
           <motion.div
             className="absolute inset-0 rounded-full"
             style={{
-              background: 'radial-gradient(circle, #fff 0%, #ff0066 30%, #ff00ff 60%, rgba(255,0,100,0) 80%)',
-              boxShadow: `
-                0 0 20px #ff0066,
-                0 0 40px #ff00ff,
-                0 0 80px #ff0066,
-                inset 0 0 20px rgba(255,255,255,0.8)
-              `,
+              background: 'radial-gradient(circle, rgba(0,150,255,0.6) 0%, rgba(0,100,255,0.3) 50%, transparent 70%)',
+              filter: 'blur(10px)',
             }}
-            initial={{ scale: 0, rotate: 0 }}
-            animate={{ 
-              scale: [0, 2, 1.5, 2.2, 1.8],
-              rotate: [0, 90, 180, 270, 360],
-            }}
-            transition={{ duration: 0.4, repeat: Infinity }}
+            animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5] }}
+            transition={{ duration: 0.2, repeat: Infinity }}
           />
           
-          {/* Electric arc particles converging */}
-          {[...Array(12)].map((_, i) => {
-            const angle = (i / 12) * Math.PI * 2;
-            return (
-              <motion.div
-                key={i}
-                className="absolute"
-                style={{
-                  width: 4,
-                  height: 16,
-                  background: `linear-gradient(180deg, ${i % 2 === 0 ? '#00ffff' : '#ff0066'}, transparent)`,
-                  borderRadius: 2,
-                  left: 28,
-                  top: 22,
-                  transformOrigin: 'center bottom',
-                  boxShadow: `0 0 10px ${i % 2 === 0 ? '#00ffff' : '#ff0066'}`,
-                }}
-                animate={{
-                  x: [Math.cos(angle) * 80, 0],
-                  y: [Math.sin(angle) * 80, 0],
-                  scale: [1.2, 0],
-                  opacity: [1, 0.8, 0],
-                  rotate: [angle * (180 / Math.PI), 0],
-                }}
-                transition={{ duration: 0.35, repeat: Infinity, delay: i * 0.025 }}
-              />
-            );
-          })}
-          
-          {/* Inner lightning crackle */}
+          {/* Core charging orb - plasma effect */}
           <motion.div
-            className="absolute inset-2 rounded-full"
+            className="absolute inset-4 rounded-full"
             style={{
-              background: 'transparent',
-              border: '2px solid rgba(255,255,255,0.8)',
-              boxShadow: '0 0 15px #fff, inset 0 0 15px #fff',
+              background: 'radial-gradient(circle, #fff 0%, #00aaff 30%, #0066ff 60%, transparent 80%)',
+              boxShadow: '0 0 20px #00aaff, 0 0 40px #0066ff',
             }}
-            animate={{ 
-              scale: [0.5, 1.2, 0.8, 1.4],
-              opacity: [0.5, 1, 0.7, 1],
-            }}
-            transition={{ duration: 0.15, repeat: Infinity }}
+            initial={{ scale: 0 }}
+            animate={{ scale: [0, 1.5, 1, 1.8] }}
+            transition={{ duration: 0.3, repeat: Infinity }}
           />
         </motion.div>
       )}
@@ -187,6 +166,28 @@ export const RayCannonVFX = memo(({ isActive, heroX, heroY, cameraX, duration = 
       {/* FIRING PHASE - DEVASTATING LASER BEAM */}
       {phase === 'firing' && (
         <>
+          {/* THE FIRE GIF - Dithered fire effect UNDER the ray beam */}
+          <motion.div
+            className="absolute z-48 pointer-events-none"
+            style={{
+              left: screenX - 50,
+              bottom: screenY - 90,
+              width: 900,
+              height: 120,
+            }}
+          >
+            <img
+              src={rayFireGif}
+              alt="Fire"
+              className="w-full h-full object-cover"
+              style={{
+                filter: 'drop-shadow(0 0 15px #ff6600) brightness(1.2)',
+                mixBlendMode: 'screen',
+                opacity: 0.9,
+              }}
+            />
+          </motion.div>
+          
           {/* Main beam - multi-layered plasma */}
           <motion.div
             className="absolute z-50 pointer-events-none"
