@@ -56,10 +56,16 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
   const heroWidth = isSpaceshipMode ? 110 : 90;
   const heroHeight = isSpaceshipMode ? 70 : 95;
   
+  // DYNAMIC VERTICAL MOVEMENT - Hero bobs up and down as they progress through the level
+  // Creates an organic, upbeat running feel
+  const progressBob = Math.sin(player.x * 0.03) * 8; // Bob based on position
+  const runningBob = isWalking ? Math.sin(Date.now() * 0.02) * 4 : 0; // Extra bob when moving
+  
   // Hero positioned lower on ground (reduced to 85), flies high in spaceship mode, jumps during flip
   const flipProgress = player.flipAttackTimer ? (1.2 - player.flipAttackTimer) / 1.2 : 0;
   const flipJumpHeight = isFlipAttacking ? Math.sin(flipProgress * Math.PI) * 120 : 0;
-  const flyingHeight = isSpaceshipMode ? 200 : (85 + flipJumpHeight);
+  const baseHeight = 85 + progressBob + runningBob;
+  const flyingHeight = isSpaceshipMode ? 200 : (baseHeight + flipJumpHeight);
   
   // Flip rotation during flip attack
   const flipRotation = isFlipAttacking ? flipProgress * 360 : 0;
