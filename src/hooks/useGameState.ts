@@ -204,6 +204,8 @@ interface ExtendedGameState extends GameState {
   // RAY CANNON ATTACK - 3 second powerful laser
   rayCannonActive: boolean;
   rayCannonTimer: number;
+  // GRENADE EXPLOSIONS - for VFX
+  grenadeExplosions: { id: string; x: number; y: number; timer: number }[];
 }
 
 const INITIAL_STATE: ExtendedGameState = {
@@ -291,6 +293,8 @@ const INITIAL_STATE: ExtendedGameState = {
   // RAY CANNON ATTACK - starts inactive
   rayCannonActive: false,
   rayCannonTimer: 0,
+  // GRENADE EXPLOSIONS - for VFX rendering
+  grenadeExplosions: [],
 };
 
 // 8 enemy types: robot, drone, mech, ninja, tank, giant, bomber, sentinel - EQUAL SPAWN RATES
@@ -1751,6 +1755,17 @@ export const useGameState = () => {
             });
             
             // Big EMP explosion effect at grenade position - MASSIVE visual at CENTER
+            // Add to grenadeExplosions for VFX rendering with the uploaded GIF
+            newState.grenadeExplosions = [
+              ...(newState.grenadeExplosions || []),
+              {
+                id: `grenade-exp-${Date.now()}-${Math.random()}`,
+                x: grenade.x,
+                y: grenade.y,
+                timer: 1.0,
+              }
+            ];
+            
             newState.particles = [
               ...newState.particles,
               ...createParticles(grenade.x, grenade.y, 60, 'spark', '#00ffff'),
@@ -2001,6 +2016,11 @@ export const useGameState = () => {
             showSpeechBubble("⚡ RAY CANNON COMPLETE! ⚡", 'excited');
           }
         }
+        
+        // GRENADE EXPLOSIONS - update timers and remove expired
+        newState.grenadeExplosions = (prev.grenadeExplosions || [])
+          .map(exp => ({ ...exp, timer: exp.timer - delta }))
+          .filter(exp => exp.timer > 0);
         
         // Time since game start for attack delay check (used later in enemy attack section)
         // Magic Dash auto-actions - NUKE ALL ENEMIES ON SCREEN

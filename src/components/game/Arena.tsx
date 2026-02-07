@@ -30,6 +30,7 @@ import { ThunderController } from './ThunderStrike';
 import { BossNeonLaser, EnemyLaserAttack } from './BossNeonLaser';
 import { RayCannonVFX } from './RayCannonVFX';
 import { CinematicEffects } from './CinematicEffects';
+import { GrenadeExplosionVFX } from './GrenadeExplosionVFX';
 
 interface NeonLaser {
   id: string;
@@ -88,6 +89,8 @@ interface ExtendedGameState extends GameState {
   // Ray cannon attack
   rayCannonActive?: boolean;
   rayCannonTimer?: number;
+  // Grenade explosions
+  grenadeExplosions?: { id: string; x: number; y: number; timer: number }[];
 }
 
 interface ArenaProps {
@@ -118,6 +121,7 @@ export const Arena = ({ gameState }: ArenaProps) => {
     bossLaserActive = false,
     bossLaserTimer = 0,
     enemyLaserAttacks = [],
+    grenadeExplosions = [],
   } = gameState as ExtendedGameState & { evasionPopup?: { x: number; y: number; timer: number; target: string } | null };
   
   // Track previous multiplier for VFX trigger
@@ -653,6 +657,9 @@ export const Arena = ({ gameState }: ArenaProps) => {
             </motion.div>
           );
         })}
+        
+        {/* GRENADE EXPLOSIONS - Vortex GIF effect when EMP grenades explode */}
+        <GrenadeExplosionVFX explosions={grenadeExplosions} cameraX={cameraX} />
         
         {/* BOMBS - Dropped by bomber enemies - ENHANCED VISIBILITY */}
         {bombs.map(bomb => {
