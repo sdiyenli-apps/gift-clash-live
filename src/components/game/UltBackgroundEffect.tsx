@@ -7,12 +7,13 @@ interface UltBackgroundEffectProps {
 }
 
 // Fullscreen ULT background effect - hyperspeed lines covering entire screen
+// Z-INDEX: 20 so it's BEHIND the hero (z-27) but above background (z-10)
 export const UltBackgroundEffect = memo(({ isActive }: UltBackgroundEffectProps) => {
   return (
     <AnimatePresence>
       {isActive && (
         <motion.div
-          className="fixed inset-0 pointer-events-none z-30"
+          className="fixed inset-0 pointer-events-none z-20"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
