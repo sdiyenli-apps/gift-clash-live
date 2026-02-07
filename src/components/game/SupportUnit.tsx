@@ -20,8 +20,9 @@ export const SupportUnitSprite = ({ unit, cameraX }: SupportUnitProps) => {
   const screenX = unit.x - cameraX;
   const isTank = unit.type === 'tank';
   
-  // Check if attacking - moved before hooks that depend on it
-  const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 1.0 : unit.type === 'tank' ? 0.3 : 0.4);
+  // Check if attacking - trigger when cooldown was just set (above threshold)
+  // Tank: cooldown 0.08-0.18, Mech: 0.6, Walker: 0.4
+  const isAttacking = unit.attackCooldown > 0 && unit.attackCooldown > (unit.type === 'mech' ? 0.55 : unit.type === 'tank' ? 0.06 : 0.35);
   
   // Track attack count for tank explosion FX - every 4th attack shows explosion GIF
   useEffect(() => {

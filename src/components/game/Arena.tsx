@@ -31,6 +31,7 @@ import { BossNeonLaser, EnemyLaserAttack } from './BossNeonLaser';
 import { RayCannonVFX } from './RayCannonVFX';
 import { CinematicEffects } from './CinematicEffects';
 import { GrenadeExplosionVFX } from './GrenadeExplosionVFX';
+import { UltBackgroundEffect } from './UltBackgroundEffect';
 
 interface NeonLaser {
   id: string;
@@ -180,6 +181,9 @@ export const Arena = ({ gameState }: ArenaProps) => {
         borderRadius: 0,
       }}
     >
+      {/* FULLSCREEN ULT BACKGROUND EFFECT - Hyperspeed lines when ULT is active */}
+      <UltBackgroundEffect isActive={player.isMagicDashing} />
+      
       {/* FOG EFFECT - Atmospheric overlay */}
       <div 
         className="absolute inset-0 pointer-events-none z-10"

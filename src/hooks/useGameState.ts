@@ -2774,20 +2774,30 @@ export const useGameState = () => {
           newState.enemies.forEach(enemy => {
             if (hitProjectiles.has(proj.id) || enemy.isDying || enemy.isSpawning) return;
             
-            // LASER ONLY HITS GROUND ENEMIES - Flying enemies (drones, bombers, flyers, jetrobots) require EMP!
+            // Check if this is an ally projectile - ally projectiles can hit ALL enemies
+            const isAllyProjectile = proj.isAllyProjectile;
+            
+            // Flying enemy detection
             const isFlying = enemy.isFlying || enemy.type === 'drone' || enemy.type === 'bomber' || enemy.type === 'flyer' || enemy.type === 'jetrobot';
             const isEmpOnly = enemy.empOnly || enemy.type === 'jetrobot';
-            if ((isFlying || isEmpOnly) && enemy.type !== 'boss') {
-              // Skip flying and EMP-only enemies - they need EMP to be killed!
+            
+            // ALLY PROJECTILES hit ALL enemies including flying
+            // HERO PROJECTILES hit ground enemies, boss, and flying enemies now
+            // Note: EMP grenade is still needed for mass drone kills but individual shots work
+            if (!isAllyProjectile && (isEmpOnly) && enemy.type !== 'boss') {
+              // Only skip EMP-only enemies for hero projectiles (jetrobots)
               return;
             }
             
-            // Generous collision box for projectiles hitting GROUND enemies
+            // Calculate proper enemy Y position for collision
+            const enemyY = isFlying ? (enemy.y || 160) : 160;
+            
+            // Collision detection - use proper Y position for flying enemies
             if (
               proj.x < enemy.x + enemy.width + 10 &&
               proj.x + projWidth > enemy.x - 10 &&
-              proj.y < enemy.y + enemy.height + 15 &&
-              proj.y + projHeight > enemy.y - 15
+              proj.y < enemyY + enemy.height + 15 &&
+              proj.y + projHeight > enemyY - 15
             ) {
               hitProjectiles.add(proj.id);
               
