@@ -3,6 +3,7 @@ import { Player, SpeechBubble } from '@/types/game';
 import heroSprite from '@/assets/hero-sprite.gif';
 import spaceshipSprite from '@/assets/hero-spaceship.gif';
 import armorShieldGif from '@/assets/armor-shield.gif';
+import { HERO_DEPTH_MOVEMENT, ENTITY_SIZES, getPowerUpTier } from '@/data/gameConstants';
 
 interface HeroProps {
   player: Player;
@@ -11,35 +12,6 @@ interface HeroProps {
   speechBubble: SpeechBubble | null;
   damageMultiplier?: number;
 }
-
-// Get power-up visual style based on multiplier
-const getPowerUpStyle = (multiplier: number) => {
-  if (multiplier >= 3.0) return { 
-    glowColor: '#ff00ff', 
-    intensity: 'legendary',
-    pulseSpeed: 0.15,
-    auraSize: 25,
-  };
-  if (multiplier >= 2.5) return { 
-    glowColor: '#ff4400', 
-    intensity: 'mythic',
-    pulseSpeed: 0.2,
-    auraSize: 20,
-  };
-  if (multiplier >= 2.0) return { 
-    glowColor: '#ff6600', 
-    intensity: 'ultra',
-    pulseSpeed: 0.25,
-    auraSize: 15,
-  };
-  if (multiplier >= 1.5) return { 
-    glowColor: '#ffaa00', 
-    intensity: 'super',
-    pulseSpeed: 0.3,
-    auraSize: 10,
-  };
-  return null;
-};
 
 export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultiplier = 1 }: HeroProps) => {
   // Fixed screen position - hero on LEFT side (moved slightly left)
@@ -54,19 +26,42 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
   const isSpaceshipMode = player.isMagicDashing;
 
   // Hero sized LARGER for visibility - Metal Slug style proportions (slightly bigger)
-  const heroWidth = isSpaceshipMode ? 110 : 90;
-  const heroHeight = isSpaceshipMode ? 70 : 95;
+  const heroWidth = isSpaceshipMode ? ENTITY_SIZES.HERO_SPACESHIP.width : ENTITY_SIZES.HERO.width;
+  const heroHeight = isSpaceshipMode ? ENTITY_SIZES.HERO_SPACESHIP.height : ENTITY_SIZES.HERO.height;
   
-  // DYNAMIC VERTICAL MOVEMENT - Hero bobs up and down as they progress through the level
-  // Creates an organic, upbeat running feel
-  const progressBob = Math.sin(player.x * 0.03) * 8; // Bob based on position
-  const runningBob = isWalking ? Math.sin(Date.now() * 0.02) * 4 : 0; // Extra bob when moving
+  // ==========================================================================
+  // DEPTH MOVEMENT PATH - Visual bobbing that creates feeling of depth
+  // This is PURELY VISUAL and does NOT affect attack paths or collision
+  // Attack paths use fixed GROUND_LANES.HERO_FIRE_Y constant
+  // ==========================================================================
   
-  // Hero positioned lower on ground (reduced to 85), flies high in spaceship mode, jumps during flip
+  // Primary wave - slow undulating movement based on horizontal progress
+  const primaryBob = Math.sin(player.x * HERO_DEPTH_MOVEMENT.PRIMARY_FREQUENCY) 
+    * HERO_DEPTH_MOVEMENT.PRIMARY_AMPLITUDE;
+  
+  // Secondary wave - faster subtle movement for organic feel
+  const secondaryBob = Math.sin(player.x * HERO_DEPTH_MOVEMENT.SECONDARY_FREQUENCY) 
+    * HERO_DEPTH_MOVEMENT.SECONDARY_AMPLITUDE;
+  
+  // Running bob - extra movement when actively walking
+  const runningBob = isWalking 
+    ? Math.sin(Date.now() * HERO_DEPTH_MOVEMENT.RUNNING_SPEED) 
+      * HERO_DEPTH_MOVEMENT.RUNNING_AMPLITUDE 
+    : 0;
+  
+  // Combined visual depth offset (does NOT affect attack paths)
+  const depthOffset = primaryBob + secondaryBob + runningBob;
+  
+  // ==========================================================================
+  // FINAL VERTICAL POSITION
+  // ==========================================================================
   const flipProgress = player.flipAttackTimer ? (1.2 - player.flipAttackTimer) / 1.2 : 0;
   const flipJumpHeight = isFlipAttacking ? Math.sin(flipProgress * Math.PI) * 120 : 0;
-  const baseHeight = 85 + progressBob + runningBob;
-  const flyingHeight = isSpaceshipMode ? 200 : (baseHeight + flipJumpHeight);
+  
+  // Base height + depth movement (visual only) + flip attack jump
+  const baseHeight = 85;
+  const visualHeight = baseHeight + depthOffset + flipJumpHeight;
+  const flyingHeight = isSpaceshipMode ? 200 : visualHeight;
   
   // Flip rotation during flip attack
   const flipRotation = isFlipAttacking ? flipProgress * 360 : 0;
@@ -164,7 +159,7 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
       
       {/* POWER-UP AURA based on damage multiplier */}
       {damageMultiplier >= 1.5 && (() => {
-        const powerStyle = getPowerUpStyle(damageMultiplier);
+        const powerStyle = getPowerUpTier(damageMultiplier);
         if (!powerStyle) return null;
         return (
           <>
