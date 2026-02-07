@@ -29,6 +29,7 @@ import { DamageNumbers, DamageNumber } from './DamageNumbers';
 import { ThunderController } from './ThunderStrike';
 import { BossNeonLaser, EnemyLaserAttack } from './BossNeonLaser';
 import { RayCannonVFX } from './RayCannonVFX';
+import { CinematicEffects } from './CinematicEffects';
 
 interface NeonLaser {
   id: string;
@@ -440,12 +441,18 @@ export const Arena = ({ gameState }: ArenaProps) => {
         <span className="text-cyan-400">W{currentWave}</span>
       </div>
       
+      {/* CINEMATIC EFFECTS - Studio quality atmosphere */}
+      <CinematicEffects
+        isBossFight={isBossFight}
+        killStreak={killStreak}
+        giftDamageMultiplier={giftDamageMultiplier}
+        screenShake={screenShake}
+      />
+      
       <div 
         className="absolute inset-0"
         style={{ filter: player.isMagicDashing ? 'saturate(1.3) contrast(1.05)' : 'none' }}
       >
-        {/* Parallax scrolling background */}
-
         {/* Parallax scrolling background */}
         <ParallaxBackground 
           cameraX={cameraX}

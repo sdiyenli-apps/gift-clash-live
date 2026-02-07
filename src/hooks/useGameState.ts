@@ -3099,101 +3099,166 @@ export const useGameState = () => {
           }
           
           // Boss behavior - STAYS PUT until hero approaches, then engages
+          // STUDIO QUALITY: Boss hits ONCE then retreats, ceiling attack, dramatic movement
           if (enemy.type === 'boss') {
             const distanceToBoss = enemy.x - prev.player.x;
-            const BOSS_ENGAGE_RANGE = 600; // Boss only engages when hero is within 600px
+            const BOSS_ENGAGE_RANGE = 600;
+            const bossPhase = enemy.bossPhase || 1;
             
-            // BOSS JUMP ATTACK ANIMATION - 6 second sequence!
+            // BOSS CEILING ATTACK - Jump to ceiling, shoot down at hero/allies!
             if (enemy.isJumpAttacking && enemy.jumpAttackTimer !== undefined) {
               const jumpTimer = enemy.jumpAttackTimer - delta;
-              const originalY = enemy.originalBossY ?? enemy.y;
+              const originalY = enemy.originalBossY ?? GROUND_Y;
               
-              // Phase 1 (0-1.5s): Jump UP off screen
+              // Phase 1 (0-1s): Jump UP to ceiling (upside down!)
               if (enemy.jumpAttackPhase === 'jumping') {
-                const jumpProgress = (BOSS_JUMP_ATTACK_DURATION - jumpTimer) / 1.5;
-                const newY = originalY + jumpProgress * 600; // Move 600px up (off screen)
+                const jumpProgress = Math.min((BOSS_JUMP_ATTACK_DURATION - jumpTimer) / 1.0, 1);
+                const ceilingY = 320; // Boss goes to top of screen
+                const newY = originalY + jumpProgress * (ceilingY - originalY + 200);
                 
-                if (jumpTimer <= BOSS_JUMP_ATTACK_DURATION - 1.5) {
-                  // Transition to bombing phase
+                if (jumpTimer <= BOSS_JUMP_ATTACK_DURATION - 1.0) {
+                  // Transition to ceiling attack phase
                   return {
                     ...enemy,
-                    y: originalY + 600, // Off screen
+                    y: ceilingY + 100, // On ceiling
                     jumpAttackTimer: jumpTimer,
                     jumpAttackPhase: 'bombing',
-                    animationPhase: (enemy.animationPhase + delta * 8) % (Math.PI * 2),
+                    animationPhase: (enemy.animationPhase + delta * 10) % (Math.PI * 2),
                   };
                 }
                 return {
                   ...enemy,
                   y: newY,
                   jumpAttackTimer: jumpTimer,
-                  animationPhase: (enemy.animationPhase + delta * 8) % (Math.PI * 2),
+                  animationPhase: (enemy.animationPhase + delta * 10) % (Math.PI * 2),
                 };
               }
               
-              // Phase 2 (1.5-4.5s): Drop bombs from above - 3 seconds of bombing!
+              // Phase 2 (1-3.5s): On ceiling, UPSIDE DOWN, shooting projectiles down!
               if (enemy.jumpAttackPhase === 'bombing') {
-                // Drop bombs every 0.3 seconds while in bombing phase
-                const bombInterval = 0.3;
-                const bombPhaseProgress = (BOSS_JUMP_ATTACK_DURATION - 1.5 - jumpTimer);
-                if (bombPhaseProgress >= 0 && Math.floor(bombPhaseProgress / bombInterval) !== Math.floor((bombPhaseProgress - delta) / bombInterval)) {
-                  // Drop a bomb at random X position on screen
-                  const bombX = prev.cameraX + 50 + Math.random() * 500;
+                const ceilingY = 320 + 100;
+                
+                // Fire projectiles down at hero and allies every 0.4 seconds
+                const fireInterval = 0.4;
+                const bombPhaseProgress = (BOSS_JUMP_ATTACK_DURATION - 1.0 - jumpTimer);
+                if (bombPhaseProgress >= 0 && Math.floor(bombPhaseProgress / fireInterval) !== Math.floor((bombPhaseProgress - delta) / fireInterval)) {
+                  // Fire aimed projectile at hero
+                  const targetX = prev.player.x + PLAYER_WIDTH / 2 + (Math.random() - 0.5) * 100;
+                  const targetY = GROUND_Y + PLAYER_HEIGHT / 2;
+                  const dx = targetX - enemy.x;
+                  const dy = targetY - ceilingY;
+                  const dist = Math.sqrt(dx * dx + dy * dy);
+                  
+                  const ceilingProjectile: Projectile = {
+                    id: `boss-ceiling-${Date.now()}-${Math.random()}`,
+                    x: enemy.x + enemy.width / 2,
+                    y: ceilingY - 50,
+                    velocityX: (dx / dist) * 500,
+                    velocityY: (dy / dist) * -500, // Going down
+                    damage: 15 + Math.floor(prev.currentWave / 2),
+                    type: 'mega',
+                  };
+                  newState.enemyLasers = [...newState.enemyLasers, ceilingProjectile];
+                  newState.particles = [...newState.particles, ...createParticles(
+                    enemy.x + enemy.width / 2, ceilingY - 50, 8, 'muzzle', '#ff00ff'
+                  )];
+                  
+                  // Also fire at allies if any
+                  const allyTargets = newState.supportUnits.filter(u => !u.isSelfDestructing && u.health > 0);
+                  if (allyTargets.length > 0 && Math.random() > 0.5) {
+                    const allyTarget = allyTargets[Math.floor(Math.random() * allyTargets.length)];
+                    const adx = allyTarget.x - enemy.x;
+                    const ady = GROUND_Y - ceilingY;
+                    const adist = Math.sqrt(adx * adx + ady * ady);
+                    
+                    const allyProjectile: Projectile = {
+                      id: `boss-ceiling-ally-${Date.now()}-${Math.random()}`,
+                      x: enemy.x + enemy.width / 2 + 30,
+                      y: ceilingY - 50,
+                      velocityX: (adx / adist) * 480,
+                      velocityY: (ady / adist) * -480,
+                      damage: 12 + Math.floor(prev.currentWave / 3),
+                      type: 'mega',
+                    };
+                    newState.enemyLasers = [...newState.enemyLasers, allyProjectile];
+                  }
+                  
+                  newState.screenShake = 0.3;
+                }
+                
+                // Drop bombs too during ceiling phase
+                const bombInterval = 0.5;
+                if (Math.floor(bombPhaseProgress / bombInterval) !== Math.floor((bombPhaseProgress - delta) / bombInterval)) {
+                  const bombX = prev.cameraX + 80 + Math.random() * 450;
                   const newBomb: Bomb = {
-                    id: `boss-jump-bomb-${Date.now()}-${Math.random()}`,
+                    id: `boss-ceiling-bomb-${Date.now()}-${Math.random()}`,
                     x: bombX,
-                    y: 400, // From top of screen
-                    velocityY: -280 - Math.random() * 100, // Fall down with varied speed
-                    damage: 20 + Math.floor(prev.currentWave / 2),
+                    y: 380,
+                    velocityY: -250 - Math.random() * 80,
+                    damage: 18 + Math.floor(prev.currentWave / 2),
                     timer: 5,
                   };
                   newState.bombs = [...(newState.bombs || []), newBomb];
-                  newState.particles = [...newState.particles, ...createParticles(bombX, 350, 8, 'muzzle', '#ff4400')];
-                  newState.screenShake = 0.2;
                 }
                 
-                if (jumpTimer <= BOSS_JUMP_ATTACK_DURATION - 4.5) {
+                if (jumpTimer <= BOSS_JUMP_ATTACK_DURATION - 3.5) {
                   // Transition to landing phase
                   return {
                     ...enemy,
-                    y: originalY + 600,
+                    y: ceilingY,
                     jumpAttackTimer: jumpTimer,
                     jumpAttackPhase: 'landing',
                     animationPhase: (enemy.animationPhase + delta * 6) % (Math.PI * 2),
                   };
                 }
+                
+                // Slight horizontal movement while on ceiling
+                const ceilingDrift = Math.sin(enemy.animationPhase * 2) * 30 * delta;
                 return {
                   ...enemy,
+                  x: enemy.x + ceilingDrift,
+                  y: ceilingY,
                   jumpAttackTimer: jumpTimer,
-                  animationPhase: (enemy.animationPhase + delta * 6) % (Math.PI * 2),
+                  animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
                 };
               }
               
-              // Phase 3 (4.5-6s): Land back down with ground pound
+              // Phase 3 (3.5-5s): Land back down with ground pound
               if (enemy.jumpAttackPhase === 'landing') {
-                const landProgress = (BOSS_JUMP_ATTACK_DURATION - 4.5 - jumpTimer) / 1.5; // 1.5s to land
-                const newY = originalY + 600 - (landProgress * 600); // Move 600px down (back to ground)
+                const ceilingY = 320 + 100;
+                const landProgress = Math.min((BOSS_JUMP_ATTACK_DURATION - 3.5 - jumpTimer) / 1.5, 1);
+                const newY = ceilingY - landProgress * (ceilingY - originalY + 200);
                 
                 if (jumpTimer <= 0) {
                   // Landing complete! Ground pound effect
-                  newState.screenShake = 2.0;
-                  newState.redFlash = 1.0;
-                  // Create shockwave
-                  const shockwave: Projectile = {
-                    id: `jump-shockwave-${Date.now()}`,
+                  newState.screenShake = 2.5;
+                  newState.redFlash = 1.2;
+                  
+                  // Create shockwaves in both directions
+                  const leftShockwave: Projectile = {
+                    id: `jump-shockwave-left-${Date.now()}`,
                     x: enemy.x,
                     y: GROUND_Y + 30,
-                    velocityX: -700,
+                    velocityX: -800,
                     velocityY: 0,
-                    damage: 25 + Math.floor(prev.currentWave / 3),
+                    damage: 30 + Math.floor(prev.currentWave / 2),
                     type: 'mega',
                   };
-                  newState.enemyLasers = [...newState.enemyLasers, shockwave];
+                  const rightShockwave: Projectile = {
+                    id: `jump-shockwave-right-${Date.now()}`,
+                    x: enemy.x + enemy.width,
+                    y: GROUND_Y + 30,
+                    velocityX: 400,
+                    velocityY: 0,
+                    damage: 20,
+                    type: 'mega',
+                  };
+                  newState.enemyLasers = [...newState.enemyLasers, leftShockwave, rightShockwave];
                   newState.particles = [...newState.particles, 
-                    ...createParticles(enemy.x + enemy.width/2, originalY + enemy.height, 40, 'explosion', '#ff4400'),
-                    ...createParticles(enemy.x + enemy.width/2, originalY + enemy.height, 30, 'spark', '#ffff00'),
+                    ...createParticles(enemy.x + enemy.width/2, originalY + enemy.height, 50, 'explosion', '#ff4400'),
+                    ...createParticles(enemy.x + enemy.width/2, originalY + enemy.height, 35, 'spark', '#ffff00'),
                   ];
-                  showSpeechBubble("💥 GROUND POUND LANDING! 💥", 'urgent');
+                  showSpeechBubble("💥 CRUSHING LANDING! 💥", 'urgent');
                   
                   return {
                     ...enemy,
@@ -3201,6 +3266,9 @@ export const useGameState = () => {
                     isJumpAttacking: false,
                     jumpAttackTimer: undefined,
                     jumpAttackPhase: undefined,
+                    // BOSS RETREATS after ceiling attack (HIT ONCE THEN MOVE BACK!)
+                    isRetreating: true,
+                    originalX: enemy.x + 200,
                     animationPhase: (enemy.animationPhase + delta * 4) % (Math.PI * 2),
                   };
                 }
@@ -3208,83 +3276,148 @@ export const useGameState = () => {
                   ...enemy,
                   y: Math.max(originalY, newY),
                   jumpAttackTimer: jumpTimer,
+                  animationPhase: (enemy.animationPhase + delta * 10) % (Math.PI * 2),
+                };
+              }
+            }
+            
+            // BOSS RETREAT LOGIC - after hitting, boss jumps back
+            if (enemy.isRetreating) {
+              const retreatTarget = enemy.originalX ?? enemy.x + 150;
+              const retreatProgress = (retreatTarget - enemy.x);
+              
+              if (Math.abs(retreatProgress) > 10) {
+                // Jump backward with dramatic arc
+                const retreatJumpHeight = Math.abs(Math.sin((enemy.animationPhase || 0) * 4)) * 60;
+                return {
+                  ...enemy,
+                  x: enemy.x + Math.sign(retreatProgress) * 200 * delta,
+                  y: GROUND_Y - retreatJumpHeight,
                   animationPhase: (enemy.animationPhase + delta * 8) % (Math.PI * 2),
+                  attackCooldown: Math.max(0, (enemy.attackCooldown || 0) - delta),
+                };
+              } else {
+                // Finished retreating
+                return {
+                  ...enemy,
+                  isRetreating: false,
+                  originalX: undefined,
+                  y: GROUND_Y,
+                  animationPhase: (enemy.animationPhase + delta * 3) % (Math.PI * 2),
                 };
               }
             }
             
             // If hero is NOT in range, boss stays completely still
             if (distanceToBoss > BOSS_ENGAGE_RANGE) {
-              // Boss stays in original position, not moving at all
               return { 
                 ...enemy, 
-                animationPhase: (enemy.animationPhase + delta * 2) % (Math.PI * 2), // Slow idle animation
+                animationPhase: (enemy.animationPhase + delta * 2) % (Math.PI * 2),
               };
             }
             
-            // Hero is in range - boss now engages and maintains attack distance
-            const tooClose = distanceToBoss < BOSS_KEEP_DISTANCE - 50;
-            const tooFar = distanceToBoss > BOSS_KEEP_DISTANCE + 50 && distanceToBoss <= BOSS_ENGAGE_RANGE;
+            // Hero is in range - STUDIO QUALITY boss movement
+            const tooClose = distanceToBoss < BOSS_KEEP_DISTANCE - 40;
+            const tooFar = distanceToBoss > BOSS_KEEP_DISTANCE + 60 && distanceToBoss <= BOSS_ENGAGE_RANGE;
             
-            // ENHANCED BOSS MOVEMENT - Dynamic jumping forward and backward with visible attacks!
-            const bossJumpCycle = Math.sin(enemy.animationPhase * 3);
-            const bossSecondJump = Math.cos(enemy.animationPhase * 1.8);
-            const bossHopHeight = Math.abs(bossJumpCycle) * 40 + Math.abs(bossSecondJump) * 20; // Higher hops
+            // Dynamic hopping - rhythmic and menacing
+            const hopCycle = Math.sin(enemy.animationPhase * 4);
+            const hopHeight = Math.abs(hopCycle) * 50;
             
-            // Forward/backward lunge pattern - boss aggressively moves toward and away from hero
-            const lungePhase = Math.sin(enemy.animationPhase * 0.8);
-            const lungeMagnitude = 100 * lungePhase; // -100 to +100 px lunge range
+            // Sway side to side while maintaining distance
+            const swayCycle = Math.cos(enemy.animationPhase * 1.5);
+            const swayAmount = swayCycle * 25 * delta;
             
-            // Random aggressive jump toward hero (more frequent)
-            const aggressiveJump = Math.random() > 0.98;
-            const jumpForwardDistance = aggressiveJump ? -80 : 0; // Jump toward hero
-            const jumpUpHeight = aggressiveJump ? 80 : 0;
-            
-            // Trigger ranged attack during aggressive jump
-            if (aggressiveJump && (enemy.attackCooldown || 0) <= 0) {
-              // Fire visible projectile during jump!
-              const bossProjectile: Projectile = {
-                id: `boss-jump-attack-${Date.now()}`,
+            // MELEE ATTACK - Boss hits ONCE then retreats!
+            if (tooClose && (enemy.attackCooldown || 0) <= 0 && !enemy.isRetreating) {
+              // Close range attack - hit hero then retreat
+              const damage = enemy.damage * 0.6;
+              if (newState.player.shield > 0) {
+                newState.player.shield = Math.max(0, newState.player.shield - damage);
+                newState.shieldBlockFlash = 1;
+              } else {
+                newState.player.health -= damage;
+                newState.damageFlash = 1;
+              }
+              newState.screenShake = 0.6;
+              newState.particles = [...newState.particles, ...createParticles(
+                prev.player.x + PLAYER_WIDTH, prev.player.y + PLAYER_HEIGHT/2, 15, 'spark', '#ff0000'
+              )];
+              
+              // Fire visible projectile during melee
+              const meleeProjectile: Projectile = {
+                id: `boss-melee-${Date.now()}`,
                 x: enemy.x - 20,
-                y: GROUND_Y - 50,
-                velocityX: -450,
-                velocityY: (Math.random() - 0.3) * 100,
-                damage: 18 + Math.floor(prev.currentWave / 2),
+                y: GROUND_Y - 30,
+                velocityX: -600,
+                velocityY: (Math.random() - 0.5) * 150,
+                damage: 12 + bossPhase * 3,
                 type: 'mega',
               };
-              newState.enemyLasers = [...newState.enemyLasers, bossProjectile];
-              newState.particles = [...newState.particles, ...createParticles(enemy.x - 20, GROUND_Y - 50, 10, 'muzzle', '#ff00ff')];
+              newState.enemyLasers = [...newState.enemyLasers, meleeProjectile];
+              
+              // Boss RETREATS after hitting (hit once then move back!)
+              return {
+                ...enemy,
+                x: enemy.x + 20,
+                y: GROUND_Y - hopHeight,
+                isRetreating: true,
+                originalX: enemy.x + 180 + Math.random() * 80,
+                attackCooldown: 2.0 + Math.random(),
+                animationPhase: (enemy.animationPhase + delta * 6) % (Math.PI * 2),
+              };
             }
             
-            // Random backward dodge when hero attacks
-            const dodgeBackward = Math.random() > 0.992;
-            const dodgeDistance = dodgeBackward ? 60 : 0;
-            
-            const totalBossJump = bossHopHeight + jumpUpHeight;
-            const horizontalMove = lungeMagnitude * delta * 0.5 + jumpForwardDistance + dodgeDistance;
+            // Random ranged attack during approach
+            if (!tooClose && (enemy.attackCooldown || 0) <= 0 && Math.random() > 0.97) {
+              const rangedProjectile: Projectile = {
+                id: `boss-ranged-${Date.now()}`,
+                x: enemy.x - 30,
+                y: GROUND_Y - 60,
+                velocityX: -500 - bossPhase * 50,
+                velocityY: (Math.random() - 0.4) * 120,
+                damage: 15 + bossPhase * 2,
+                type: 'mega',
+              };
+              newState.enemyLasers = [...newState.enemyLasers, rangedProjectile];
+              newState.particles = [...newState.particles, ...createParticles(
+                enemy.x - 30, GROUND_Y - 60, 10, 'muzzle', '#ff00ff'
+              )];
+              
+              return {
+                ...enemy,
+                attackCooldown: 1.5,
+                y: GROUND_Y - hopHeight,
+                animationPhase: (enemy.animationPhase + delta * 5) % (Math.PI * 2),
+              };
+            }
             
             if (tooClose) {
               // Move away with dramatic backward jump
               return { 
                 ...enemy, 
-                x: enemy.x + 50 * delta + horizontalMove,
-                y: GROUND_Y - totalBossJump,
-                animationPhase: (enemy.animationPhase + delta * 5) % (Math.PI * 2),
+                x: enemy.x + 60 * delta + swayAmount,
+                y: GROUND_Y - hopHeight - 20,
+                attackCooldown: Math.max(0, (enemy.attackCooldown || 0) - delta),
+                animationPhase: (enemy.animationPhase + delta * 6) % (Math.PI * 2),
               };
             } else if (tooFar) {
               // Move closer with aggressive forward lunge
               return { 
                 ...enemy, 
-                x: enemy.x - 40 * delta + horizontalMove,
-                y: GROUND_Y - totalBossJump,
-                animationPhase: (enemy.animationPhase + delta * 5) % (Math.PI * 2),
+                x: enemy.x - 50 * delta + swayAmount,
+                y: GROUND_Y - hopHeight,
+                attackCooldown: Math.max(0, (enemy.attackCooldown || 0) - delta),
+                animationPhase: (enemy.animationPhase + delta * 6) % (Math.PI * 2),
               };
             }
-            // At ideal distance - dynamic hopping and lunging
+            
+            // At ideal distance - rhythmic hopping and swaying
             return { 
               ...enemy, 
-              x: enemy.x + horizontalMove,
-              y: GROUND_Y - totalBossJump,
+              x: enemy.x + swayAmount,
+              y: GROUND_Y - hopHeight,
+              attackCooldown: Math.max(0, (enemy.attackCooldown || 0) - delta),
               animationPhase: (enemy.animationPhase + delta * 5) % (Math.PI * 2),
             };
           }

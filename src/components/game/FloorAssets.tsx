@@ -256,7 +256,7 @@ export const FloorAssets = ({ cameraX, levelLength }: FloorAssetsProps) => {
   const assets = useMemo(() => generateAssets(levelLength), [levelLength]);
   
   return (
-    <div className="absolute inset-0 pointer-events-none z-8">
+    <div className="absolute inset-0 pointer-events-none z-35" style={{ zIndex: 35 }}>
       {assets.map(asset => {
         const screenX = asset.x - cameraX;
         
