@@ -3,7 +3,6 @@ import { Player, SpeechBubble } from '@/types/game';
 import heroSprite from '@/assets/hero-sprite.gif';
 import spaceshipSprite from '@/assets/hero-spaceship.gif';
 import armorShieldGif from '@/assets/armor-shield.gif';
-import ultBackgroundGif from '@/assets/ult-background.gif';
 
 interface HeroProps {
   player: Player;
@@ -302,27 +301,6 @@ export const Hero = ({ player, cameraX, isUltraMode, speechBubble, damageMultipl
             animate={{ scale: 1, rotate: 0 }}
             transition={{ duration: 0.3, type: 'spring' }}
           >
-            {/* ULT BACKGROUND EFFECT - Hyperspeed lines behind spaceship */}
-            <motion.div
-              className="absolute pointer-events-none z-0"
-              style={{
-                left: -400,
-                top: -100,
-                width: 800,
-                height: 300,
-              }}
-            >
-              <img
-                src={ultBackgroundGif}
-                alt="Hyperspeed"
-                className="w-full h-full object-cover"
-                style={{
-                  filter: 'brightness(1.2)',
-                  mixBlendMode: 'screen',
-                  opacity: 0.7,
-                }}
-              />
-            </motion.div>
             {/* Spaceship sprite image */}
             <motion.img
               src={spaceshipSprite}
