@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import { useGameState } from '@/hooks/useGameState';
 import { useTikTokSimulator } from '@/hooks/useTikTokSimulator';
 import { useSoundEffects } from '@/hooks/useSoundEffects';
@@ -10,7 +9,6 @@ import { GiftPanel } from '@/components/game/GiftPanel';
 import { GameOverlay } from '@/components/game/GameOverlay';
 import { WaveTransition } from '@/components/game/WaveTransition';
 import { AdminPanel } from '@/components/game/AdminPanel';
-// Import uploaded music tracks for audio button
 import track1 from '@/assets/music/track-1.mp3';
 import track2 from '@/assets/music/track-2.mp3';
 import track3 from '@/assets/music/track-3.mp3';
@@ -19,14 +17,12 @@ import track4 from '@/assets/music/track-4.mp3';
 const MUSIC_TRACKS = [track1, track2, track3, track4];
 
 const Index = () => {
-  // ALL HOOKS FIRST - Never place computed values between hooks
   const [autoSimulate] = useState(false);
   const [audioOn, setAudioOn] = useState(false);
-  const [musicVolume, setMusicVolume] = useState(0.7); // Music volume 0-1 (default 70%)
+  const [musicVolume, setMusicVolume] = useState(0.7);
   const [showControls, setShowControls] = useState(false);
   const [editMode, setEditMode] = useState(false);
   
-  // Layout settings with localStorage persistence
   const {
     arenaScale, setArenaScale,
     arenaOffsetX, setArenaOffsetX,
@@ -37,7 +33,6 @@ const Index = () => {
     resetSettings,
   } = useLayoutSettings();
   
-  // Drag state refs for smooth dragging
   const arenaDragRef = useRef({ startX: 0, startY: 0, startOffsetX: 0, startOffsetY: 0 });
   const hudDragRef = useRef({ startX: 0, startY: 0, startOffsetX: 0, startOffsetY: 0 });
   const [isDraggingArena, setIsDraggingArena] = useState(false);
@@ -55,54 +50,34 @@ const Index = () => {
     'medium'
   );
 
-  // Memoize computed values to avoid recalculating every render
-  const droppingJetRobots = useMemo(() => 
-    gameState.enemies?.filter(e => e.type === 'jetrobot' && e.isDropping && e.dropTimer && e.dropTimer > 0.8) || [],
-    [gameState.enemies]
-  );
-  
-  const landedJetRobots = useMemo(() =>
-    gameState.enemies?.filter(e => e.type === 'jetrobot' && e.isDropping && e.dropTimer && e.dropTimer < 0.3 && e.dropTimer > 0.1) || [],
-    [gameState.enemies]
-  );
-
   // ALL useCallbacks together
   const handleTriggerGift = useCallback((giftId: string) => {
     if (gameState.phase !== 'playing') return;
-    // Gift sound removed as requested
     triggerGift(giftId, `Player_${Math.floor(Math.random() * 999)}`);
   }, [gameState.phase, triggerGift]);
 
   const handleSummonAlly = useCallback(() => {
     if (gameState.phase !== 'playing') return;
-    // Gift sound removed as requested
     triggerSummon('ally');
   }, [gameState.phase, triggerSummon]);
 
   const handleSummonUlt = useCallback(() => {
     if (gameState.phase !== 'playing') return;
-    // Gift sound removed as requested
     triggerSummon('ult');
   }, [gameState.phase, triggerSummon]);
 
   const handleSummonTank = useCallback(() => {
     if (gameState.phase !== 'playing') return;
-    // Gift sound removed as requested
     triggerSummon('tank');
   }, [gameState.phase, triggerSummon]);
 
-  // Drag handlers for Arena
+  // Drag handlers
   const handleArenaDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!editMode) return;
     e.preventDefault();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    arenaDragRef.current = {
-      startX: clientX,
-      startY: clientY,
-      startOffsetX: arenaOffsetX,
-      startOffsetY: arenaOffsetY,
-    };
+    arenaDragRef.current = { startX: clientX, startY: clientY, startOffsetX: arenaOffsetX, startOffsetY: arenaOffsetY };
     setIsDraggingArena(true);
   }, [editMode, arenaOffsetX, arenaOffsetY]);
 
@@ -110,29 +85,19 @@ const Index = () => {
     if (!isDraggingArena) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const deltaX = clientX - arenaDragRef.current.startX;
-    const deltaY = clientY - arenaDragRef.current.startY;
-    setArenaOffsetX(arenaDragRef.current.startOffsetX + deltaX);
-    setArenaOffsetY(arenaDragRef.current.startOffsetY + deltaY);
+    setArenaOffsetX(arenaDragRef.current.startOffsetX + clientX - arenaDragRef.current.startX);
+    setArenaOffsetY(arenaDragRef.current.startOffsetY + clientY - arenaDragRef.current.startY);
   }, [isDraggingArena, setArenaOffsetX, setArenaOffsetY]);
 
-  const handleArenaDragEnd = useCallback(() => {
-    setIsDraggingArena(false);
-  }, []);
+  const handleArenaDragEnd = useCallback(() => setIsDraggingArena(false), []);
 
-  // Drag handlers for HUD
   const handleHudDragStart = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     if (!editMode) return;
     e.preventDefault();
     e.stopPropagation();
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    hudDragRef.current = {
-      startX: clientX,
-      startY: clientY,
-      startOffsetX: hudOffsetX,
-      startOffsetY: hudOffsetY,
-    };
+    hudDragRef.current = { startX: clientX, startY: clientY, startOffsetX: hudOffsetX, startOffsetY: hudOffsetY };
     setIsDraggingHud(true);
   }, [editMode, hudOffsetX, hudOffsetY]);
 
@@ -140,39 +105,26 @@ const Index = () => {
     if (!isDraggingHud) return;
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
     const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const deltaX = clientX - hudDragRef.current.startX;
-    const deltaY = -(clientY - hudDragRef.current.startY); // Invert Y since bottom-based
-    setHudOffsetX(hudDragRef.current.startOffsetX + deltaX);
-    setHudOffsetY(hudDragRef.current.startOffsetY + deltaY);
+    setHudOffsetX(hudDragRef.current.startOffsetX + clientX - hudDragRef.current.startX);
+    setHudOffsetY(hudDragRef.current.startOffsetY - (clientY - hudDragRef.current.startY));
   }, [isDraggingHud, setHudOffsetX, setHudOffsetY]);
 
-  const handleHudDragEnd = useCallback(() => {
-    setIsDraggingHud(false);
-  }, []);
+  const handleHudDragEnd = useCallback(() => setIsDraggingHud(false), []);
 
   // ALL useEffects together
-  
-  // Auto-start game music when game begins
   useEffect(() => {
-    if (gameState.phase === 'playing') {
-      startMusic();
-    } else if (gameState.phase === 'gameover') {
-      stopMusic();
-    }
+    if (gameState.phase === 'playing') startMusic();
+    else if (gameState.phase === 'gameover') stopMusic();
   }, [gameState.phase, startMusic, stopMusic]);
   
-  // Audio button toggle - uses uploaded music tracks with rotation
   const currentTrackRef = useRef(0);
   const isPlayingRef = useRef(false);
   
   useEffect(() => {
     if (!audioRef.current) {
-      // Initialize with first track
       audioRef.current = new Audio(MUSIC_TRACKS[0]);
       audioRef.current.volume = musicVolume;
       audioRef.current.loop = false;
-      
-      // Setup track rotation on end - prevents overlap
       audioRef.current.addEventListener('ended', () => {
         if (audioRef.current && isPlayingRef.current) {
           currentTrackRef.current = (currentTrackRef.current + 1) % MUSIC_TRACKS.length;
@@ -181,13 +133,10 @@ const Index = () => {
         }
       });
     }
-    
     if (audioOn) {
-      // Ensure no overlap - pause before starting new track
       if (!isPlayingRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
-        // Start from a random track for variety
         currentTrackRef.current = Math.floor(Math.random() * MUSIC_TRACKS.length);
         audioRef.current.src = MUSIC_TRACKS[currentTrackRef.current];
         audioRef.current.play().catch(console.error);
@@ -197,23 +146,11 @@ const Index = () => {
       audioRef.current.pause();
       isPlayingRef.current = false;
     }
-    
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        isPlayingRef.current = false;
-      }
-    };
+    return () => { if (audioRef.current) { audioRef.current.pause(); isPlayingRef.current = false; } };
   }, [audioOn]);
   
-  // Update music volume when slider changes
-  useEffect(() => {
-    if (audioRef.current) {
-      audioRef.current.volume = musicVolume;
-    }
-  }, [musicVolume]);
+  useEffect(() => { if (audioRef.current) audioRef.current.volume = musicVolume; }, [musicVolume]);
 
-  // Global drag event listeners
   useEffect(() => {
     if (isDraggingArena) {
       window.addEventListener('mousemove', handleArenaDrag);
@@ -245,21 +182,15 @@ const Index = () => {
   }, [isDraggingHud, handleHudDrag, handleHudDragEnd]);
 
   useEffect(() => {
-    if (gameState.player.isShooting) {
-      playSound(gameState.player.isMagicDashing ? 'shootUltra' : 'shoot');
-    }
+    if (gameState.player.isShooting) playSound(gameState.player.isMagicDashing ? 'shootUltra' : 'shoot');
   }, [gameState.player.isShooting, gameState.player.isMagicDashing, playSound]);
 
   useEffect(() => {
-    if (gameState.player.animationState === 'hurt') {
-      playSound('hurt');
-    }
+    if (gameState.player.animationState === 'hurt') playSound('hurt');
   }, [gameState.player.animationState, playSound]);
 
   useEffect(() => {
-    if (gameState.isBossFight && gameState.fireballs?.length > 0) {
-      playSound('bossFireball');
-    }
+    if (gameState.isBossFight && gameState.fireballs?.length > 0) playSound('bossFireball');
   }, [gameState.fireballs?.length, gameState.isBossFight, playSound]);
 
   useEffect(() => {
@@ -274,17 +205,11 @@ const Index = () => {
     }
   }, [gameState.lastBossAttack, playSound]);
 
-  // Boss evil laugh when taunting
   useEffect(() => {
     if (gameState.bossTaunt && gameState.isBossFight) {
-      // Play evil laugh on certain taunts
       const evilLaughTriggers = ['DIE', 'DESTROY', 'CRUSH', 'PHASE', 'ULTIMATE', 'IMPENETRABLE', 'STRONGER'];
       const shouldLaugh = evilLaughTriggers.some(trigger => gameState.bossTaunt?.includes(trigger));
-      if (shouldLaugh) {
-        playSound('bossLaugh');
-      } else {
-        playSound('bossTaunt');
-      }
+      playSound(shouldLaugh ? 'bossLaugh' : 'bossTaunt');
     }
   }, [gameState.bossTaunt, gameState.isBossFight, playSound]);
 
@@ -296,24 +221,8 @@ const Index = () => {
   }, [gameState.enemyLasers?.length, playSound]);
 
   useEffect(() => {
-    if (gameState.shieldBlockFlash && gameState.shieldBlockFlash > 0) {
-      playSound('shieldBlock');
-    }
+    if (gameState.shieldBlockFlash && gameState.shieldBlockFlash > 0) playSound('shieldBlock');
   }, [gameState.shieldBlockFlash, playSound]);
-
-  useEffect(() => {
-    if (droppingJetRobots.length > 0) {
-      playSound('jetDrop');
-      playSound('jetSwoosh');
-    }
-  }, [droppingJetRobots.length, playSound]);
-
-  useEffect(() => {
-    if (landedJetRobots.length > 0) {
-      playSound('jetEngine');
-    }
-  }, [landedJetRobots.length, playSound]);
-
 
   return (
     <div 
@@ -323,7 +232,7 @@ const Index = () => {
         maxWidth: '100vw',
       }}
     >
-      {/* Admin Panel - Right side organized buttons */}
+      {/* Admin Panel */}
       <AdminPanel
         showControls={showControls}
         setShowControls={setShowControls}
@@ -348,34 +257,26 @@ const Index = () => {
         resetSettings={resetSettings}
       />
 
-      <main className="flex-1 flex flex-col overflow-hidden min-h-0 px-0 pt-10 pb-0">
-        {/* Game Arena - Draggable in edit mode */}
+      {/* TikTok vertical layout - arena takes most space, HUD at bottom */}
+      <main className="flex-1 flex flex-col overflow-hidden min-h-0">
+        {/* Game Arena - fills available vertical space */}
         <div 
           className={`flex-1 min-h-0 relative overflow-hidden w-full ${editMode ? 'cursor-grab' : ''} ${isDraggingArena ? 'cursor-grabbing' : ''}`}
           style={{ 
-            maxHeight: 'calc(100dvh - 100px)',
-            width: '100vw',
-            marginLeft: 'calc(-50vw + 50%)',
             transform: `scale(${arenaScale}) translate(${arenaOffsetX}px, ${arenaOffsetY}px)`,
-            transformOrigin: 'center top',
+            transformOrigin: 'center center',
             outline: editMode ? '3px dashed rgba(0,255,255,0.5)' : 'none',
           }}
           onMouseDown={handleArenaDragStart}
           onTouchStart={handleArenaDragStart}
         >
-          {/* Edit mode overlay label */}
           {editMode && (
-            <motion.div
+            <div
               className="absolute top-2 left-1/2 -translate-x-1/2 z-50 px-3 py-1 rounded-lg text-xs font-bold pointer-events-none"
-              style={{
-                background: 'rgba(0,255,255,0.9)',
-                color: '#000',
-              }}
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 1, repeat: Infinity }}
+              style={{ background: 'rgba(0,255,255,0.9)', color: '#000' }}
             >
               🎮 ARENA - Drag to move
-            </motion.div>
+            </div>
           )}
           
           <Arena gameState={gameState} />
@@ -389,7 +290,6 @@ const Index = () => {
             onNextWave={startNextWave}
           />
           
-          {/* Wave Transition Screen */}
           <WaveTransition
             isVisible={gameState.phase === 'victory'}
             currentWave={gameState.currentWave}
@@ -399,36 +299,25 @@ const Index = () => {
           />
         </div>
 
-        {/* Bottom HUD - Draggable in edit mode */}
+        {/* Bottom HUD - fixed at bottom for TikTok vertical */}
         <div 
-          className={`absolute z-20 ${editMode ? 'cursor-grab' : ''} ${isDraggingHud ? 'cursor-grabbing' : ''}`}
+          className={`w-full px-2 pb-[max(env(safe-area-inset-bottom),4px)] z-20 ${editMode ? 'cursor-grab' : ''} ${isDraggingHud ? 'cursor-grabbing' : ''}`}
           style={{
-            bottom: `${hudOffsetY}px`,
-            left: `${hudOffsetX}px`,
-            width: 'calc(85% - 16px)',
-            maxWidth: '650px',
-            transform: `scale(${hudScale})`,
-            transformOrigin: 'bottom left',
-            paddingBottom: 'max(env(safe-area-inset-bottom), 4px)',
+            transform: `scale(${hudScale}) translate(${hudOffsetX}px, ${-hudOffsetY}px)`,
+            transformOrigin: 'bottom center',
             opacity: gameState.phase === 'playing' ? 1 : 0.7,
             outline: editMode ? '3px dashed rgba(255,200,0,0.6)' : 'none',
           }}
           onMouseDown={handleHudDragStart}
           onTouchStart={handleHudDragStart}
         >
-          {/* Edit mode overlay label */}
           {editMode && (
-            <motion.div
+            <div
               className="absolute -top-6 left-1/2 -translate-x-1/2 z-50 px-3 py-1 rounded-lg text-xs font-bold pointer-events-none"
-              style={{
-                background: 'rgba(255,200,0,0.9)',
-                color: '#000',
-              }}
-              animate={{ opacity: [0.7, 1, 0.7] }}
-              transition={{ duration: 1, repeat: Infinity }}
+              style={{ background: 'rgba(255,200,0,0.9)', color: '#000' }}
             >
               🎁 HUD - Drag to move
-            </motion.div>
+            </div>
           )}
           
           <GiftPanel 
